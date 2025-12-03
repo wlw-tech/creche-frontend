@@ -26,7 +26,7 @@ export const api = ky.create({
           useAuthStore.getState().logout();
           // Rediriger vers login
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = '/auth/login';
           }
         }
 

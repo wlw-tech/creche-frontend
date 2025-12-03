@@ -1,0 +1,78 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "home": {
+    "title": "Le Nido",
+    "subtitle": "Plateforme complète de gestion pour crèches et garderies",
+    "adminSection": "Pour l'administration",
+    "adminDescription": "Gérez les enfants, inscriptions, présences et facturation",
+    "adminAccess": "Accès Admin",
+    "parentSection": "Pour les parents",
+    "parentDescription": "Candidature d'inscription et suivi de votre enfant",
+    "inscription": "Inscription"
+  },
+  "admin": {
+    "children": {
+      "title": "Tous les enfants",
+      "searchPlaceholder": "Rechercher par nom...",
+      "filter": "Filtrer",
+      "name": "Nom",
+      "group": "Groupe",
+      "teacher": "Enseignant",
+      "parent": "Parent",
+      "status": "Statut",
+      "actions": "Actions",
+      "viewProfile": "Voir profil",
+      "noResults": "Aucun enfant ne correspond à votre recherche."
+    },
+    "inscriptions": {
+      "title": "Toutes les inscriptions",
+      "searchPlaceholder": "Rechercher...",
+      "parent": "Parent",
+      "group": "Groupe",
+      "allergies": "Allergies",
+      "contact": "Contact",
+      "viewDetails": "Voir détails"
+    },
+    "dashboard": {
+      "title": "Tableau de Bord Admin",
+      "totalChildren": "Total Enfants",
+      "pendingRegistrations": "Inscriptions en attente",
+      "todayAttendance": "Présences aujourd'hui",
+      "monthlyEvents": "Événements ce mois",
+      "quickActions": "Actions Rapides",
+      "manageChildren": "Gérer les enfants",
+      "viewRegistrations": "Voir les inscriptions",
+      "manageCalendar": "Gérer le calendrier",
+      "crecheSettings": "Paramètres de la crèche",
+      "recentActivities": "Activités Récentes",
+      "newRegistration": "Nouvelle inscription",
+      "toProcess": "À traiter",
+      "attendanceUpdate": "Mise à jour présence",
+      "completed": "Complété",
+      "newParentMessage": "Nouveau message parent",
+      "unread": "Non lu",
+      "recentlyAdded": "Enfants Récemment Ajoutés",
+      "name": "Nom",
+      "age": "Âge",
+      "registrationDate": "Date d'inscription",
+      "status": "Statut",
+      "active": "Actif",
+      "pending": "En attente"
+    }
+  },
+  "sidebar": {
+    "overview": "Vue d'ensemble",
+    "children": "Tous les enfants",
+    "registrations": "Toutes les inscriptions",
+    "classes": "Gestion des classes",
+    "menus": "Menu enfant",
+    "users": "Tous les utilisateurs",
+    "settings": "Paramètres",
+    "logout": "Déconnexion",
+    "roleAdmin": "Admin"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج"
+  },
+  "home": {
+    "title": "النيدو",
+    "subtitle": "منصة متكاملة لإدارة الحضانات ورياض الأطفال",
+    "adminSection": "للإدارة",
+    "adminDescription": "إدارة الأطفال، التسجيلات، الحضور والفواتير",
+    "adminAccess": "دخول الإدارة",
+    "parentSection": "للآباء",
+    "parentDescription": "طلب التسجيل ومتابعة طفلك",
+    "inscription": "تسجيل"
+  },
+  "admin": {
+    "children": {
+      "title": "كل الأطفال",
+      "searchPlaceholder": "البحث بالاسم...",
+      "filter": "تصفية",
+      "name": "الاسم",
+      "group": "المجموعة",
+      "teacher": "المعلم",
+      "parent": "ولي الأمر",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "viewProfile": "عرض الملف الشخصي",
+      "noResults": "لا يوجد أطفال يطابقون بحثك."
+    },
+    "inscriptions": {
+      "title": "جميع التسجيلات",
+      "searchPlaceholder": "البحث...",
+      "parent": "ولي الأمر",
+      "group": "المجموعة",
+      "allergies": "الحساسية",
+      "contact": "التواصل",
+      "viewDetails": "عرض التفاصيل"
+    },
+    "dashboard": {
+      "title": "لوحة تحكم الإدارة",
+      "totalChildren": "إجمالي الأطفال",
+      "pendingRegistrations": "التسجيلات المعلقة",
+      "todayAttendance": "الحضور اليوم",
+      "monthlyEvents": "أحداث هذا الشهر",
+      "quickActions": "إجراءات سريعة",
+      "manageChildren": "إدارة الأطفال",
+      "viewRegistrations": "عرض التسجيلات",
+      "manageCalendar": "إدارة التقويم",
+      "crecheSettings": "إعدادات الحضانة",
+      "recentActivities": "الأنشطة الأخيرة",
+      "newRegistration": "تسجيل جديد",
+      "toProcess": "للمعالجة",
+      "attendanceUpdate": "تحديث الحضور",
+      "completed": "مكتمل",
+      "newParentMessage": "رسالة جديدة من ولي الأمر",
+      "unread": "غير مقروء",
+      "recentlyAdded": "الأطفال المضافون مؤخراً",
+      "name": "الاسم",
+      "age": "العمر",
+      "registrationDate": "تاريخ التسجيل",
+      "status": "الحالة",
+      "active": "نشط",
+      "pending": "معلق"
+    }
+  },
+  "sidebar": {
+    "overview": "نظرة عامة",
+    "children": "كل الأطفال",
+    "registrations": "جميع التسجيلات",
+    "classes": "إدارة الفصول",
+    "menus": "قائمة الأطفال",
+    "users": "جميع المستخدمين",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "roleAdmin": "إدارة"
+  }
+}

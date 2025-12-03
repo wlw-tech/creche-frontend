@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Design System Colors for Le Nido */
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+
+  /* Primary colors from design system */
+  --primary: #aedff7;
+  --primary-foreground: #1a1a1a;
+  --secondary: #b8e986;
+  --secondary-foreground: #1a1a1a;
+  --accent: #ff6f61;
+  --accent-foreground: #ffffff;
+
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
+  --destructive: #ff4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #f5f5f5;
+  --ring: #aedff7;
+
+  --chart-1: #aedff7;
+  --chart-2: #b8e986;
+  --chart-3: #ff6f61;
+  --chart-4: #f5f5f5;
+  --chart-5: #666666;
+
+  --radius: 0.625rem;
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #aedff7;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #b8e986;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #aedff7;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #1a1a1a;
+  --card-foreground: #f5f5f5;
+  --primary: #89c4df;
+  --primary-foreground: #1a1a1a;
+  --secondary: #9dd969;
+  --secondary-foreground: #1a1a1a;
+  --accent: #ff8a7e;
+  --accent-foreground: #1a1a1a;
+  --muted: #2a2a2a;
+  --muted-foreground: #999999;
+  --destructive: #ff6666;
+  --destructive-foreground: #0a0a0a;
+  --border: #333333;
+  --input: #2a2a2a;
+  --ring: #89c4df;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #89c4df;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #9dd969;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #333333;
+  --sidebar-ring: #89c4df;
+}
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
