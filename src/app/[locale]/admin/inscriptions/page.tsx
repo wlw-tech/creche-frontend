@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Eye } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Locale } from "@/lib/i18n/config";
 import { SidebarNew } from "@/components/layout/sidebar-new";
@@ -29,6 +30,7 @@ export default function InscriptionsPage({ params }: { params: Promise<{ locale:
   const [inscriptions, setInscriptions] = useState<InscriptionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<InscriptionItem["statutCode"] | null>(null);
 
   const handleAccept = async (id: string) => {
     try {
@@ -122,11 +124,16 @@ export default function InscriptionsPage({ params }: { params: Promise<{ locale:
     };
   }, []);
 
-  const filtered = inscriptions.filter((insc) =>
-    insc.childName.toLowerCase().includes(search.toLowerCase()) ||
-    insc.parentName.toLowerCase().includes(search.toLowerCase()) ||
-    insc.email.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = inscriptions.filter((insc) => {
+    const matchesSearch =
+      insc.childName.toLowerCase().includes(search.toLowerCase()) ||
+      insc.parentName.toLowerCase().includes(search.toLowerCase()) ||
+      insc.email.toLowerCase().includes(search.toLowerCase());
+
+    const matchesStatus = statusFilter ? insc.statutCode === statusFilter : true;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -141,14 +148,59 @@ export default function InscriptionsPage({ params }: { params: Promise<{ locale:
             <p className="text-muted-foreground">{inscriptions.length} inscriptions</p>
           </div>
 
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t('searchPlaceholder')}
-              className="pl-10"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div className="relative md:w-72">
+              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder={t('searchPlaceholder')}
+                className="pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs md:text-sm">
+              <Button
+                variant={statusFilter === null ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setStatusFilter(null)}
+              >
+                Tous
+              </Button>
+              <Button
+                variant={statusFilter === "CANDIDATURE" ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setStatusFilter("CANDIDATURE")}
+              >
+                En revue
+              </Button>
+              <Button
+                variant={statusFilter === "EN_COURS" ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setStatusFilter("EN_COURS")}
+              >
+                En cours
+              </Button>
+              <Button
+                variant={statusFilter === "ACTIF" ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setStatusFilter("ACTIF")}
+              >
+                Accepté
+              </Button>
+              <Button
+                variant={statusFilter === "REJETEE" ? "default" : "outline"}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setStatusFilter("REJETEE")}
+              >
+                Refusé
+              </Button>
+            </div>
           </div>
           {error && (
             <p className="mb-4 text-sm text-destructive">{error}</p>
@@ -198,14 +250,16 @@ export default function InscriptionsPage({ params }: { params: Promise<{ locale:
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2 bg-transparent"
-                    >
-                      <Eye className="w-4 h-4" />
-                      {t("viewDetails")}
-                    </Button>
+                    <Link href={`/${currentLocale}/admin/inscriptions/${insc.id}`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-2 bg-transparent"
+                      >
+                        <Eye className="w-4 h-4" />
+                        {t("viewDetails")}
+                      </Button>
+                    </Link>
                     {insc.statutCode === 'CANDIDATURE' || insc.statutCode === 'EN_COURS' ? (
                       <>
                         <Button

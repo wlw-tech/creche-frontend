@@ -10,10 +10,14 @@ import Step3AuthorizedPersons from "@/components/inscriptions/step-3-authorized-
 import Step4HealthInfo from "@/components/inscriptions/step-4-health-info"
 import Step5Regulations from "@/components/inscriptions/step-5-regulations"
 import SuccessScreen from "@/components/inscriptions/success-screen"
+import { apiClient } from "@/lib/api"
+import { usePathname } from "next/navigation"
 
 export default function InscriptionsPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const pathname = usePathname()
   const [formData, setFormData] = useState({
     // Step 1: Child Info
     childFirstName: "",
@@ -23,6 +27,7 @@ export default function InscriptionsPage() {
     rankInFraternity: "",
     selectedGroup: "",
     selectedActivities: [] as string[],
+    classeIdSouhaitee: "",
 
     // Step 2: Parent Info
     motherFirstName: "",
@@ -74,10 +79,77 @@ export default function InscriptionsPage() {
   }
 
   const handleSubmit = async () => {
-    if (formData.regulationsAccepted) {
-      console.log("[v0] Submitting inscription form:", formData)
+    if (!formData.regulationsAccepted) return
+
+    // validation minimale côté client
+    const primaryEmail = formData.motherEmail || formData.fatherEmail
+    if (!primaryEmail) {
+      setSubmitError("Veuillez renseigner au moins l'email d'un parent.")
+      return
+    }
+    if (!formData.classeIdSouhaitee) {
+      setSubmitError("Veuillez sélectionner une classe souhaitée.")
+      return
+    }
+
+    setSubmitError(null)
+
+    try {
+      const isArabic = pathname?.startsWith("/ar")
+      const locale = isArabic ? "ar" : "fr"
+
+      const tuteurs: any[] = []
+
+      if (formData.motherFirstName || formData.motherLastName || formData.motherEmail) {
+        tuteurs.push({
+          lien: "Mere",
+          prenom: formData.motherFirstName,
+          nom: formData.motherLastName,
+          email: formData.motherEmail || undefined,
+          telephone: formData.motherPhone || undefined,
+          principal: true,
+        })
+      }
+
+      if (formData.fatherFirstName || formData.fatherLastName || formData.fatherEmail) {
+        tuteurs.push({
+          lien: "Pere",
+          prenom: formData.fatherFirstName,
+          nom: formData.fatherLastName,
+          email: formData.fatherEmail || undefined,
+          telephone: formData.fatherPhone || undefined,
+          principal: !tuteurs.length,
+        })
+      }
+
+      const payload = {
+        famille: {
+          emailPrincipal: primaryEmail,
+          languePreferee: locale,
+          adresseFacturation: formData.motherAddress || formData.fatherAddress || undefined,
+        },
+        tuteurs,
+        enfant: {
+          prenom: formData.childFirstName,
+          nom: formData.childLastName,
+          dateNaissance: formData.dateOfBirth,
+        },
+        classeIdSouhaitee: formData.classeIdSouhaitee,
+        commentaire: formData.remarks || formData.allergies || undefined,
+      }
+
+      await apiClient.createPublicInscription(payload)
       setIsSubmitted(true)
-      // TODO: Send formData to your backend API
+    } catch (error: any) {
+      console.error("[Inscriptions] Error submitting inscription", error)
+      const apiMessage = error?.response?.data?.message
+      if (Array.isArray(apiMessage)) {
+        setSubmitError(apiMessage.join(" "))
+      } else if (typeof apiMessage === "string") {
+        setSubmitError(apiMessage)
+      } else {
+        setSubmitError("Une erreur est survenue lors de l'envoi de l'inscription. Veuillez vérifier les informations et réessayer.")
+      }
     }
   }
 
@@ -112,6 +184,9 @@ export default function InscriptionsPage() {
 
         {/* Form Content */}
         <Card className="p-6 md:p-8 border-2 border-border/50">
+          {submitError && (
+            <p className="mb-4 text-sm text-red-600 font-medium">{submitError}</p>
+          )}
           {currentStep === 1 && <Step1ChildInfo formData={formData} updateFormData={updateFormData} />}
           {currentStep === 2 && <Step2ParentInfo formData={formData} updateFormData={updateFormData} />}
           {currentStep === 3 && <Step3AuthorizedPersons formData={formData} updateFormData={updateFormData} />}

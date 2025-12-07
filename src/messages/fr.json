@@ -69,13 +69,13 @@
     "children": "Tous les enfants",
     "registrations": "Toutes les inscriptions",
     "classes": "Gestion des classes",
+    "teachers": "Enseignants & classes",
     "menus": "Menu enfant",
     "users": "Tous les utilisateurs",
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "roleAdmin": "Admin"
-  }
-,
+  },
 
   "parent": {
     "tabs": {
@@ -110,5 +110,64 @@
       "parentMeeting": "Réunion parents-enseignants",
       "parkOuting": "Sortie au parc"
     }
+  },
+  "teacher": {
+  "dashboard": {
+    "title": "Tableau de bord Enseignant",
+    "subtitle": "Salle Bleue • Présence du jour",
+    "langToggle": "FR / AR",
+    "presenceTime": "Présence du 29/09 — 08:35",
+    "presentButton": "Présent",
+    "absentButton": "Absent",
+    "daySummaryTitle": "Résumé de journée",
+    "cards": {
+      "appetiteLabel": "Appétit",
+      "appetiteValue": "Bien",
+      "moodLabel": "Humeur",
+      "moodValue": "Bonne",
+      "napLabel": "Sieste",
+      "napValue": "1h",
+      "participationLabel": "Participation",
+      "participationValue": "Bonne"
+    },
+    "prev": "Précédent",
+    "next": "Suivant",
+    "summaryCta": "Résumé jour"
+  },
+  "summary": {
+    "title": "Résumé de la journée",
+    "back": "Retour",
+    "kpis": {
+      "presentLabel": "Présents",
+      "attendanceRateLabel": "Taux présence",
+      "avgNapLabel": "Sieste moyenne"
+    },
+    "sections": {
+      "appetiteTitle": "Appétit",
+      "appetite": {
+        "little": "Un peu",
+        "good": "Bien",
+        "all": "Tout"
+      },
+      "moodTitle": "Humeur",
+      "mood": {
+        "bad": "Mauvaise",
+        "good": "Bonne",
+        "excellent": "Excellente"
+      },
+      "participationTitle": "Participation",
+      "participation": {
+        "low": "Faible",
+        "good": "Bonne",
+        "excellent": "Excellente"
+      },
+      "dailyMessageTitle": "Message de la journée",
+      "dailyMessagePlaceholder": "Résumez la journée pour les parents...",
+      "dailyMessageDefault": "Aujourd'hui, les enfants ont travaillé la motricité fine et les mathématiques. Excellente participation et bonne ambiance!",
+      "saveButton": "Enregistrer",
+      "sendAllButton": "Envoyer à tous",
+      "finishDayButton": "Terminer la journée"
+    }
   }
+}
 }

@@ -51,6 +51,11 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       icon: <Users className="w-5 h-5" />,
     },
     {
+      labelKey: "teachers",
+      href: "/admin/teachers",
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
       labelKey: "menus",
       href: "/admin/menus",
       icon: <UtensilsCrossed className="w-5 h-5" />,

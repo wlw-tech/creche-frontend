@@ -2,17 +2,31 @@
 
 import type React from "react"
 
-import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-
+import { usePathname, useRouter } from "next/navigation"
 export default function TeacherLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [language, setLanguage] = useState("FR")
+  const pathname = usePathname()
+  const router = useRouter()
 
+  const isArabic = pathname?.startsWith("/ar")
+  const currentLocale = isArabic ? "ar" : "fr"
+  const currentLabel = isArabic ? "AR" : "FR"
+  const nextLocale = isArabic ? "fr" : "ar"
+  const nextLabel = isArabic ? "FR" : "AR"
+
+  const handleToggleLanguage = () => {
+    if (!pathname) return
+    const segments = pathname.split("/")
+
+    const rest = segments.slice(3).join("/") // parties après /[locale]/teacher
+    const newPath = `/${nextLocale}/teacher${rest ? `/${rest}` : ""}`
+    router.push(newPath)
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
       {/* Header */}
@@ -31,10 +45,10 @@ export default function TeacherLayout({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLanguage(language === "FR" ? "AR" : "FR")}
               className="rounded-full"
+              onClick={handleToggleLanguage}
             >
-              {language} • {language === "FR" ? "AR" : "FR"}
+              {currentLabel} • {nextLabel}
             </Button>
             <Link href="/logout">
               <Button variant="ghost" size="sm">

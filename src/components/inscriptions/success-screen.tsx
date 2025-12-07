@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card"
 export default function SuccessScreen() {
   return (
     <div className="container mx-auto px-4 py-8 md:py-20 min-h-screen flex items-center justify-center">
-      <Card className="w-full max-w-md p-8 text-center border-2 border-border/50">
+      <Card className="w-full max-w-md p-8 text-center border-2 border-border/50 space-y-4">
+        <div className="w-full rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-800">
+          Votre demande d'inscription a été envoyée avec succès.
+        </div>
         <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6">
           <svg className="w-8 h-8 text-secondary" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -21,7 +24,7 @@ export default function SuccessScreen() {
           Votre demande d'inscription a été soumise avec succès. Nous vous contacterons bientôt.
         </p>
 
-        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+        <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-2">
           <Link href="/">Retour à l'accueil</Link>
         </Button>
       </Card>

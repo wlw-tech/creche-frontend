@@ -69,6 +69,7 @@
     "children": "كل الأطفال",
     "registrations": "جميع التسجيلات",
     "classes": "إدارة الفصول",
+    "teachers": "المعلمون والفصول",
     "menus": "قائمة الأطفال",
     "users": "جميع المستخدمين",
     "settings": "الإعدادات",
@@ -108,5 +109,64 @@
       "parentMeeting": "اجتماع أولياء الأمور والمعلمين",
       "parkOuting": "خرجة إلى الحديقة"
     }
+  },
+  "teacher": {
+  "dashboard": {
+    "title": "لوحة تحكم المعلم",
+    "subtitle": "قاعة الزرقاء • حضور اليوم",
+    "langToggle": "FR / AR",
+    "presenceTime": "حضور 29/09 — 08:35",
+    "presentButton": "حاضر",
+    "absentButton": "غائب",
+    "daySummaryTitle": "ملخص اليوم",
+    "cards": {
+      "appetiteLabel": "الشهية",
+      "appetiteValue": "جيدة",
+      "moodLabel": "المزاج",
+      "moodValue": "جيد",
+      "napLabel": "القيلولة",
+      "napValue": "1 ساعة",
+      "participationLabel": "المشاركة",
+      "participationValue": "جيدة"
+    },
+    "prev": "السابق",
+    "next": "التالي",
+    "summaryCta": "ملخص اليوم"
+  },
+  "summary": {
+    "title": "ملخص اليوم",
+    "back": "رجوع",
+    "kpis": {
+      "presentLabel": "الحاضرون",
+      "attendanceRateLabel": "نسبة الحضور",
+      "avgNapLabel": "متوسط القيلولة"
+    },
+    "sections": {
+      "appetiteTitle": "الشهية",
+      "appetite": {
+        "little": "قليل",
+        "good": "جيد",
+        "all": "كله"
+      },
+      "moodTitle": "المزاج",
+      "mood": {
+        "bad": "سيئ",
+        "good": "جيد",
+        "excellent": "ممتاز"
+      },
+      "participationTitle": "المشاركة",
+      "participation": {
+        "low": "ضعيفة",
+        "good": "جيدة",
+        "excellent": "ممتازة"
+      },
+      "dailyMessageTitle": "رسالة اليوم",
+      "dailyMessagePlaceholder": "لخص اليوم لأولياء الأمور...",
+      "dailyMessageDefault": "اليوم عمل الأطفال على المهارات الحركية والرياضيات. مشاركة ممتازة وجو جميل!",
+      "saveButton": "حفظ",
+      "sendAllButton": "إرسال للجميع",
+      "finishDayButton": "إنهاء اليوم"
+    }
   }
+}
 }

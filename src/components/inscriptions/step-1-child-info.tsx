@@ -91,18 +91,24 @@ export default function Step1ChildInfo({ formData, updateFormData }: Step1Props)
 
       <div>
         <Label htmlFor="classeIdSouhaitee" className="text-sm font-medium">
-          Classe souhaitée (ID) <span className="text-red-500">*</span>
+          Classe souhaitée <span className="text-red-500">*</span>
         </Label>
-        <Input
+        <select
           id="classeIdSouhaitee"
-          placeholder="Ex: f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           value={formData.classeIdSouhaitee}
           onChange={(e) => updateFormData({ classeIdSouhaitee: e.target.value })}
-          className="mt-2"
           required
-        />
+        >
+          <option value="" disabled>
+            Choisir une classe
+          </option>
+          <option value="PETITE_SECTION">Petite Section</option>
+          <option value="MOYENNE_SECTION">Moyenne Section</option>
+          <option value="GRANDE_SECTION">Grande Section</option>
+        </select>
         <p className="text-xs text-muted-foreground mt-1">
-          Veuillez contacter l'administration pour obtenir l'ID de la classe souhaitée
+          Sélectionnez la classe appropriée pour l'enfant
         </p>
       </div>
 

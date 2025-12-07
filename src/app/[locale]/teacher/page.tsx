@@ -4,8 +4,20 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 export default function TeacherDashboard() {
+  const t = useTranslations("teacher.dashboard")
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const isArabic = pathname?.startsWith("/ar")
+  const currentLocale = isArabic ? "ar" : "fr"
+  const currentLabel = isArabic ? "AR" : "FR"
+  const nextLocale = isArabic ? "fr" : "ar"
+  const nextLabel = isArabic ? "FR" : "AR"
+
   const [currentChildIndex, setCurrentChildIndex] = useState(0)
   const [attendanceData, setAttendanceData] = useState({})
 
@@ -43,12 +55,9 @@ export default function TeacherDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Tableau de bord Enseignant</h1>
-          <p className="text-xs md:text-sm text-gray-600 mt-1">Salle Bleue • Présence du jour</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t("title")}</h1>
+          <p className="text-xs md:text-sm text-gray-600 mt-1">{t("subtitle")}</p>
         </div>
-        <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-full px-5 py-2 font-semibold text-xs md:text-sm shadow-sm">
-          FR / AR
-        </Button>
       </div>
 
       {/* Main Content Grid */}
@@ -75,7 +84,7 @@ export default function TeacherDashboard() {
                 </div>
 
                 {/* Presence Time */}
-                <div className="text-xs text-gray-600 font-medium">Présence du 29/09 — 08:35</div>
+                <div className="text-xs text-gray-600 font-medium">{t("presenceTime")}</div>
 
                 {/* Attendance Buttons */}
                 <div className="flex gap-2">
@@ -83,13 +92,13 @@ export default function TeacherDashboard() {
                     onClick={() => handlePresence("present")}
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg py-3 text-base"
                   >
-                    ✓ Présent
+                    ✓ {t("presentButton")}
                   </Button>
                   <Button
                     onClick={() => handlePresence("absent")}
                     className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg py-3 text-base"
                   >
-                    ✕ Absent
+                    ✕ {t("absentButton")}
                   </Button>
                 </div>
               </div>
@@ -100,7 +109,7 @@ export default function TeacherDashboard() {
         {/* Right Column: Daily Summary */}
         <div className="lg:col-span-2">
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-gray-900">Résumé de journée</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t("daySummaryTitle")}</h3>
 
             {/* Summary Cards Grid */}
             <div className="grid grid-cols-2 gap-3">
@@ -108,8 +117,8 @@ export default function TeacherDashboard() {
                 <CardContent className="pt-4">
                   <div className="text-center">
                     <div className="text-3xl mb-2">🍽️</div>
-                    <p className="text-xs font-medium text-gray-600">Appétit</p>
-                    <p className="text-lg font-bold text-green-600 mt-1">Bien</p>
+                    <p className="text-xs font-medium text-gray-600">{t("cards.appetiteLabel")}</p>
+                    <p className="text-lg font-bold text-green-600 mt-1">{t("cards.appetiteValue")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -118,8 +127,8 @@ export default function TeacherDashboard() {
                 <CardContent className="pt-4">
                   <div className="text-center">
                     <div className="text-3xl mb-2">😊</div>
-                    <p className="text-xs font-medium text-gray-600">Humeur</p>
-                    <p className="text-lg font-bold text-sky-500 mt-1">Bonne</p>
+                    <p className="text-xs font-medium text-gray-600">{t("cards.moodLabel")}</p>
+                    <p className="text-lg font-bold text-sky-500 mt-1">{t("cards.moodValue")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -128,8 +137,8 @@ export default function TeacherDashboard() {
                 <CardContent className="pt-4">
                   <div className="text-center">
                     <div className="text-3xl mb-2">😴</div>
-                    <p className="text-xs font-medium text-gray-600">Sieste</p>
-                    <p className="text-lg font-bold text-gray-700 mt-1">1h</p>
+                    <p className="text-xs font-medium text-gray-600">{t("cards.napLabel")}</p>
+                    <p className="text-lg font-bold text-gray-700 mt-1">{t("cards.napValue")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -138,8 +147,8 @@ export default function TeacherDashboard() {
                 <CardContent className="pt-4">
                   <div className="text-center">
                     <div className="text-3xl mb-2">⭐</div>
-                    <p className="text-xs font-medium text-gray-600">Participation</p>
-                    <p className="text-lg font-bold text-green-600 mt-1">Bonne</p>
+                    <p className="text-xs font-medium text-gray-600">{t("cards.participationLabel")}</p>
+                    <p className="text-lg font-bold text-green-600 mt-1">{t("cards.participationValue")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -155,10 +164,10 @@ export default function TeacherDashboard() {
           disabled={currentChildIndex === 0}
           className="text-gray-700 border border-gray-300 rounded-lg px-5 py-2 font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ← Précédent
+          ← {t("prev")}
         </Button>
 
-        <div className="flex-1 mx-6 flex items-center gap-3">
+        <div className="flex-1 mx-8 flex items-center gap-5 ">
           <div className="flex-1">
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -167,23 +176,23 @@ export default function TeacherDashboard() {
               ></div>
             </div>
           </div>
-          <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
+          <span className="text-xs font-semibold text-gray-600 whitespace-nowrap ">
             {currentChildIndex + 1} / {children.length}
           </span>
         </div>
 
         {isAllProcessed ? (
           <Link href="/teacher/summary">
-            <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-5 py-2 font-semibold text-sm">
-              Résumé jour →
+            <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-9 py-3 mx-2-semibold text-sm">
+              {t("summaryCta")} →
             </Button>
           </Link>
         ) : (
           <Button
             onClick={handleNext}
-            className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-5 py-2 font-semibold text-sm"
+            className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-7 py-2 mx-5 emibold text-sm"
           >
-            Suivant →
+            {t("next")} →
           </Button>
         )}
       </div>

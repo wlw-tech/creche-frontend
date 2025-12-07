@@ -235,7 +235,7 @@ class ApiClient {
   }
 
   rejectAdminInscription(id: string, raison?: string) {
-    return this.client.post(`/admin/inscriptions/${id}/reject`, { raison });
+    return this.client.patch(`/admin/inscriptions/${id}/reject`, { raison });
   }
 
   updateAdminInscriptionStatus(
