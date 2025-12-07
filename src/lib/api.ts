@@ -95,41 +95,47 @@ class ApiClient {
     return this.client.post('/admin/users', data);
   }
 
-listUsers() {
-  return this.client.get("/admin/users", {
-  
-  });
-}
-// ---- CLASSES (Admin) ----
+  listUsers() {
+    return this.client.get('/admin/users');
+  }
 
-listClasses() {
-  return this.client.get("/admin/classes");
-}
+  updateUserStatus(id: string, statut: 'INVITED' | 'ACTIVE' | 'DISABLED') {
+    return this.client.patch(`/admin/users/${id}/status`, { statut });
+  }
 
-createClass(data: {
-  nom: string;
-  capacite?: number | null;
-  trancheAge?: string | null;
-  active?: boolean;
-}) {
-  return this.client.post("/admin/classes", data);
-}
+  deleteUser(id: string) {
+    return this.client.delete(`/admin/users/${id}`);
+  }
 
-updateClass(
-  id: string,
-  data: {
-    nom?: string;
+  // ---- CLASSES (Admin) ----
+  listClasses() {
+    return this.client.get('/admin/classes');
+  }
+
+  createClass(data: {
+    nom: string;
     capacite?: number | null;
     trancheAge?: string | null;
     active?: boolean;
+  }) {
+    return this.client.post('/admin/classes', data);
   }
-) {
-  return this.client.patch(`/admin/classes/${id}`, data);
-}
 
-deleteClass(id: string) {
-  return this.client.delete(`/admin/classes/${id}`);
-}
+  updateClass(
+    id: string,
+    data: {
+      nom?: string;
+      capacite?: number | null;
+      trancheAge?: string | null;
+      active?: boolean;
+    }
+  ) {
+    return this.client.patch(`/admin/classes/${id}`, data);
+  }
+
+  deleteClass(id: string) {
+    return this.client.delete(`/admin/classes/${id}`);
+  }
 
   getClassWithChildren(classeId: string) {
     return this.client.get(`/admin/classes/${classeId}/enfants`);
@@ -183,7 +189,8 @@ deleteClass(id: string) {
   changePassword(oldPassword: string, newPassword: string) {
     return this.client.post('/parent/me/change-password', { oldPassword, newPassword });
   }
-    // Children (Admin)
+
+  // Children (Admin)
   listChildren(page = 1, pageSize = 50) {
     return this.client.get('/admin/enfants', {
       params: { page, pageSize },
@@ -214,6 +221,31 @@ deleteClass(id: string) {
     return this.client.patch(`/admin/enfants/${id}/status`, { statut });
   }
 
+  // Admin Inscriptions (protected)
+  listAdminInscriptions() {
+    return this.client.get('/admin/inscriptions');
+  }
+
+  getAdminInscription(id: string) {
+    return this.client.get(`/admin/inscriptions/${id}`);
+  }
+
+  acceptAdminInscription(id: string) {
+    return this.client.post(`/admin/inscriptions/${id}/accept`, {});
+  }
+
+  rejectAdminInscription(id: string, raison?: string) {
+    return this.client.post(`/admin/inscriptions/${id}/reject`, { raison });
+  }
+
+  updateAdminInscriptionStatus(
+    id: string,
+    statut: 'EN_COURS' | 'ACTIF' | 'REJETEE',
+    notes?: string,
+  ) {
+    return this.client.patch(`/admin/inscriptions/${id}/status`, { statut, notes });
+  }
+
   // Public Inscription (no auth required)
   createPublicInscription(data: any) {
     // Create a separate client instance without auth for public endpoints
@@ -228,4 +260,3 @@ deleteClass(id: string) {
 }
 
 export const apiClient = new ApiClient();
-

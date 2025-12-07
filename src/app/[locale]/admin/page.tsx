@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { Locale } from "@/lib/i18n/config";
 import { SidebarNew } from "@/components/layout/sidebar-new";
+import { apiClient } from "@/lib/api";
 
 export default function AdminPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const currentLocale = resolvedParams.locale;
   const t = useTranslations("admin.dashboard");
   const [loading, setLoading] = useState(true);
+  const [pendingRegistrations, setPendingRegistrations] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token") || document.cookie.includes("token");
@@ -25,7 +27,19 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
       return;
     }
 
-    setLoading(false);
+    async function fetchStats() {
+      try {
+        const res = await apiClient.listAdminInscriptions();
+        const total = (res.data && (res.data.total ?? res.data.items?.length)) ?? 0;
+        setPendingRegistrations(total);
+      } catch (err) {
+        console.error("[Admin/Dashboard] Error loading inscriptions stats", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStats();
   }, [router]);
 
   if (loading) {
@@ -53,8 +67,8 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     },
     {
       title: t("pendingRegistrations"),
-      value: "8",
-      change: "-2%",
+      value: pendingRegistrations === null ? "…" : String(pendingRegistrations),
+      change: "",
       icon: FileText,
       color: "text-yellow-600",
     },

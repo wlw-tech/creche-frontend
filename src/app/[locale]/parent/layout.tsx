@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 export default function ParentLayout({
@@ -11,7 +11,26 @@ export default function ParentLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [language, setLanguage] = useState("FR")
+  const pathname = usePathname()
+  const router = useRouter()
+
+  // Déterminer la locale actuelle à partir de l'URL (/fr/... ou /ar/...)
+  const isArabic = pathname?.startsWith("/ar")
+  const currentLocale = isArabic ? "ar" : "fr"
+  const currentLabel = isArabic ? "AR" : "FR"
+  const nextLocale = isArabic ? "fr" : "ar"
+  const nextLabel = isArabic ? "FR" : "AR"
+
+  const handleToggleLanguage = () => {
+    if (!pathname) return
+
+    const segments = pathname.split("/")
+    if (segments.length > 1) {
+      segments[1] = nextLocale
+      const newPath = segments.join("/") || "/"
+      router.push(newPath)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
@@ -31,10 +50,10 @@ export default function ParentLayout({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLanguage(language === "FR" ? "AR" : "FR")}
+              onClick={handleToggleLanguage}
               className="rounded-full"
             >
-              {language} • {language === "FR" ? "AR" : "FR"}
+              {currentLabel} • {nextLabel}
             </Button>
             <Link href="/logout">
               <Button variant="ghost" size="sm">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -25,6 +25,7 @@ interface SidebarItem {
 
 export function SidebarNew({ currentLocale }: { currentLocale: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const t = useTranslations('sidebar');
 
@@ -65,6 +66,20 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
     setExpandedMenus((prev) =>
       prev.includes(labelKey) ? prev.filter((m) => m !== labelKey) : [...prev, labelKey],
     );
+  };
+
+  const handleLogout = () => {
+    // Supprimer les cookies/token simples côté client
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    try {
+      localStorage.removeItem("token");
+    } catch {
+      // ignore
+    }
+
+    const loginPath = `/${currentLocale}/auth/login`;
+    router.push(loginPath);
   };
 
   return (
@@ -172,7 +187,10 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           <Settings className="w-5 h-5" />
           {t('settings')}
         </button>
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
+        >
           <LogOut className="w-5 h-5" />
           {t('logout')}
         </button>

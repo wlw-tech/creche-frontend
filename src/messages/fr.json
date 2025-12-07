@@ -75,4 +75,40 @@
     "logout": "Déconnexion",
     "roleAdmin": "Admin"
   }
+,
+
+  "parent": {
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "menu": "Menu du jour",
+      "profile": "Profil"
+    },
+    "overview": {
+      "dailySummaryTitle": "Résumé de la journée",
+      "upcomingEventsTitle": "Événements à venir"
+    },
+    "menu": {
+      "title": "Menu du jour"
+    },
+    "profile": {
+      "childInfoTitle": "Informations de l'enfant",
+      "birthdateLabel": "Date de naissance",
+      "allergiesLabel": "Allergies",
+      "authorizedPersonsTitle": "Personnes autorisées",
+      "securityTitle": "Sécurité",
+      "changePasswordCta": "Changer le mot de passe",
+      "passwordChanged": "Mot de passe modifié avec succès !",
+      "passwordMismatch": "Les mots de passe ne correspondent pas !",
+      "mother": "Mme. Parent",
+      "motherRole": "Mère",
+      "father": "M. Parent",
+      "fatherRole": "Père",
+      "grandmother": "Mme. Grand-mère",
+      "grandmotherRole": "Grand-mère"
+    },
+    "events": {
+      "parentMeeting": "Réunion parents-enseignants",
+      "parkOuting": "Sortie au parc"
+    }
+  }
 }

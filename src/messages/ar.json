@@ -74,5 +74,39 @@
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "roleAdmin": "إدارة"
+  },
+  "parent": {
+    "tabs": {
+      "overview": "نظرة عامة",
+      "menu": "قائمة اليوم",
+      "profile": "الملف الشخصي"
+    },
+    "overview": {
+      "dailySummaryTitle": "ملخص اليوم",
+      "upcomingEventsTitle": "الأحداث القادمة"
+    },
+    "menu": {
+      "title": "قائمة اليوم"
+    },
+    "profile": {
+      "childInfoTitle": "معلومات الطفل",
+      "birthdateLabel": "تاريخ الميلاد",
+      "allergiesLabel": "الحساسية",
+      "authorizedPersonsTitle": "الأشخاص المصرح لهم",
+      "securityTitle": "الأمان",
+      "changePasswordCta": "تغيير كلمة المرور",
+      "passwordChanged": "تم تغيير كلمة المرور بنجاح!",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين!",
+      "mother": "السيدة ولي الأمر",
+      "motherRole": "الأم",
+      "father": "السيد ولي الأمر",
+      "fatherRole": "الأب",
+      "grandmother": "الجدة",
+      "grandmotherRole": "الجدة"
+    },
+    "events": {
+      "parentMeeting": "اجتماع أولياء الأمور والمعلمين",
+      "parkOuting": "خرجة إلى الحديقة"
+    }
   }
 }

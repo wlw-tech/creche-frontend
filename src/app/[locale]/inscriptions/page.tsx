@@ -1,184 +1,150 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Baby, FileText, Users, Calendar } from 'lucide-react';
+import { useState } from "react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import StepIndicator from "@/components/inscriptions/step-indicator"
+import Step1ChildInfo from "@/components/inscriptions/step-1-child-info"
+import Step2ParentInfo from "@/components/inscriptions/step-2-parent-info"
+import Step3AuthorizedPersons from "@/components/inscriptions/step-3-authorized-persons"
+import Step4HealthInfo from "@/components/inscriptions/step-4-health-info"
+import Step5Regulations from "@/components/inscriptions/step-5-regulations"
+import SuccessScreen from "@/components/inscriptions/success-screen"
 
 export default function InscriptionsPage() {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [formData, setFormData] = useState({
+    // Step 1: Child Info
+    childFirstName: "",
+    childLastName: "",
+    dateOfBirth: "",
+    fraternity: "",
+    rankInFraternity: "",
+    selectedGroup: "",
+    selectedActivities: [] as string[],
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsSubmitting(true);
+    // Step 2: Parent Info
+    motherFirstName: "",
+    motherLastName: "",
+    motherPhone: "",
+    motherEmail: "",
+    motherAddress: "",
+    motherProfession: "",
+    fatherFirstName: "",
+    fatherLastName: "",
+    fatherPhone: "",
+    fatherEmail: "",
+    fatherAddress: "",
+    fatherProfession: "",
+    familySituation: "",
 
-    try {
-      // Simuler une soumission de candidature
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast.success('Candidature soumise avec succès!');
-      // Rediriger vers une page de confirmation
-      router.push('/confirmation');
-    } catch (error) {
-      toast.error('Erreur lors de la soumission de la candidature');
-    } finally {
-      setIsSubmitting(false);
+    // Step 3: Authorized Persons
+    authorizedPersons: [
+      { name: "", relationship: "", phone: "" },
+      { name: "", relationship: "", phone: "" },
+      { name: "", relationship: "", phone: "" },
+      { name: "", relationship: "", phone: "" },
+    ],
+
+    // Step 4: Health Info
+    height: "",
+    weight: "",
+    familyHistory: "",
+    chronicDisease: "",
+    medications: "",
+    allergies: "",
+    surgicalInterventions: "",
+    remarks: "",
+
+    // Step 5: Regulations
+    regulationsAccepted: false,
+  })
+
+  const handleNext = () => {
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1)
     }
-  };
+  }
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (formData.regulationsAccepted) {
+      console.log("[v0] Submitting inscription form:", formData)
+      setIsSubmitted(true)
+      // TODO: Send formData to your backend API
+    }
+  }
+
+  const updateFormData = (data: Partial<typeof formData>) => {
+    setFormData((prev) => ({ ...prev, ...data }))
+  }
+
+  if (isSubmitted) {
+    return <SuccessScreen />
+  }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Candidature d'Inscription
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Remplissez le formulaire ci-dessous pour inscrire votre enfant à notre crèche
-            </p>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+            <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m3.5-9c.83 0 1.5-.67 1.5-1.5S14.33 6 13.5 6 12 6.67 12 7.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S7.33 6 6.5 6 5 6.67 5 7.5 5.67 9 6.5 9zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H4.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+            </svg>
           </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-8">
-              <h2 className="text-2xl font-semibold mb-6 flex items-center">
-                <FileText className="mr-2 h-6 w-6 text-primary" />
-                Formulaire de Candidature
-              </h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Nom de l'enfant
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Entrez le nom de l'enfant"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Date de naissance
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Nom du parent/tuteur
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Entrez votre nom complet"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="votre@email.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="+212 6XX XXX XXX"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isSubmitting ? 'Soumission en cours...' : 'Soumettre la candidature'}
-                </Button>
-              </form>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-4 flex items-center">
-                  <Baby className="mr-2 h-5 w-5 text-primary" />
-                  Notre Crèche
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Nous offrons un environnement sûr et stimulant pour le développement de votre enfant.
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
-                    Personnel qualifié et expérimenté
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
-                    Activités éducatives variées
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
-                    Repas équilibrés et sains
-                  </li>
-                  <li className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
-                    Sécurité et bien-être prioritaires
-                  </li>
-                </ul>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-4 flex items-center">
-                  <Calendar className="mr-2 h-5 w-5 text-primary" />
-                  Processus d'Inscription
-                </h3>
-                <ol className="space-y-2 text-sm">
-                  <li>1. Remplir le formulaire de candidature</li>
-                  <li>2. Soumission des documents requis</li>
-                  <li>3. Entretien avec les parents</li>
-                  <li>4. Confirmation d'inscription</li>
-                </ol>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-4 flex items-center">
-                  <Users className="mr-2 h-5 w-5 text-primary" />
-                  Contact
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Pour toute question concernant les inscriptions, n'hésitez pas à nous contacter :
-                </p>
-                <div className="mt-4 space-y-2 text-sm">
-                  <p><strong>Téléphone:</strong> +212 5XX XXX XXX</p>
-                  <p><strong>Email:</strong> info@creche-saas.com</p>
-                  <p><strong>Horaires:</strong> Lun-Ven 8h-18h</p>
-                </div>
-              </Card>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Inscription à Le Nido</h1>
+            <p className="text-sm text-muted-foreground">Crèche-Maternelle</p>
           </div>
         </div>
+
+        {/* Step Indicator */}
+        <div className="mb-8">
+          <StepIndicator currentStep={currentStep} totalSteps={5} />
+        </div>
+
+        {/* Form Content */}
+        <Card className="p-6 md:p-8 border-2 border-border/50">
+          {currentStep === 1 && <Step1ChildInfo formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 2 && <Step2ParentInfo formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 3 && <Step3AuthorizedPersons formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 4 && <Step4HealthInfo formData={formData} updateFormData={updateFormData} />}
+          {currentStep === 5 && <Step5Regulations formData={formData} updateFormData={updateFormData} />}
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-4 justify-between mt-8 pt-6 border-t border-border">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 1}
+              className="px-6 bg-transparent"
+            >
+              Précédent
+            </Button>
+
+            {currentStep < 5 ? (
+              <Button onClick={handleNext} className="bg-primary text-primary-foreground px-6 hover:bg-primary/90">
+                Suivant
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!formData.regulationsAccepted}
+                className="bg-secondary text-secondary-foreground px-6 hover:bg-secondary/90"
+              >
+                Soumettre l'inscription
+              </Button>
+            )}
+          </div>
+        </Card>
       </div>
-    </main>
-  );
+    </div>
+  )
 }
