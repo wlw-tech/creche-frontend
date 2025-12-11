@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   UtensilsCrossed,
+  Calendar,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -61,9 +62,19 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       icon: <UtensilsCrossed className="w-5 h-5" />,
     },
     {
+      labelKey: "events",
+      href: "/admin/events",
+      icon: <Calendar className="w-5 h-5" />,
+    },
+    {
       labelKey: "users",
       href: "/admin/utilisateurs",
       icon: <Users className="w-5 h-5" />,
+    },
+    {
+      labelKey: "profile",
+      href: "/admin/profile",
+      icon: <Settings className="w-5 h-5" />,
     },
   ];
 
@@ -188,10 +199,6 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
         <div className="px-4 py-2">
           <LanguageSwitcher currentLocale={currentLocale as any} />
         </div>
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent/30 transition-all">
-          <Settings className="w-5 h-5" />
-          {t('settings')}
-        </button>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"

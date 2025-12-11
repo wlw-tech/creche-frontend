@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import StepIndicator from "@/components/inscriptions/step-indicator"
@@ -18,6 +18,8 @@ export default function InscriptionsPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const pathname = usePathname()
+  const [classes, setClasses] = useState<{ id: string; nom: string }[]>([])
+  const [classesError, setClassesError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     // Step 1: Child Info
     childFirstName: "",
@@ -65,6 +67,41 @@ export default function InscriptionsPage() {
     // Step 5: Regulations
     regulationsAccepted: false,
   })
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchClasses() {
+      try {
+        setClassesError(null)
+        const res = await apiClient.listClasses()
+        const data = Array.isArray(res.data?.items)
+          ? res.data.items
+          : Array.isArray(res.data)
+          ? res.data
+          : []
+        if (!cancelled) {
+          setClasses(
+            data.map((c: any) => ({
+              id: c.id,
+              nom: c.nom,
+            })),
+          )
+        }
+      } catch (err) {
+        console.error("[Inscriptions] Error loading classes", err)
+        if (!cancelled) {
+          setClassesError("Impossible de charger la liste des classes. Vous pouvez tout de même continuer.")
+        }
+      }
+    }
+
+    fetchClasses()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleNext = () => {
     if (currentStep < 5) {
@@ -187,7 +224,18 @@ export default function InscriptionsPage() {
           {submitError && (
             <p className="mb-4 text-sm text-red-600 font-medium">{submitError}</p>
           )}
-          {currentStep === 1 && <Step1ChildInfo formData={formData} updateFormData={updateFormData} />}
+          {classesError && (
+            <p className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              {classesError}
+            </p>
+          )}
+          {currentStep === 1 && (
+            <Step1ChildInfo
+              formData={formData}
+              updateFormData={updateFormData}
+              classes={classes}
+            />
+          )}
           {currentStep === 2 && <Step2ParentInfo formData={formData} updateFormData={updateFormData} />}
           {currentStep === 3 && <Step3AuthorizedPersons formData={formData} updateFormData={updateFormData} />}
           {currentStep === 4 && <Step4HealthInfo formData={formData} updateFormData={updateFormData} />}

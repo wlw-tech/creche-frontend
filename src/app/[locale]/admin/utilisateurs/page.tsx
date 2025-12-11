@@ -29,6 +29,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [creatingError, setCreatingError] = useState<string | null>(null);
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("");
   const [createForm, setCreateForm] = useState({
     email: "",
     prenom: "",
@@ -69,6 +70,11 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
       cancelled = true;
     };
   }, []);
+
+  const filteredUsers = users.filter((u) => {
+    if (!selectedRoleFilter) return true;
+    return u.role === selectedRoleFilter;
+  });
 
   const handleCreateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -229,11 +235,24 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
           <Card className="p-6">
             {error && <p className="text-sm text-destructive mb-4">{error}</p>}
 
+            <div className="flex justify-end mb-4 gap-2">
+              <select
+                value={selectedRoleFilter}
+                onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                className="border rounded-md px-2 py-1 text-xs bg-background"
+              >
+                <option value="">Tous les rôles</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="ENSEIGNANT">ENSEIGNANT</option>
+                <option value="PARENT">PARENT</option>
+              </select>
+            </div>
+
             {loading ? (
               <p className="text-center text-muted-foreground py-12">
                 Chargement des utilisateurs...
               </p>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <p className="text-center text-muted-foreground py-12">
                 Aucun utilisateur trouvé.
               </p>
@@ -251,7 +270,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
+                    {filteredUsers.map((u) => (
                       <tr key={u.id} className="border-b border-border hover:bg-muted/40">
                         <td className="px-6 py-3 font-medium">
                           {u.prenom} {u.nom}

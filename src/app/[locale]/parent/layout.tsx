@@ -32,6 +32,21 @@ export default function ParentLayout({
     }
   }
 
+  const handleLogout = () => {
+    // Nettoyage basique côté client
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    try {
+      localStorage.removeItem("token")
+      localStorage.removeItem("auth_token")
+    } catch {
+      // ignore
+    }
+
+    const loginPath = `/${currentLocale}/auth/login-user`
+    router.push(loginPath)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
       {/* Header */}
@@ -55,11 +70,9 @@ export default function ParentLayout({
             >
               {currentLabel} • {nextLabel}
             </Button>
-            <Link href="/logout">
-              <Button variant="ghost" size="sm">
-                Déconnexion
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Déconnexion
+            </Button>
           </div>
         </div>
       </header>

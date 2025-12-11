@@ -42,7 +42,15 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
     try {
       setLoading(true);
       const response = await apiClient.listClasses();
-      setClasses(response.data || []);
+      const payload = response.data;
+      const items: any[] = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload)
+        ? payload
+        : [];
+      setClasses(items);
       setError(null);
     } catch (err) {
       console.error("[Classes] Error fetching classes:", err);

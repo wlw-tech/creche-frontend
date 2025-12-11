@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect, use } from "react";
+import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,19 +16,48 @@ import { Locale } from "@/lib/i18n/config";
 interface MenuItem {
   id: string;
   date: string;
-  entree: string | null;
-  plat: string | null;
-  dessert: string | null;
+  // Champs "UI" mappés sur le backend
+  entree: string | null; // = collationMatin backend
+  plat: string | null; // = repas backend
+  dessert: string | null; // = gouter backend
   allergenes: string[];
   statut: "Brouillon" | "Publie";
 }
 
+// Retourne le lundi (ISO) de la semaine de la date passée, au format YYYY-MM-DD
+const getWeekStart = (dateStr: string) => {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = (d.getDay() + 6) % 7; // 0 = lundi
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
+
+const formatWeekLabel = (weekStart: string) => {
+  if (!weekStart) return "";
+  const start = new Date(weekStart);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const startStr = start.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  });
+  const endStr = end.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  });
+  return `Semaine du ${startStr} au ${endStr}`;
+};
+
 export default function MenusPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params);
   const currentLocale = resolvedParams.locale;
+  const t = useTranslations("admin.menus");
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -37,6 +67,15 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     dessert: "",
     allergenes: "",
   });
+  const [weekBaseDate, setWeekBaseDate] = useState<string>("");
+  const [weekMenus, setWeekMenus] = useState(
+    () =>
+      Array.from({ length: 7 }, () => ({
+        entree: "",
+        plat: "",
+        dessert: "",
+      })),
+  );
 
   // Charger les menus au mount
   useEffect(() => {
@@ -50,8 +89,24 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
       const response = await apiClient.listMenus(1, 50);
       // backend = { data: MenuResponseDto[], total, ... }
-      const items = response.data?.data ?? response.data?.items ?? [];
+      const rawItems = response.data?.data ?? response.data?.items ?? [];
+
+      const items: MenuItem[] = rawItems.map((menu: any) => ({
+        id: menu.id,
+        date: menu.date,
+        entree: menu.collationMatin ?? null,
+        plat: menu.repas ?? null,
+        dessert: menu.gouter ?? null,
+        allergenes: Array.isArray(menu.allergenes) ? menu.allergenes : [],
+        statut: menu.statut,
+      }));
+
       setMenus(items);
+
+      if (!selectedWeekStart && items.length > 0) {
+        const firstWeek = getWeekStart(items[0].date);
+        setSelectedWeekStart(firstWeek);
+      }
     } catch (err) {
       console.error("[Menus] Error fetching menus:", err);
       setError("Erreur lors du chargement des menus.");
@@ -67,6 +122,75 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleWeekMenuChange = (
+    index: number,
+    field: "entree" | "plat" | "dessert",
+    value: string,
+  ) => {
+    setWeekMenus((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const handleCreateWeek = async () => {
+    if (!weekBaseDate) {
+      setError("Veuillez choisir une date de base (lundi de la semaine).");
+      return;
+    }
+
+    try {
+      setError(null);
+
+      // calcul du lundi à partir de la date choisie
+      const base = new Date(weekBaseDate);
+      if (Number.isNaN(base.getTime())) {
+        setError("Date de base invalide.");
+        return;
+      }
+      const day = (base.getDay() + 6) % 7; // 0 = lundi
+      base.setDate(base.getDate() - day);
+      base.setHours(0, 0, 0, 0);
+
+      const ops: Promise<any>[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const menuForDay = weekMenus[i];
+        const allergenesArray: string[] = [];
+        const existing = menus.find((m) => m.date === dateStr);
+        if (existing) {
+          ops.push(
+            apiClient.updateMenu(existing.id, {
+              collationMatin: menuForDay.entree || undefined,
+              repas: menuForDay.plat || undefined,
+              gouter: menuForDay.dessert || undefined,
+              allergenes: allergenesArray,
+            }),
+          );
+        } else {
+          ops.push(
+            apiClient.createMenu({
+              date: dateStr,
+              collationMatin: menuForDay.entree || undefined,
+              repas: menuForDay.plat || undefined,
+              gouter: menuForDay.dessert || undefined,
+              allergenes: allergenesArray,
+            }),
+          );
+        }
+      }
+
+      await Promise.all(ops);
+      await fetchMenus();
+    } catch (err) {
+      console.error("[Menus] Error creating week menus:", err);
+      setError("Erreur lors de la création des menus de la semaine.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -75,21 +199,26 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       .map((a) => a.trim())
       .filter((a) => a.length > 0);
 
-    const payload = {
-      date: formData.date,
-      entree: formData.entree,
-      plat: formData.plat,
-      dessert: formData.dessert,
-      allergenes: allergenesArray,
-    };
-
     try {
       setError(null);
 
       if (editingId) {
-        await apiClient.updateMenu(editingId, payload);
+        // Update → on envoie uniquement les champs gérés par UpdateMenuDto
+        await apiClient.updateMenu(editingId, {
+          collationMatin: formData.entree || undefined,
+          repas: formData.plat || undefined,
+          gouter: formData.dessert || undefined,
+          allergenes: allergenesArray,
+        });
       } else {
-        await apiClient.createMenu(payload);
+        // Create → DTO backend = { date, collationMatin, repas, gouter, allergenes }
+        await apiClient.createMenu({
+          date: formData.date,
+          collationMatin: formData.entree || undefined,
+          repas: formData.plat || undefined,
+          gouter: formData.dessert || undefined,
+          allergenes: allergenesArray,
+        });
       }
 
       await fetchMenus();
@@ -201,6 +330,183 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
           {error && (
             <Card className="p-4 bg-destructive/10 border-destructive/30">
               <p className="text-destructive">{error}</p>
+            </Card>
+          )}
+
+          {/* Création rapide d'une semaine */}
+          <Card className="p-6 border border-secondary/40">
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              {t("weekForm.title")}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("weekForm.description")}
+            </p>
+            <div className="mb-4 max-w-xs">
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {t("weekForm.baseDateLabel")}
+              </label>
+              <Input
+                type="date"
+                value={weekBaseDate}
+                onChange={(e) => setWeekBaseDate(e.target.value)}
+              />
+            </div>
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full text-sm border border-border/60 rounded-md">
+                <thead>
+                  <tr className="bg-muted/40">
+                    <th className="px-3 py-2 text-left font-semibold text-foreground w-32">{t("weekForm.columns.day")}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.entree")}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.plat")}</th>
+                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.dessert")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 7 }).map((_, idx) => {
+                    const base = weekBaseDate ? new Date(weekBaseDate) : null;
+                    let label = `Jour ${idx + 1}`;
+                    if (base && !Number.isNaN(base.getTime())) {
+                      const day = (base.getDay() + 6) % 7;
+                      base.setDate(base.getDate() - day + idx);
+                      label = base.toLocaleDateString("fr-FR", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "short",
+                      });
+                    }
+                    const menu = weekMenus[idx];
+                    return (
+                      <tr key={idx} className="border-t border-border/40">
+                        <td className="px-3 py-2 font-semibold text-foreground">{label}</td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="text"
+                            value={menu.entree}
+                            onChange={(e) =>
+                              handleWeekMenuChange(idx, "entree", e.target.value)
+                            }
+                            placeholder={t("weekForm.columns.entree")}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="text"
+                            value={menu.plat}
+                            onChange={(e) =>
+                              handleWeekMenuChange(idx, "plat", e.target.value)
+                            }
+                            placeholder={t("weekForm.columns.plat")}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="text"
+                            value={menu.dessert}
+                            onChange={(e) =>
+                              handleWeekMenuChange(idx, "dessert", e.target.value)
+                            }
+                            placeholder={t("weekForm.columns.dessert")}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Button onClick={handleCreateWeek} className="bg-primary hover:bg-primary/90">
+              {t("weekForm.applyButton")}
+            </Button>
+          </Card>
+
+          {/* Vue hebdomadaire */}
+          {menus.length > 0 && (
+            <Card className="p-6 border border-secondary/40">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Vue hebdomadaire</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Visualisez rapidement les menus de la semaine.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Semaine :</span>
+                  <select
+                    className="border border-input rounded-md px-2 py-1 text-sm bg-background min-w-[200px]"
+                    value={selectedWeekStart}
+                    onChange={(e) => setSelectedWeekStart(e.target.value)}
+                  >
+                    {Array.from(
+                      menus.reduce((acc, m) => {
+                        const w = getWeekStart(m.date);
+                        if (w) acc.add(w);
+                        return acc;
+                      }, new Set<string>()),
+                    )
+                      .sort()
+                      .map((week) => (
+                        <option key={week} value={week}>
+                          {formatWeekLabel(week)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedWeekStart && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-border/60 rounded-md">
+                    <thead>
+                      <tr className="bg-muted/40">
+                        <th className="px-3 py-2 text-left font-semibold text-foreground w-32">Repas</th>
+                        {Array.from({ length: 7 }).map((_, idx) => {
+                          const d = new Date(selectedWeekStart);
+                          d.setDate(d.getDate() + idx);
+                          return (
+                            <th key={idx} className="px-3 py-2 text-left font-semibold text-foreground">
+                              {d.toLocaleDateString("fr-FR", {
+                                weekday: "short",
+                                day: "2-digit",
+                                month: "short",
+                              })}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(["entree", "plat", "dessert"] as const).map((type) => (
+                        <tr key={type} className="border-t border-border/40">
+                          <td className="px-3 py-2 font-semibold text-foreground capitalize">
+                            {type === "entree" && "Entrée"}
+                            {type === "plat" && "Plat principal"}
+                            {type === "dessert" && "Dessert"}
+                          </td>
+                          {Array.from({ length: 7 }).map((_, idx) => {
+                            const d = new Date(selectedWeekStart);
+                            d.setDate(d.getDate() + idx);
+                            const key = d.toISOString().slice(0, 10);
+                            const menuOfDay = menus.find((m) => m.date === key);
+                            const value = menuOfDay ? menuOfDay[type] : null;
+                            return (
+                              <td
+                                key={idx}
+                                className="px-3 py-2 align-top text-xs text-foreground/90 min-w-[120px]"
+                              >
+                                {value ? (
+                                  <span>{value}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </Card>
           )}
 

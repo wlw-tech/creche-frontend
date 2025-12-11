@@ -39,6 +39,47 @@ class ApiClient {
     );
   }
 
+  // ---- EVENTS (Admin) ----
+
+  listAdminEvents(params?: { page?: number; pageSize?: number; status?: string; classeId?: string }) {
+    return this.client.get('/admin/events', { params });
+  }
+
+  createAdminEvent(data: {
+    titre: string;
+    description?: string | null;
+    startAt: string;
+    endAt?: string | null;
+    classeId?: string | null;
+    status?: string;
+  }) {
+    return this.client.post('/admin/events', data);
+  }
+
+  updateAdminEvent(
+    id: string,
+    data: {
+      titre?: string;
+      description?: string | null;
+      startAt?: string;
+      endAt?: string | null;
+      classeId?: string | null;
+      status?: string;
+    },
+  ) {
+    return this.client.patch(`/admin/events/${id}`, data);
+  }
+
+  deleteAdminEvent(id: string) {
+    return this.client.delete(`/admin/events/${id}`);
+  }
+
+  // ---- EVENTS (Parent) ----
+
+  listParentEvents(params?: { page?: number; pageSize?: number; from?: string; to?: string }) {
+    return this.client.get('/parent/events', { params });
+  }
+
     // ---- MENUS ----
 
   listMenus(page = 1, pageSize = 50, statut?: "Brouillon" | "Publie") {
@@ -49,10 +90,10 @@ class ApiClient {
 
   createMenu(data: {
     date: string;
-    entree: string;
-    plat: string;
-    dessert: string;
-    allergenes: string[];
+    collationMatin?: string;
+    repas?: string;
+    gouter?: string;
+    allergenes?: string[];
   }) {
     return this.client.post("/menus", data);
   }
@@ -60,9 +101,9 @@ class ApiClient {
   updateMenu(
     id: string,
     data: {
-      entree?: string;
-      plat?: string;
-      dessert?: string;
+      collationMatin?: string;
+      repas?: string;
+      gouter?: string;
       allergenes?: string[];
       statut?: "Brouillon" | "Publie";
     }
@@ -141,8 +182,13 @@ class ApiClient {
     return this.client.get(`/admin/classes/${classeId}/enfants`);
   }
 
-  assignTeacherToClass(classeId: string, teacherId: string) {
-    return this.client.post(`/admin/classes/${classeId}/enseignants/${teacherId}`, {});
+  assignTeacherToClass(teacherId: string, classeId: string) {
+    // Utilise le contrôleur Users: /admin/users/teachers/:utilisateurId/assign-class
+    // Le backend valide aussi un champ "utilisateurId" dans le corps.
+    return this.client.post(`/admin/users/teachers/${teacherId}/assign-class`, {
+      utilisateurId: teacherId,
+      classeId,
+    });
   }
 
   // Presences (Teacher)
@@ -161,6 +207,15 @@ class ApiClient {
 
   getResumes(classeId: string, date?: string) {
     return this.client.get('/daily-resumes', { params: { classeId, date } });
+  }
+
+  // Generic auth password change (teacher + parent via /auth/change-password)
+  changeAuthPassword(oldPassword: string, newPassword: string, confirmPassword: string) {
+    return this.client.post('/auth/change-password', {
+      oldPassword,
+      newPassword,
+      confirmPassword,
+    });
   }
 
   // Parent Dashboard

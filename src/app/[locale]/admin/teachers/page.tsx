@@ -56,22 +56,38 @@ export default function TeachersPage({ params }: TeachersPageProps) {
           apiClient.listClasses(),
         ])
 
-        const users = Array.isArray(usersRes.data?.items)
-          ? usersRes.data.items
-          : Array.isArray(usersRes.data)
-          ? usersRes.data
+        const usersPayload = usersRes.data
+        const users: any[] = Array.isArray(usersPayload?.data)
+          ? usersPayload.data
+          : Array.isArray(usersPayload?.items)
+          ? usersPayload.items
+          : Array.isArray(usersPayload)
+          ? usersPayload
           : []
+
+        const classesData: any[] = classesRes.data?.items ?? classesRes.data ?? []
+
         const teacherItems: TeacherItem[] = users
           .filter((u: any) => u.role === "TEACHER" || u.role === "ENSEIGNANT")
-          .map((u: any) => ({
-            id: u.id,
-            fullName: `${u.prenom ?? ""} ${u.nom ?? ""}`.trim() || u.email,
-            email: u.email,
-            role: u.role,
-            assignedClassId: u.classeId ?? null,
-          }))
+          .map((u: any) => {
+            const assignedClass = classesData.find((c: any) =>
+              Array.isArray(c.enseignants)
+                ? c.enseignants.some(
+                    (ec: any) => ec.enseignant?.utilisateur?.id === u.id,
+                  )
+                : false,
+            )
 
-        const classItems: ClassItem[] = (classesRes.data ?? []).map((c: any) => ({
+            return {
+              id: u.id,
+              fullName: `${u.prenom ?? ""} ${u.nom ?? ""}`.trim() || u.email,
+              email: u.email,
+              role: u.role,
+              assignedClassId: assignedClass?.id ?? null,
+            }
+          })
+
+        const classItems: ClassItem[] = classesData.map((c: any) => ({
           id: c.id,
           nom: c.nom,
         }))
@@ -102,13 +118,20 @@ export default function TeachersPage({ params }: TeachersPageProps) {
   const handleAssignClass = async (teacherId: string, classeId: string) => {
     try {
       if (!classeId) return
-      await apiClient.assignTeacherToClass(classeId, teacherId)
+      await apiClient.assignTeacherToClass(teacherId, classeId)
       setTeachers((prev) =>
         prev.map((t) => (t.id === teacherId ? { ...t, assignedClassId: classeId } : t)),
       )
-    } catch (err) {
+    } catch (err: any) {
       console.error("[Admin/Teachers] Error assigning teacher to class", err)
-      alert("Erreur lors de l'assignation de l'enseignant à la classe.")
+      const apiMessage = err?.response?.data?.message
+      if (typeof apiMessage === "string") {
+        alert(apiMessage)
+      } else if (Array.isArray(apiMessage)) {
+        alert(apiMessage.join(" \n"))
+      } else {
+        alert("Erreur lors de l'assignation de l'enseignant à la classe.")
+      }
     }
   }
 
@@ -131,14 +154,17 @@ export default function TeachersPage({ params }: TeachersPageProps) {
       const created = res.data
 
       // Récupérer l'id de l'utilisateur créé
-      let teacherId: string | undefined = created?.id
+      let teacherId: string | undefined = created?.utilisateurId ?? created?.id
       if (!teacherId) {
         // Fallback : recharger les utilisateurs et retrouver par email
         const usersRes = await apiClient.listUsers()
-        const usersAll = Array.isArray(usersRes.data?.items)
-          ? usersRes.data.items
-          : Array.isArray(usersRes.data)
-          ? usersRes.data
+        const usersPayload = usersRes.data
+        const usersAll: any[] = Array.isArray(usersPayload?.data)
+          ? usersPayload.data
+          : Array.isArray(usersPayload?.items)
+          ? usersPayload.items
+          : Array.isArray(usersPayload)
+          ? usersPayload
           : []
         const found = usersAll.find((u: any) => u.email === newTeacher.email)
         teacherId = found?.id
@@ -155,7 +181,7 @@ export default function TeachersPage({ params }: TeachersPageProps) {
       }
 
       // Assigner immédiatement à la classe choisie
-      await apiClient.assignTeacherToClass(newTeacher.classeId, teacherId)
+      await apiClient.assignTeacherToClass(teacherId, newTeacher.classeId)
 
       // Mettre à jour la liste locale
       setTeachers((prev) => [

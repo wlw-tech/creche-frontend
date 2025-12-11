@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label"
 interface Step1Props {
   formData: any
   updateFormData: (data: any) => void
+  classes?: { id: string; nom: string }[]
 }
 
-export default function Step1ChildInfo({ formData, updateFormData }: Step1Props) {
+export default function Step1ChildInfo({ formData, updateFormData, classes }: Step1Props) {
   const activities = ["Garderie de 16h45 à 18h", "Atelier du mercredi"]
 
   return (
@@ -103,9 +104,19 @@ export default function Step1ChildInfo({ formData, updateFormData }: Step1Props)
           <option value="" disabled>
             Choisir une classe
           </option>
-          <option value="PETITE_SECTION">Petite Section</option>
-          <option value="MOYENNE_SECTION">Moyenne Section</option>
-          <option value="GRANDE_SECTION">Grande Section</option>
+          {classes && classes.length > 0 ? (
+            classes.map((classe) => (
+              <option key={classe.id} value={classe.id}>
+                {classe.nom}
+              </option>
+            ))
+          ) : (
+            <>
+              <option value="PETITE_SECTION">Petite Section</option>
+              <option value="MOYENNE_SECTION">Moyenne Section</option>
+              <option value="GRANDE_SECTION">Grande Section</option>
+            </>
+          )}
         </select>
         <p className="text-xs text-muted-foreground mt-1">
           Sélectionnez la classe appropriée pour l'enfant

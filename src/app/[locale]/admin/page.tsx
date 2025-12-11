@@ -18,6 +18,9 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const t = useTranslations("admin.dashboard");
   const [loading, setLoading] = useState(true);
   const [pendingRegistrations, setPendingRegistrations] = useState<number | null>(null);
+  const [totalChildren, setTotalChildren] = useState<number | null>(null);
+  const [totalClasses, setTotalClasses] = useState<number | null>(null);
+  const [monthlyEvents, setMonthlyEvents] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token") || document.cookie.includes("token");
@@ -29,9 +32,47 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
 
     async function fetchStats() {
       try {
-        const res = await apiClient.listAdminInscriptions();
-        const total = (res.data && (res.data.total ?? res.data.items?.length)) ?? 0;
-        setPendingRegistrations(total);
+        const [inscriptionsRes, childrenRes, classesRes, eventsRes] = await Promise.all([
+          apiClient.listAdminInscriptions(),
+          apiClient.listChildren(1, 1000),
+          apiClient.listClasses(),
+          apiClient.listAdminEvents({ page: 1, pageSize: 100 }),
+        ]);
+
+        const insPayload = inscriptionsRes.data;
+        const insTotal =
+          (insPayload && (insPayload.total ?? insPayload.items?.length ?? insPayload.data?.length)) ?? 0;
+        setPendingRegistrations(insTotal);
+
+        const childrenPayload = childrenRes.data;
+        const childrenItems: any[] = Array.isArray(childrenPayload?.data)
+          ? childrenPayload.data
+          : Array.isArray(childrenPayload?.items)
+          ? childrenPayload.items
+          : Array.isArray(childrenPayload)
+          ? childrenPayload
+          : [];
+        setTotalChildren(childrenItems.length);
+
+        const classesPayload = classesRes.data;
+        const classesItems: any[] = Array.isArray(classesPayload?.data)
+          ? classesPayload.data
+          : Array.isArray(classesPayload?.items)
+          ? classesPayload.items
+          : Array.isArray(classesPayload)
+          ? classesPayload
+          : [];
+        setTotalClasses(classesItems.length);
+
+        const eventsPayload = eventsRes.data;
+        const eventsItems: any[] = Array.isArray(eventsPayload?.data)
+          ? eventsPayload.data
+          : Array.isArray(eventsPayload?.items)
+          ? eventsPayload.items
+          : Array.isArray(eventsPayload)
+          ? eventsPayload
+          : [];
+        setMonthlyEvents(eventsItems.length);
       } catch (err) {
         console.error("[Admin/Dashboard] Error loading inscriptions stats", err);
       } finally {
@@ -60,8 +101,8 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const stats = [
     {
       title: t("totalChildren"),
-      value: "45",
-      change: "+12%",
+      value: totalChildren === null ? "…" : String(totalChildren),
+      change: "",
       icon: Baby,
       color: "text-blue-600",
     },
@@ -73,16 +114,9 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
       color: "text-yellow-600",
     },
     {
-      title: t("todayAttendance"),
-      value: "38",
-      change: "+5%",
-      icon: Users,
-      color: "text-green-600",
-    },
-    {
       title: t("monthlyEvents"),
-      value: "12",
-      change: "+3%",
+      value: monthlyEvents === null ? "…" : String(monthlyEvents),
+      change: "",
       icon: Calendar,
       color: "text-purple-600",
     },
@@ -136,55 +170,29 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
             ))}
           </div>
 
-          {/* Quick Actions & Recent Activities placeholders */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">{t("quickActions")}</h2>
-              <div className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  {t("manageChildren")}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <FileText className="h-4 w-4 mr-2" />
-                  {t("viewRegistrations")}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {t("manageCalendar")}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Settings className="h-4 w-4 mr-2" />
-                  {t("crecheSettings")}
-                </Button>
-              </div>
+          {/* Overview / Charter section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2 p-6">
+              <h2 className="text-lg font-semibold mb-2">{t("overviewIntroTitle")}</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t("overviewIntroDescription")}
+              </p>
+              <h3 className="text-sm font-semibold mb-2">{t("overviewIntroCharterTitle")}</h3>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>{t("overviewIntroCharterItem1")}</li>
+                <li>{t("overviewIntroCharterItem2")}</li>
+                <li>{t("overviewIntroCharterItem3")}</li>
+              </ul>
             </Card>
 
+            {/* Placeholder for future backend-driven recent activities */}
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">{t("recentActivities")}</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify_between py-2 border-b">
-                  <div>
-                    <p className="font-medium">{t("newRegistration")}</p>
-                    <p className="text-sm text-gray-500">Il y a 2 heures</p>
-                  </div>
-                  <span className="text-sm text-blue-600">{t("toProcess")}</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b">
-                  <div>
-                    <p className="font-medium">{t("attendanceUpdate")}</p>
-                    <p className="text-sm text-gray-500">Il y a 4 heures</p>
-                  </div>
-                  <span className="text-sm text-green-600">{t("completed")}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="font-medium">{t("newParentMessage")}</p>
-                    <p className="text-sm text-gray-500">Il y a 6 heures</p>
-                  </div>
-                  <span className="text-sm text-yellow-600">{t("unread")}</span>
-                </div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold">{t("recentActivities")}</h2>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {t("recentActivitiesEmpty")}
+              </p>
             </Card>
           </div>
         </main>

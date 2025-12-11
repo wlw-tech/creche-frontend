@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
 export default function TeacherLayout({
@@ -27,6 +26,25 @@ export default function TeacherLayout({
     const newPath = `/${nextLocale}/teacher${rest ? `/${rest}` : ""}`
     router.push(newPath)
   }
+
+  const handleLogout = () => {
+    // Effacer les principaux cookies/token côté client
+    if (typeof document !== "undefined") {
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    }
+
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("token")
+      }
+    } catch {
+      // ignore
+    }
+
+    const loginPath = `/${currentLocale}/auth/login`
+    router.push(loginPath)
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
       {/* Header */}
@@ -50,11 +68,9 @@ export default function TeacherLayout({
             >
               {currentLabel} • {nextLabel}
             </Button>
-            <Link href="/logout">
-              <Button variant="ghost" size="sm">
-                Déconnexion
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Déconnexion
+            </Button>
           </div>
         </div>
       </header>

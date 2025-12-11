@@ -12,6 +12,23 @@ import { Locale } from "@/lib/i18n/config";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { apiClient } from "@/lib/api";
 
+type EnseignantClasseItem = {
+  enseignant: {
+    utilisateur?: {
+      id: string;
+      prenom: string;
+      nom: string;
+      email?: string;
+    } | null;
+  } | null;
+};
+
+type ClasseItem = {
+  id: string;
+  nom: string;
+  enseignants?: EnseignantClasseItem[];
+};
+
 type EnfantItem = {
   id: string;
   name: string;
@@ -31,7 +48,10 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
   const [children, setChildren] = useState<EnfantItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [classes, setClasses] = useState<{ id: string; nom: string }[]>([]);
+  const [classes, setClasses] = useState<ClasseItem[]>([]);
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [families, setFamilies] = useState<{ id: string; emailPrincipal: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -108,7 +128,22 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
     async function fetchClasses() {
       try {
         const res = await apiClient.listClasses();
-        setClasses(res.data ?? []);
+        const classesData: ClasseItem[] = res.data?.items ?? res.data ?? [];
+        setClasses(classesData);
+
+        // Dériver la liste des enseignants uniques à partir des classes
+        const teacherMap = new Map<string, string>();
+        for (const cl of classesData) {
+          if (!cl.enseignants) continue;
+          for (const ec of cl.enseignants) {
+            const u = ec.enseignant?.utilisateur;
+            if (u && u.id && !teacherMap.has(u.id)) {
+              const fullName = `${u.prenom ?? ""} ${u.nom ?? ""}`.trim() || u.email || u.id;
+              teacherMap.set(u.id, fullName);
+            }
+          }
+        }
+        setTeachers(Array.from(teacherMap.entries()).map(([id, name]) => ({ id, name })));
       } catch (err) {
         console.error("[Admin/Enfants] Error loading classes", err);
       }
@@ -234,9 +269,32 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
     }
   };
 
-  const filtered = children.filter((child) =>
-    child.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = children.filter((child) => {
+    const q = search.toLowerCase();
+    if (q && !child.name.toLowerCase().includes(q)) {
+      return false;
+    }
+
+    if (selectedClassId && child.classId !== selectedClassId) {
+      return false;
+    }
+
+    if (selectedTeacherId) {
+      const childClasse = classes.find((cl) => cl.id === child.classId);
+      if (!childClasse || !childClasse.enseignants || childClasse.enseignants.length === 0) {
+        return false;
+      }
+      const taughtBySelected = childClasse.enseignants.some((ec) => {
+        const u = ec.enseignant?.utilisateur;
+        return u?.id === selectedTeacherId;
+      });
+      if (!taughtBySelected) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -285,9 +343,32 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                {t('filter')}
-              </Button>
+              <div className="flex gap-2">
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="border border-input rounded-md px-2 py-2 text-xs bg-background min-w-[140px]"
+                >
+                  <option value="">Toutes les classes</option>
+                  {classes.map((cl) => (
+                    <option key={cl.id} value={cl.id}>
+                      {cl.nom}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedTeacherId}
+                  onChange={(e) => setSelectedTeacherId(e.target.value)}
+                  className="border border-input rounded-md px-2 py-2 text-xs bg-background min-w-[160px]"
+                >
+                  <option value="">Tous les enseignants</option>
+                  {teachers.map((tch) => (
+                    <option key={tch.id} value={tch.id}>
+                      {tch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -296,7 +377,6 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                   <tr className="border-b border-border">
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('name')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('group')}</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('teacher')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('parent')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('status')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('actions')}</th>
@@ -305,7 +385,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
                         Chargement des enfants…
                       </td>
                     </tr>
@@ -330,7 +410,6 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                             ))}
                           </select>
                         </td>
-                        <td className="px-6 py-3 text-muted-foreground">{child.teacher}</td>
                         <td className="px-6 py-3 text-muted-foreground text-xs">{child.parent}</td>
                         <td className="px-6 py-3">
                           <select
@@ -375,7 +454,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
                         Aucun enfant ne correspond à votre recherche.
                       </td>
                     </tr>

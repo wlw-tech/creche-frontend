@@ -61,7 +61,48 @@
       "registrationDate": "Date d'inscription",
       "status": "Statut",
       "active": "Actif",
-      "pending": "En attente"
+      "pending": "En attente",
+      "overviewIntroTitle": "Bienvenue sur le tableau de bord",
+      "overviewIntroDescription": "Retrouvez ici un aperçu global des enfants, inscriptions, classes et événements de votre crèche.",
+      "overviewIntroCharterTitle": "Charte d'utilisation",
+      "overviewIntroCharterItem1": "Les données affichées proviennent uniquement du backend (aucune donnée fictive).",
+      "overviewIntroCharterItem2": "Mettez à jour régulièrement les inscriptions, présences et menus pour garder une vue fiable.",
+      "overviewIntroCharterItem3": "Protégez les accès administrateur et changez le mot de passe en cas de doute.",
+      "recentActivitiesEmpty": "Les activités récentes seront affichées ici dès qu'un historique d'actions sera disponible."
+    },
+    "menus": {
+      "weekForm": {
+        "title": "Création rapide d'un menu hebdomadaire",
+        "description": "Choisissez une date de référence (lundi), puis définissez un repas différent pour chaque jour de la semaine.",
+        "baseDateLabel": "Date de base (lundi de la semaine)",
+        "columns": {
+          "day": "Jour",
+          "entree": "Entrée",
+          "plat": "Plat principal",
+          "dessert": "Dessert"
+        },
+        "applyButton": "Appliquer ces menus à la semaine"
+      }
+    },
+    "profile": {
+      "title": "Profil administrateur",
+      "subtitle": "Modifiez ici votre mot de passe administrateur.",
+      "changePasswordTitle": "Changer le mot de passe",
+      "fields": {
+        "oldPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "confirmPassword": "Confirmer le nouveau mot de passe"
+      },
+      "buttons": {
+        "loading": "Enregistrement...",
+        "submit": "Mettre à jour le mot de passe"
+      },
+      "success": "Mot de passe modifié avec succès.",
+      "errors": {
+        "required": "Tous les champs sont obligatoires.",
+        "mismatch": "La confirmation ne correspond pas au nouveau mot de passe.",
+        "generic": "Erreur lors du changement de mot de passe."
+      }
     }
   },
   "sidebar": {
@@ -71,7 +112,9 @@
     "classes": "Gestion des classes",
     "teachers": "Enseignants & classes",
     "menus": "Menu enfant",
+    "events": "Événements",
     "users": "Tous les utilisateurs",
+    "profile": "Profil / Mot de passe",
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "roleAdmin": "Admin"
