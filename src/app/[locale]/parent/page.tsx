@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl"
 import { use } from "react"
 import { Locale } from "@/lib/i18n/config"
 import { apiClient } from "@/lib/api"
+import { DailyResume } from "@/types/domain"
 
 export default function ParentDashboard({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params)
@@ -66,6 +67,8 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   const [dailyMessage, setDailyMessage] = useState<string | null>(null)
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [childDailyResume, setChildDailyResume] = useState<DailyResume | null>(null)
+  const [dailyResumeError, setDailyResumeError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -107,6 +110,24 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             status: undefined,
             allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [],
           })
+
+          // Charger le résumé individuel de la journée (ou le dernier disponible)
+          try {
+            setDailyResumeError(null)
+            const resumeRes = await apiClient.getChildResume(enfant.id as string)
+            if (!cancelled) {
+              setChildDailyResume(resumeRes.data)
+            }
+          } catch (err: any) {
+            console.error("[Parent] Error loading child daily resume", err)
+            if (!cancelled) {
+              setChildDailyResume(null)
+              const apiMessage = err?.response?.data?.message
+              if (typeof apiMessage === "string") {
+                setDailyResumeError(apiMessage)
+              }
+            }
+          }
 
           // Charger le message de la journée collectif de la classe (ClassDailySummary publié le plus récent)
           if (enfant.classeId) {
@@ -304,6 +325,21 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
     }
   }
 
+  const renderLevelPill = (current: string | undefined | null, value: string) => {
+    const isActive = current === value
+    return (
+      <span
+        className={`px-3 py-1 text-xs md:text-sm rounded-full border ${
+          isActive
+            ? "bg-emerald-500 text-white border-emerald-500"
+            : "bg-white text-gray-600 border-gray-200"
+        }`}
+      >
+        {value}
+      </span>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto px-3 md:px-4 lg:px-0 pb-10">
       {/* Child Header Card */}
@@ -391,6 +427,103 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
 
         {/* Vue d'ensemble Tab */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Child Daily Resume */}
+          <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
+            <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
+              <CardTitle className="text-base font-bold text-gray-900">Résumé de journée</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              {profileLoading && !childDailyResume ? (
+                <p className="text-sm text-gray-500">Chargement du résumé individuel…</p>
+              ) : childDailyResume ? (
+                <>
+                  <p className="text-xs text-gray-500">
+                    Date : {new Date(childDailyResume.date).toLocaleDateString("fr-FR", {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
+                      <div className="text-3xl">😋</div>
+                      <div>
+                        <p className="text-sm text-gray-500">Appétit</p>
+                        <p className="text-lg font-bold text-emerald-600">{childDailyResume.appetit ?? "-"}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {renderLevelPill(childDailyResume.appetit, "Bien")}
+                        {renderLevelPill(childDailyResume.appetit, "Moyen")}
+                        {renderLevelPill(childDailyResume.appetit, "Mal")}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
+                      <div className="text-3xl">🙂</div>
+                      <div>
+                        <p className="text-sm text-gray-500">Humeur</p>
+                        <p className="text-lg font-bold text-sky-600">{childDailyResume.humeur ?? "-"}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {renderLevelPill(childDailyResume.humeur, "Bien")}
+                        {renderLevelPill(childDailyResume.humeur, "Moyenne")}
+                        {renderLevelPill(childDailyResume.humeur, "Difficile")}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
+                      <div className="text-3xl">😴</div>
+                      <div>
+                        <p className="text-sm text-gray-500">Sieste</p>
+                        <p className="text-lg font-bold text-sky-700">{childDailyResume.sieste ?? "-"}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {renderLevelPill(childDailyResume.sieste, "Courte")}
+                        {renderLevelPill(childDailyResume.sieste, "Moyenne")}
+                        {renderLevelPill(childDailyResume.sieste, "Longue")}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
+                      <div className="text-3xl">✨</div>
+                      <div>
+                        <p className="text-sm text-gray-500">Participation</p>
+                        <p className="text-lg font-bold text-emerald-600">{childDailyResume.participation ?? "-"}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {renderLevelPill(childDailyResume.participation, "Faible")}
+                        {renderLevelPill(childDailyResume.participation, "Moyenne")}
+                        {renderLevelPill(childDailyResume.participation, "Forte")}
+                      </div>
+                    </div>
+                  </div>
+
+                  {childDailyResume.observations && childDailyResume.observations.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100 mt-2">
+                      <p className="text-xs font-medium text-gray-500 mb-1">Observations</p>
+                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        {childDailyResume.observations.map((obs, idx) => (
+                          <li key={idx}>{obs}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {dailyResumeError ? (
+                    <p className="text-sm text-gray-500">{dailyResumeError}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Aucun résumé individuel n'a encore été saisi pour cette période.
+                    </p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Daily Summary */}
           <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
             <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
