@@ -21,6 +21,9 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const [totalChildren, setTotalChildren] = useState<number | null>(null);
   const [totalClasses, setTotalClasses] = useState<number | null>(null);
   const [monthlyEvents, setMonthlyEvents] = useState<number | null>(null);
+  const [presenceStats, setPresenceStats] = useState<any[] | null>(null);
+  const [inscriptionStats, setInscriptionStats] = useState<any[] | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[] | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token") || document.cookie.includes("token");
@@ -32,11 +35,36 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
 
     async function fetchStats() {
       try {
-        const [inscriptionsRes, childrenRes, classesRes, eventsRes] = await Promise.all([
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const fromMonthly = new Date(currentYear, now.getMonth(), 1);
+        const toMonthly = new Date(currentYear, now.getMonth() + 1, 0);
+
+        const oneMonthAhead = new Date(now);
+        oneMonthAhead.setMonth(oneMonthAhead.getMonth() + 1);
+
+        const [
+          inscriptionsRes,
+          childrenRes,
+          classesRes,
+          eventsRes,
+          presencesRes,
+          inscriptionStatsRes,
+          upcomingEventsRes,
+        ] = await Promise.all([
           apiClient.listAdminInscriptions(),
           apiClient.listChildren(1, 1000),
           apiClient.listClasses(),
           apiClient.listAdminEvents({ page: 1, pageSize: 100 }),
+          apiClient.listDashboardPresences({
+            from: fromMonthly.toISOString().slice(0, 10),
+            to: toMonthly.toISOString().slice(0, 10),
+          }),
+          apiClient.listDashboardInscriptions({ year: currentYear }),
+          apiClient.listDashboardUpcomingEvents({
+            from: now.toISOString(),
+            to: oneMonthAhead.toISOString(),
+          }),
         ]);
 
         const insPayload = inscriptionsRes.data;
@@ -73,6 +101,25 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           ? eventsPayload
           : [];
         setMonthlyEvents(eventsItems.length);
+
+        // Charts data
+        const presPayload = presencesRes.data;
+        const presItems: any[] = Array.isArray(presPayload?.items)
+          ? presPayload.items
+          : [];
+        setPresenceStats(presItems);
+
+        const inscStatsPayload = inscriptionStatsRes.data;
+        const inscItems: any[] = Array.isArray(inscStatsPayload?.items)
+          ? inscStatsPayload.items
+          : [];
+        setInscriptionStats(inscItems);
+
+        const upcomingPayload = upcomingEventsRes.data;
+        const upcomingItems: any[] = Array.isArray(upcomingPayload?.items)
+          ? upcomingPayload.items
+          : [];
+        setUpcomingEvents(upcomingItems);
       } catch (err) {
         console.error("[Admin/Dashboard] Error loading inscriptions stats", err);
       } finally {
@@ -122,6 +169,31 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     },
   ];
 
+  const maxPresenceTotal =
+    presenceStats && presenceStats.length > 0
+      ? Math.max(
+          ...presenceStats.map((d: any) =>
+            (d.present || 0) + (d.absent || 0) + (d.justifie || 0),
+          ),
+        )
+      : 0;
+
+  const maxInscriptionsTotal =
+    inscriptionStats && inscriptionStats.length > 0
+      ? Math.max(...inscriptionStats.map((m: any) => m.total || 0))
+      : 0;
+
+  // Présence du jour: vérifier si au moins une présence/absence est enregistrée aujourd'hui
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayPresence =
+    presenceStats && presenceStats.length > 0
+      ? presenceStats.find((d: any) => d.date === todayStr)
+      : null;
+  const todayTotal = todayPresence
+    ? (todayPresence.present || 0) + (todayPresence.absent || 0) + (todayPresence.justifie || 0)
+    : 0;
+  const hasTodayPresence = todayTotal > 0;
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -154,6 +226,38 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
 
         {/* Dashboard Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Today presence status */}
+          <div className="mb-6">
+            <Card className={
+              hasTodayPresence
+                ? "p-4 border border-emerald-200 bg-emerald-50"
+                : "p-4 border border-amber-200 bg-amber-50"
+            }>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Présence du jour
+                  </p>
+                  <p className="text-xs text-gray-700 mt-1">
+                    {hasTodayPresence
+                      ? "Les enseignants ont déjà enregistré la présence pour aujourd'hui."
+                      : "Aucune présence enregistrée pour aujourd'hui. Merci de vérifier que les enseignants ont fait l'appel."}
+                  </p>
+                </div>
+                <div
+                  className={
+                    "flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold " +
+                    (hasTodayPresence
+                      ? "bg-emerald-500 text-white"
+                      : "bg-amber-400 text-white")
+                  }
+                >
+                  {hasTodayPresence ? "OK" : "!"}
+                </div>
+              </div>
+            </Card>
+          </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {stats.map((stat, index) => (
@@ -170,29 +274,64 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
             ))}
           </div>
 
-          {/* Overview / Charter section */}
+          {/* Charts section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 p-6">
-              <h2 className="text-lg font-semibold mb-2">{t("overviewIntroTitle")}</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t("overviewIntroDescription")}
-              </p>
-              <h3 className="text-sm font-semibold mb-2">{t("overviewIntroCharterTitle")}</h3>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>{t("overviewIntroCharterItem1")}</li>
-                <li>{t("overviewIntroCharterItem2")}</li>
-                <li>{t("overviewIntroCharterItem3")}</li>
-              </ul>
+            {/* Presence chart */}
+            <Card className="p-6 lg:col-span-2">
+              <h2 className="text-lg font-semibold mb-4">{t("presenceChartTitle")}</h2>
+              {presenceStats && presenceStats.length > 0 && maxPresenceTotal > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {presenceStats.map((d: any) => {
+                    const total = (d.present || 0) + (d.absent || 0) + (d.justifie || 0);
+                    return (
+                      <div key={d.date} className="text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-foreground">{d.date}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                              {total}
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {total} {t("presenceChartLabelChildren")}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("presenceChartEmpty")}</p>
+              )}
             </Card>
 
-            {/* Placeholder for future backend-driven recent activities */}
+            {/* Inscriptions chart */}
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold">{t("recentActivities")}</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {t("recentActivitiesEmpty")}
-              </p>
+              <h2 className="text-lg font-semibold mb-4">{t("inscriptionChartTitle")}</h2>
+              {inscriptionStats && inscriptionStats.length > 0 && maxInscriptionsTotal > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {inscriptionStats.map((m: any) => {
+                    const label = m.month;
+                    return (
+                      <div key={label} className="text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-foreground">{label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
+                              {m.total}
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {m.total} {t("inscriptionChartLabelApplications")}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("inscriptionChartEmpty")}</p>
+              )}
             </Card>
           </div>
         </main>

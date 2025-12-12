@@ -94,7 +94,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       // ignore
     }
 
-    const loginPath = `/${currentLocale}/auth/login`;
+    const loginPath = `/${currentLocale}/auth/login-user`;
     router.push(loginPath);
   };
 

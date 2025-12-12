@@ -1,28 +1,215 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from "next-intl"
+import { apiClient } from "@/lib/api"
+
+type ClassSummary = {
+  date: string
+  classeId: string
+  classeNom: string
+  totalEnfants: number
+  presentsCount: number
+  absentsCount: number
+  justifiesCount: number
+  resumesCount: number
+  avgNapMinutes?: number
+}
+
+type ExportStats = {
+  date: string
+  appetitStats: Record<string, number>
+  humeurStats: Record<string, number>
+  participationStats: Record<string, number>
+}
 
 export default function TeacherSummary() {
   const t = useTranslations("teacher.summary")
 
-  const [summaryData] = useState({
-    date: new Date().toLocaleDateString("fr-FR"),
-    class: "Salle Bleue",
-    totalChildren: 28,
-    present: 28,
-    absent: 0,
-  })
+  const [summaryData, setSummaryData] = useState<ClassSummary | null>(null)
+  const [stats, setStats] = useState<ExportStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dailyMessage, setDailyMessage] = useState("")
+  const [classSummaryId, setClassSummaryId] = useState<string | null>(null)
+  const [published, setPublished] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
-  const [appetiteStats] = useState({ little: 3, good: 20, all: 5 })
-  const [moodStats] = useState({ bad: 1, good: 22, excellent: 5 })
-  const [participationStats] = useState({ low: 2, good: 20, excellent: 6 })
+  useEffect(() => {
+    let cancelled = false
 
-  const avgNap = "1h15"
-  const presentCount = summaryData.present
+    async function loadSummary() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const todayDate = new Date().toISOString().slice(0, 10)
+
+        const classesRes = await apiClient.listClasses()
+        const classes = classesRes.data?.data ?? classesRes.data ?? []
+        if (!classes.length) {
+          if (!cancelled) setError("Aucune classe disponible")
+          return
+        }
+
+        const cls = classes[0]
+
+        const [summaryRes, statsRes, classDailyRes] = await Promise.all([
+          apiClient.getClassSummary(cls.id, todayDate),
+          apiClient.exportClassStatistics(cls.id, todayDate, todayDate),
+          apiClient.listClassDailySummaries({ classeId: cls.id, date: todayDate }),
+        ])
+
+        const summary = summaryRes.data
+        const statsArray = statsRes.data ?? []
+        const classDailyArray = classDailyRes.data?.data ?? classDailyRes.data ?? []
+        const classDaily =
+          Array.isArray(classDailyArray) && classDailyArray.length > 0
+            ? classDailyArray[0]
+            : null
+        const statsForDay =
+          Array.isArray(statsArray) && statsArray.length > 0 ? statsArray[0] : null
+
+        if (!cancelled) {
+          setSummaryData(summary)
+          setStats(
+            statsForDay
+              ? {
+                  date: statsForDay.date,
+                  appetitStats: statsForDay.appetitStats ?? {},
+                  humeurStats: statsForDay.humeurStats ?? {},
+                  participationStats: statsForDay.participationStats ?? {},
+                }
+              : null,
+          )
+
+          if (classDaily) {
+            setClassSummaryId(classDaily.id)
+            setPublished(classDaily.statut === "Publie")
+            if (typeof classDaily.observations === "string") {
+              setDailyMessage(classDaily.observations)
+            }
+          } else {
+            setClassSummaryId(null)
+            setPublished(false)
+            setDailyMessage("")
+          }
+        }
+      } catch (e) {
+        console.error("[TeacherSummary] loadSummary error", e)
+        if (!cancelled) setError("Impossible de charger le résumé de classe")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void loadSummary()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleSaveDailyMessage = async () => {
+    if (!summaryData) return
+    try {
+      setSaving(true)
+      setInfoMessage(null)
+      const date = summaryData.date
+      const classeId = summaryData.classeId
+
+      if (classSummaryId) {
+        await apiClient.updateClassDailySummary(classSummaryId, {
+          observations: dailyMessage || null,
+        })
+      } else {
+        const res = await apiClient.createClassDailySummary({
+          classeId,
+          date,
+          activites: "", // simplifié pour MVP
+          apprentissages: "",
+          humeurGroupe: "",
+          observations: dailyMessage || null,
+        })
+        const created = res.data
+        if (created?.id) {
+          setClassSummaryId(created.id)
+        }
+      }
+
+      setInfoMessage("Message de la journée enregistré")
+      setTimeout(() => setInfoMessage(null), 3000)
+    } catch (e) {
+      console.error("[TeacherSummary] handleSaveDailyMessage error", e)
+      setInfoMessage("Erreur lors de l'enregistrement du message")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendToAll = async () => {
+    if (!summaryData) return
+    try {
+      setSending(true)
+      setInfoMessage(null)
+
+      let id = classSummaryId
+      const date = summaryData.date
+      const classeId = summaryData.classeId
+
+      if (!id) {
+        const res = await apiClient.createClassDailySummary({
+          classeId,
+          date,
+          activites: "",
+          apprentissages: "",
+          humeurGroupe: "",
+          observations: dailyMessage || null,
+        })
+        const created = res.data
+        id = created?.id ?? null
+        if (id) setClassSummaryId(id)
+      }
+
+      if (id) {
+        const res = await apiClient.publishClassDailySummary(id)
+        if (res?.data?.statut === "Publie") {
+          setPublished(true)
+        }
+      }
+
+      setInfoMessage("Message envoyé à tous les parents pour aujourd'hui")
+      setTimeout(() => setInfoMessage(null), 4000)
+    } catch (e) {
+      console.error("[TeacherSummary] handleSendToAll error", e)
+      setInfoMessage("Erreur lors de l'envoi du message")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="p-6 text-sm text-gray-600">Chargement du résumé de journée...</div>
+  }
+
+  if (error || !summaryData) {
+    return <div className="p-6 text-sm text-red-600">{error ?? "Résumé indisponible"}</div>
+  }
+
+  const presentCount = summaryData.presentsCount
+
+  const formatNap = (minutes?: number) => {
+    if (!minutes || minutes <= 0) return "0h00"
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    const hLabel = `${h}h`
+    const mLabel = m.toString().padStart(2, "0")
+    return `${hLabel}${mLabel}`
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto px-4 md:px-6 lg:px-0 py-6 md:py-8">
@@ -31,7 +218,7 @@ export default function TeacherSummary() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t("title")}</h1>
           <p className="text-xs md:text-sm text-gray-600 mt-1">
-            {summaryData.class} • {summaryData.date}
+            {summaryData.classeNom} • {summaryData.date}
           </p>
         </div>
         <Link href="/teacher">
@@ -47,7 +234,7 @@ export default function TeacherSummary() {
           <CardContent className="pt-6 pb-6">
             <div className="text-center">
               <p className="text-xs font-medium text-gray-600 uppercase">{t("kpis.presentLabel")}</p>
-              <p className="text-4xl font-bold text-sky-700 mt-2">{summaryData.present}</p>
+              <p className="text-4xl font-bold text-sky-700 mt-2">{summaryData.presentsCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -57,7 +244,10 @@ export default function TeacherSummary() {
             <div className="text-center">
               <p className="text-xs font-medium text-gray-600 uppercase">{t("kpis.attendanceRateLabel")}</p>
               <p className="text-4xl font-bold text-green-700 mt-2">
-                {Math.round((summaryData.present / summaryData.totalChildren) * 100)}%
+                {summaryData.totalEnfants > 0
+                  ? Math.round((summaryData.presentsCount / summaryData.totalEnfants) * 100)
+                  : 0}
+                %
               </p>
             </div>
           </CardContent>
@@ -67,7 +257,9 @@ export default function TeacherSummary() {
           <CardContent className="pt-6 pb-6">
             <div className="text-center">
               <p className="text-xs font-medium text-gray-600 uppercase">{t("kpis.avgNapLabel")}</p>
-              <p className="text-4xl font-bold text-purple-700 mt-2">{avgNap}</p>
+              <p className="text-4xl font-bold text-purple-700 mt-2">
+                {formatNap(summaryData.avgNapMinutes)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -83,20 +275,24 @@ export default function TeacherSummary() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-3">
-            {Object.entries(appetiteStats).map(([label, count]) => (
-              <div key={label}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 capitalize">{t(`sections.appetite.${label}`)}</span>
-                  <span className="text-lg font-bold text-gray-900">{count}</span>
+            {stats && Object.entries(stats.appetitStats).length > 0 ? (
+              Object.entries(stats.appetitStats).map(([label, count]) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
+                    <span className="text-lg font-bold text-gray-900">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-500 h-2 rounded-full"
+                      style={{ width: presentCount > 0 ? `${(count / presentCount) * 100}%` : "0%" }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-orange-500 h-2 rounded-full"
-                    style={{ width: `${(count / presentCount) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">Aucune donnée d'appétit pour cette journée.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -108,20 +304,24 @@ export default function TeacherSummary() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-3">
-            {Object.entries(moodStats).map(([label, count]) => (
-              <div key={label}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
-                  <span className="text-lg font-bold text-gray-900">{count}</span>
+            {stats && Object.entries(stats.humeurStats).length > 0 ? (
+              Object.entries(stats.humeurStats).map(([label, count]) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
+                    <span className="text-lg font-bold text-gray-900">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-yellow-500 h-2 rounded-full"
+                      style={{ width: presentCount > 0 ? `${(count / presentCount) * 100}%` : "0%" }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-yellow-500 h-2 rounded-full"
-                    style={{ width: `${(count / presentCount) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">Aucune donnée d'humeur pour cette journée.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -133,20 +333,24 @@ export default function TeacherSummary() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-3">
-            {Object.entries(participationStats).map(([label, count]) => (
-              <div key={label}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
-                  <span className="text-lg font-bold text-gray-900">{count}</span>
+            {stats && Object.entries(stats.participationStats).length > 0 ? (
+              Object.entries(stats.participationStats).map(([label, count]) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
+                    <span className="text-lg font-bold text-gray-900">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full"
+                      style={{ width: presentCount > 0 ? `${(count / presentCount) * 100}%` : "0%" }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${(count / presentCount) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">Aucune donnée de participation pour cette journée.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -158,21 +362,33 @@ export default function TeacherSummary() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
+            {infoMessage && (
+              <div className="mb-3 text-xs px-3 py-2 rounded-md border bg-sky-50 text-sky-800 border-sky-200">
+                {infoMessage}
+              </div>
+            )}
             <textarea
               placeholder={t("sections.dailyMessagePlaceholder")}
               className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-transparent resize-none"
               rows={3}
-              defaultValue={t("sections.dailyMessageDefault")}
+              value={dailyMessage}
+              onChange={(e) => setDailyMessage(e.target.value)}
             />
             <div className="mt-4 flex justify-end gap-2">
               <Button
                 variant="outline"
                 className="rounded-lg border border-gray-300 font-medium text-sm bg-transparent"
+                onClick={handleSaveDailyMessage}
+                disabled={saving}
               >
-                {t("sections.saveButton")}
+                {saving ? "Enregistrement..." : t("sections.saveButton")}
               </Button>
-              <Button className="rounded-lg bg-sky-500 text-white hover:bg-sky-600 font-semibold text-sm px-6">
-                {t("sections.sendAllButton")}
+              <Button
+                className="rounded-lg bg-sky-500 text-white hover:bg-sky-600 font-semibold text-sm px-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={handleSendToAll}
+                disabled={sending || !dailyMessage}
+              >
+                {published ? "✓ Envoyé" : t("sections.sendAllButton")}
               </Button>
             </div>
           </CardContent>

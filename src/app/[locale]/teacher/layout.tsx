@@ -42,7 +42,7 @@ export default function TeacherLayout({
       // ignore
     }
 
-    const loginPath = `/${currentLocale}/auth/login`
+    const loginPath = `/${currentLocale}/auth/login-user`
     router.push(loginPath)
   }
   return (

@@ -108,16 +108,25 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [],
           })
 
-          // Charger le dernier résumé de journée / message pour cet enfant
-          // Charger le dernier résumé de journée / message pour cet enfant
-          try {
-            const resumeRes = await apiClient.getChildResume(enfant.id as string)
-            const resume = resumeRes.data
-            if (!cancelled && resume?.observations && Array.isArray(resume.observations)) {
-              setDailyMessage(resume.observations.join(". "))
+          // Charger le message de la journée collectif de la classe (ClassDailySummary publié le plus récent)
+          if (enfant.classeId) {
+            try {
+              const journalRes = await apiClient.getClassJournal(enfant.classeId as string)
+              const journal = journalRes.data
+
+              if (!cancelled && journal) {
+                // On privilégie le champ observations si présent, sinon on concatène activités/apprentissages
+                const fromObservations = typeof journal.observations === "string" ? journal.observations : ""
+                const combined = [journal.activites, journal.apprentissages]
+                  .filter((p: any) => typeof p === "string" && p.trim().length > 0)
+                  .join(". ")
+
+                const message = fromObservations || combined || null
+                setDailyMessage(message)
+              }
+            } catch (err) {
+              console.error("[Parent] Error loading class daily message", err)
             }
-          } catch (err) {
-            console.error("[Parent] Error loading child resume", err)
           }
 
           // Charger le menu du jour + menus de la semaine pour la classe de l'enfant
@@ -155,9 +164,25 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 setWeekMenus(menusByDate)
 
                 const todayKey = today.toISOString().slice(0, 10)
-                const todayMenuData = menusByDate[todayKey]
-                if (todayMenuData) {
-                  setTodayMenu(todayMenuData)
+                const todayTime = new Date(todayKey).getTime()
+
+                // 1) Si un menu existe exactement pour aujourd'hui, on l'affiche
+                if (menusByDate[todayKey]) {
+                  setTodayMenu(menusByDate[todayKey])
+                } else {
+                  // 2) Sinon, on cherche le menu dont la date est la plus proche d'aujourd'hui
+                  const entries = Object.values(menusByDate)
+                  if (entries.length > 0) {
+                    const closest = entries.reduce((best, current) => {
+                      const currentTime = new Date(current.date).getTime()
+                      const bestTime = new Date(best.date).getTime()
+                      const currentDiff = Math.abs(currentTime - todayTime)
+                      const bestDiff = Math.abs(bestTime - todayTime)
+                      return currentDiff < bestDiff ? current : best
+                    })
+
+                    setTodayMenu(closest)
+                  }
                 }
               }
             } catch (err) {
@@ -177,15 +202,9 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             )
           }
 
-          // Charger les événements à venir pour ce parent
+          // Charger les événements liés aux classes de l'enfant
           try {
-            const now = new Date()
-            const inOneMonth = new Date()
-            inOneMonth.setMonth(inOneMonth.getMonth() + 1)
-
             const eventsRes = await apiClient.listParentEvents({
-              from: now.toISOString(),
-              to: inOneMonth.toISOString(),
               page: 1,
               pageSize: 10,
             })
@@ -242,11 +261,6 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             }
           } catch (err) {
             console.error("[Parent] Error loading events", err)
-          }
-        } catch (err) {
-          console.error("[Parent] Error loading parent profile", err)
-          if (!cancelled) {
-            setProfileError("Impossible de charger les informations parent/enfant.")
           }
         }
       } finally {
@@ -389,7 +403,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 <p className="text-sm leading-relaxed text-gray-600">{dailyMessage}</p>
               ) : (
                 <p className="text-sm text-gray-500">
-                  Aucun message de journée n'est encore disponible pour aujourd'hui.
+                  Aucun message de la journée n'a encore été partagé pour aujourd'hui.
                 </p>
               )}
             </CardContent>
@@ -401,26 +415,34 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
               <CardTitle className="text-base font-bold text-gray-900">{t('overview.upcomingEventsTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-6">
-              {upcomingEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-4 rounded-lg bg-green-50 p-4 border border-green-100"
-                >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-green-500 font-bold text-white text-sm flex-shrink-0">
-                    {event.date}
+              {upcomingEvents.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Aucun événement à venir n'est planifié pour le moment. Vous serez informé ici des prochaines
+                  réunions, fêtes ou sorties.
+                </p>
+              ) : (
+                upcomingEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center gap-4 rounded-lg bg-green-50 p-4 border border-green-100"
+                  >
+                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-green-500 font-bold text-white text-sm flex-shrink-0">
+                      {event.date}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{event.title}</p>
+                      <p className="text-sm text-gray-500">{event.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{event.title}</p>
-                    <p className="text-sm text-gray-500">{event.time}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Menu du jour + semaine Tab */}
         <TabsContent value="menu" className="space-y-6">
+          {/* Menu du jour (ou le plus proche) */}
           <Card className="border-2 border-sky-300 shadow-md rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
             <CardHeader className="border-b border-sky-300 bg-gradient-to-r from-sky-100 to-sky-50 pb-4">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
@@ -470,11 +492,59 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 </>
               ) : (
                 <p className="text-sm text-gray-500">
-                  Aucun menu publié pour aujourd'hui n'est disponible pour la classe de votre enfant.
+                  Aucun menu publié pour cette semaine n'est disponible pour la classe de votre enfant.
                 </p>
               )}
             </CardContent>
           </Card>
+
+          {/* Menus de la semaine (liste complète) */}
+          {Object.keys(weekMenus).length > 0 && (
+            <Card className="border border-sky-200 shadow-sm rounded-2xl">
+              <CardHeader className="border-b border-sky-100 bg-sky-50 pb-4">
+                <CardTitle className="text-base font-bold text-gray-900">
+                  Menus de la semaine
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {Object.values(weekMenus)
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((menu) => (
+                    <div
+                      key={menu.date}
+                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-lg border border-sky-100 bg-white px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase">
+                          {new Date(menu.date).toLocaleDateString("fr-FR", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-xs md:text-sm text-gray-700">
+                        {menu.entree && (
+                          <span>
+                            <span className="font-semibold">Petit-déjeuner :</span> {menu.entree}
+                          </span>
+                        )}
+                        {menu.plat && (
+                          <span>
+                            <span className="font-semibold">Déjeuner :</span> {menu.plat}
+                          </span>
+                        )}
+                        {menu.dessert && (
+                          <span>
+                            <span className="font-semibold">Goûter :</span> {menu.dessert}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Profil Tab */}

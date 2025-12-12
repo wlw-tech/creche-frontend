@@ -28,6 +28,7 @@ export default function TeacherDashboard() {
   const [children, setChildren] = useState<Enfant[]>([])
   const [currentChildIndex, setCurrentChildIndex] = useState(0)
   const [attendanceData, setAttendanceData] = useState<Record<string, "Present" | "Absent">>({})
+  const [childResumes, setChildResumes] = useState<Record<string, { id: string }>>({})
   const [dailySummary, setDailySummary] = useState("")
   const [dailyMessage, setDailyMessage] = useState("")
 
@@ -96,18 +97,41 @@ export default function TeacherDashboard() {
             }
           }
           setAttendanceData(map)
+
+          // Si tous les enfants ont déjà une présence pour aujourd'hui,
+          // on envoie directement l'enseignant vers la page de résumé/statistiques
+          const hasPresenceForAll =
+            enfants.length > 0 &&
+            enfants.every((enfant: any) => map[enfant.id] !== undefined)
+
+          if (hasPresenceForAll && typeof window !== "undefined") {
+            window.location.href = "/teacher/summary"
+          }
         }
 
         const resumesRes = await apiClient.getResumes(cls.id, today)
         const resumes = resumesRes.data?.data ?? resumesRes.data ?? []
-        const first = resumes[0]
-        if (!cancelled && first) {
-          setDailySummary(first.resume ?? "")
-          setDailyMessage(first.message ?? "")
+        if (!cancelled && Array.isArray(resumes)) {
+          const map: Record<string, { id: string }> = {}
+          for (const r of resumes) {
+            if (r.enfantId && r.id) {
+              map[r.enfantId] = { id: r.id }
+            }
+          }
+          setChildResumes(map)
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("[Teacher] loadData error", e)
-        if (!cancelled) setError("Impossible de charger les données")
+        if (!cancelled) {
+          if (e?.response?.status === 401) {
+            setError("Session expirée. Merci de vous reconnecter en tant qu'enseignant.")
+            if (typeof window !== "undefined") {
+              window.location.href = "/auth/login-user"
+            }
+          } else {
+            setError("Impossible de charger les données")
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -136,11 +160,11 @@ export default function TeacherDashboard() {
       })
 
       setAttendanceData((prev) => ({ ...prev, [currentChild.id]: presence }))
+      setError(null)
       setSuccessMessage(
         `Présence enregistrée pour ${currentChild.prenom ?? ""} ${currentChild.nom ?? ""}`.trim(),
       )
       setTimeout(() => setSuccessMessage(null), 3000)
-      handleNext()
     } catch (e) {
       console.error("[Teacher] handlePresence error", e)
       setError("Erreur lors de l'enregistrement de la présence")
@@ -170,15 +194,32 @@ export default function TeacherDashboard() {
     const resumeText = `Appétit: ${appetit}, Humeur: ${humeur}, Sieste: ${sieste}, Participation: ${participation}`
 
     try {
-      await apiClient.createResume({
-        enfantId: currentChild.id,
-        date: isoDate,
-        appetit: appetitEnum,
-        humeur: humeurEnum,
-        sieste: siesteEnum,
-        participation: participationEnum,
-        observations: dailyMessage ? [dailyMessage] : [],
-      })
+      const existing = childResumes[currentChild.id]
+
+      if (existing && existing.id) {
+        await apiClient.updateResume(existing.id, {
+          appetit: appetitEnum,
+          humeur: humeurEnum,
+          sieste: siesteEnum,
+          participation: participationEnum,
+          observations: dailyMessage ? [dailyMessage] : [],
+        })
+      } else {
+        const res = await apiClient.createResume({
+          enfantId: currentChild.id,
+          date: isoDate,
+          appetit: appetitEnum,
+          humeur: humeurEnum,
+          sieste: siesteEnum,
+          participation: participationEnum,
+          observations: dailyMessage ? [dailyMessage] : [],
+        })
+
+        const createdId = res.data?.id ?? res.data?.resumeId ?? null
+        if (createdId) {
+          setChildResumes((prev) => ({ ...prev, [currentChild.id]: { id: createdId } }))
+        }
+      }
 
       setDailySummary(resumeText)
       setSuccessMessage("Résumé de journée enregistré avec succès")
@@ -208,6 +249,17 @@ export default function TeacherDashboard() {
   }
 
   const handleNext = () => {
+    const current = currentChild
+    if (!current) return
+
+    const hasPresence = attendanceData[current.id] !== undefined
+    const hasResume = !!childResumes[current.id]
+
+    if (!hasPresence || !hasResume) {
+      setError("Veuillez d'abord enregistrer la présence et le résumé de cet enfant")
+      return
+    }
+
     if (currentChildIndex < children.length - 1) {
       setCurrentChildIndex((i) => i + 1)
     }
@@ -219,7 +271,13 @@ export default function TeacherDashboard() {
     }
   }
 
-  const isAllProcessed = children.length > 0 && currentChildIndex === children.length - 1
+  const isAllProcessed =
+    children.length > 0 &&
+    children.every((enfant) => attendanceData[enfant.id] !== undefined && !!childResumes[enfant.id])
+
+  const hasPresenceForCurrent =
+    currentChild && attendanceData[currentChild.id] !== undefined
+  const hasResumeForCurrent = currentChild && !!childResumes[currentChild.id]
   const progressPercent = children.length > 0 ? ((currentChildIndex + 1) / children.length) * 100 : 0
 
   if (loading) {
@@ -252,6 +310,14 @@ export default function TeacherDashboard() {
             {children.length} {children.length > 1 ? "élèves" : "élève"}
           </p>
         </div>
+        <Link href="/">
+          <Button
+            variant="outline"
+            className="rounded-lg bg-transparent border border-gray-300 font-medium text-xs md:text-sm"
+          >
+            ← Retour
+          </Button>
+        </Link>
       </div>
 
       {successMessage && (
@@ -277,6 +343,19 @@ export default function TeacherDashboard() {
                       {`${currentChild?.prenom ?? ""} ${currentChild?.nom ?? ""}`.trim()}
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">{teacherClass.nom}</p>
+                    {currentChild && (
+                      <div className="mt-2 text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full border ">
+                        {attendanceData[currentChild.id] !== undefined && childResumes[currentChild.id] ? (
+                          <span className="text-emerald-700 border-emerald-300 bg-emerald-50">
+                            ✓ Présence & résumé faits
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 border-amber-300 bg-amber-50">
+                            À faire pour cet enfant
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {Array.isArray(currentChild?.allergies) && currentChild.allergies.length > 0 && (
                       <p className="text-xs font-bold text-red-600 mt-2">
                         🚨 {currentChild.allergies.join(", ")}
@@ -485,6 +564,7 @@ export default function TeacherDashboard() {
         ) : (
           <Button
             onClick={handleNext}
+            disabled={!hasPresenceForCurrent || !hasResumeForCurrent}
             className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-7 py-2 mx-5 emibold text-sm"
           >
             {t("next")} →

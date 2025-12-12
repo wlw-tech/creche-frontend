@@ -31,7 +31,7 @@ export default function Home({ params }: { params: Promise<{ locale: Locale }> }
                 {t('adminDescription')}
               </p>
               <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                <Link href="/auth/login">{t('adminAccess')}</Link>
+                <Link href="/auth/login-user">{t('adminAccess')}</Link>
               </Button>
             </Card>
 

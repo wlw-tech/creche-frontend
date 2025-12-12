@@ -26,7 +26,8 @@
       "status": "Statut",
       "actions": "Actions",
       "viewProfile": "Voir profil",
-      "noResults": "Aucun enfant ne correspond à votre recherche."
+      "noResults": "Aucun enfant ne correspond à votre recherche.",
+      "backToList": "Retour à la liste"
     },
     "inscriptions": {
       "title": "Toutes les inscriptions",
@@ -68,7 +69,13 @@
       "overviewIntroCharterItem1": "Les données affichées proviennent uniquement du backend (aucune donnée fictive).",
       "overviewIntroCharterItem2": "Mettez à jour régulièrement les inscriptions, présences et menus pour garder une vue fiable.",
       "overviewIntroCharterItem3": "Protégez les accès administrateur et changez le mot de passe en cas de doute.",
-      "recentActivitiesEmpty": "Les activités récentes seront affichées ici dès qu'un historique d'actions sera disponible."
+      "recentActivitiesEmpty": "Les activités récentes seront affichées ici dès qu'un historique d'actions sera disponible.",
+      "presenceChartTitle": "Présence par jour (mois en cours)",
+      "presenceChartEmpty": "Aucune donnée de présence pour la période.",
+      "presenceChartLabelChildren": "enfants",
+      "inscriptionChartTitle": "Inscriptions par mois",
+      "inscriptionChartEmpty": "Aucune inscription enregistrée pour l'année.",
+      "inscriptionChartLabelApplications": "dossiers"
     },
     "menus": {
       "weekForm": {

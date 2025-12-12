@@ -26,7 +26,8 @@
       "status": "الحالة",
       "actions": "الإجراءات",
       "viewProfile": "عرض الملف الشخصي",
-      "noResults": "لا يوجد أطفال يطابقون بحثك."
+      "noResults": "لا يوجد أطفال يطابقون بحثك.",
+      "backToList": "العودة إلى القائمة"
     },
     "inscriptions": {
       "title": "جميع التسجيلات",
@@ -68,7 +69,13 @@
       "overviewIntroCharterItem1": "جميع البيانات المعروضة تأتي من الخادم الخلفي (بدون بيانات وهمية).",
       "overviewIntroCharterItem2": "قم بتحديث التسجيلات والحضور والقوائم بانتظام للحصول على رؤية موثوقة.",
       "overviewIntroCharterItem3": "احمِ حسابات الإدارة وغيّر كلمة المرور في حال الشك.",
-      "recentActivitiesEmpty": "سيتم عرض الأنشطة الأخيرة هنا عندما يتوفر سجل للإجراءات."
+      "recentActivitiesEmpty": "سيتم عرض الأنشطة الأخيرة هنا عندما يتوفر سجل للإجراءات.",
+      "presenceChartTitle": "الحضور حسب اليوم (الشهر الحالي)",
+      "presenceChartEmpty": "لا توجد بيانات حضور لهذه الفترة.",
+      "presenceChartLabelChildren": "أطفال",
+      "inscriptionChartTitle": "التسجيلات حسب الشهر",
+      "inscriptionChartEmpty": "لا توجد تسجيلات مسجلة لهذه السنة.",
+      "inscriptionChartLabelApplications": "ملفات"
     },
     "menus": {
       "weekForm": {

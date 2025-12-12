@@ -31,12 +31,26 @@ class ApiClient {
           // Token expiré, rediriger vers login
           Cookies.remove('token');
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth/login';
+            window.location.href = '/auth/login-user';
           }
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  // ---- ADMIN DASHBOARD ----
+
+  listDashboardPresences(params?: { from?: string; to?: string }) {
+    return this.client.get("/admin/dashboard/presences", { params });
+  }
+
+  listDashboardInscriptions(params?: { year?: number }) {
+    return this.client.get("/admin/dashboard/inscriptions", { params });
+  }
+
+  listDashboardUpcomingEvents(params?: { from?: string; to?: string }) {
+    return this.client.get("/admin/dashboard/upcoming-events", { params });
   }
 
   // ---- EVENTS (Admin) ----
@@ -76,7 +90,7 @@ class ApiClient {
 
   // ---- EVENTS (Parent) ----
 
-  listParentEvents(params?: { page?: number; pageSize?: number; from?: string; to?: string }) {
+  listParentEvents(params?: { page?: number; pageSize?: number; dateFrom?: string }) {
     return this.client.get('/parent/events', { params });
   }
 
@@ -209,6 +223,10 @@ class ApiClient {
     return this.client.get('/daily-resumes', { params: { classeId, date } });
   }
 
+  updateResume(id: string, data: any) {
+    return this.client.patch(`/daily-resumes/${id}`, data);
+  }
+
   // Generic auth password change (teacher + parent via /auth/change-password)
   changeAuthPassword(oldPassword: string, newPassword: string, confirmPassword: string) {
     return this.client.post('/auth/change-password', {
@@ -243,6 +261,48 @@ class ApiClient {
 
   changePassword(oldPassword: string, newPassword: string) {
     return this.client.post('/parent/me/change-password', { oldPassword, newPassword });
+  }
+
+  // Class daily summaries & statistics (Teacher/Admin)
+  getClassSummary(classeId: string, date: string) {
+    return this.client.get(`/daily-resumes/class/${classeId}/summary`, {
+      params: { date },
+    });
+  }
+
+  exportClassStatistics(classeId: string, dateMin: string, dateMax: string) {
+    return this.client.get(`/daily-resumes/class/${classeId}/export`, {
+      params: { dateMin, dateMax },
+    });
+  }
+
+  // Class Daily Summaries (message de la journée)
+  listClassDailySummaries(params?: { classeId?: string; date?: string; dateMin?: string; dateMax?: string; statut?: string; page?: number; pageSize?: number }) {
+    return this.client.get('/class-daily-summaries', { params });
+  }
+
+  createClassDailySummary(data: {
+    classeId: string;
+    date: string;
+    activites: string;
+    apprentissages: string;
+    humeurGroupe: string;
+    observations?: string | null;
+  }) {
+    return this.client.post('/class-daily-summaries', data);
+  }
+
+  updateClassDailySummary(id: string, data: {
+    activites?: string;
+    apprentissages?: string;
+    humeurGroupe?: string;
+    observations?: string | null;
+  }) {
+    return this.client.patch(`/class-daily-summaries/${id}`, data);
+  }
+
+  publishClassDailySummary(id: string) {
+    return this.client.post(`/class-daily-summaries/${id}/publish`, {});
   }
 
   // Children (Admin)
