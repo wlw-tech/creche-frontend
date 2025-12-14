@@ -35,6 +35,7 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [savingResume, setSavingResume] = useState(false)
 
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwords, setPasswords] = useState({
@@ -227,44 +228,70 @@ export default function TeacherDashboard() {
     if (!teacherClass || !currentChild) return
 
     // Mapping des choix UI vers les enums Prisma (NiveauAppetit, etc.)
-    const appetitEnum =
-      appetit === "Bien" ? "Bon" : appetit === "Moyen" ? "Moyen" : "Faible"
-    const humeurEnum =
-      humeur === "Bonne" ? "Bon" : humeur === "Moyenne" ? "Moyen" : "Difficile"
-    const siesteEnum =
-      sieste === "Courte" ? "Moyen" : sieste === "Moyenne" ? "Bon" : "Excellent"
-    const participationEnum =
-      participation === "Bonne"
+    // Ne mapper que si la valeur est définie, sinon undefined (les champs sont optionnels dans le DTO)
+    const appetitEnum = appetit
+      ? appetit === "Bien"
+        ? "Bon"
+        : appetit === "Moyen"
+          ? "Moyen"
+          : appetit === "Mal"
+            ? "Faible"
+            : undefined
+      : undefined
+    const humeurEnum = humeur
+      ? humeur === "Bonne"
+        ? "Bon"
+        : humeur === "Moyenne"
+          ? "Moyen"
+          : humeur === "Mauvaise"
+            ? "Difficile"
+            : undefined
+      : undefined
+    const siesteEnum = sieste
+      ? sieste === "Courte"
+        ? "Moyen"
+        : sieste === "Moyenne"
+          ? "Bon"
+          : sieste === "Longue"
+            ? "Excellent"
+            : undefined
+      : undefined
+    const participationEnum = participation
+      ? participation === "Bonne"
         ? "Bon"
         : participation === "Moyenne"
           ? "Moyen"
-          : "Faible"
+          : participation === "Faible"
+            ? "Faible"
+            : undefined
+      : undefined
 
-    // Date complète ISO pour IsDateString (ex: 2025-12-08T00:00:00.000Z)
+    // Date au format ISO pour IsDateString (ex: 2025-12-08T00:00:00.000Z)
+    // Le format YYYY-MM-DD devrait aussi fonctionner avec IsDateString
     const isoDate = `${today}T00:00:00.000Z`
 
     const resumeText = `Appétit: ${appetit}, Humeur: ${humeur}, Sieste: ${sieste}, Participation: ${participation}`
 
     try {
+      setSavingResume(true)
       const existing = childResumes[currentChild.id]
 
+      // Construire le payload en excluant les valeurs undefined
+      const resumePayload: any = {
+        observations: dailyMessage ? [dailyMessage] : [],
+      }
+      if (appetitEnum) resumePayload.appetit = appetitEnum
+      if (humeurEnum) resumePayload.humeur = humeurEnum
+      if (siesteEnum) resumePayload.sieste = siesteEnum
+      if (participationEnum) resumePayload.participation = participationEnum
+
       if (existing && existing.id) {
-        await apiClient.updateResume(existing.id, {
-          appetit: appetitEnum,
-          humeur: humeurEnum,
-          sieste: siesteEnum,
-          participation: participationEnum,
-          observations: dailyMessage ? [dailyMessage] : [],
-        })
+        await apiClient.updateResume(existing.id, resumePayload)
       } else {
         const res = await apiClient.createResume({
           enfantId: currentChild.id,
           date: isoDate,
-          appetit: appetitEnum,
-          humeur: humeurEnum,
-          sieste: siesteEnum,
-          participation: participationEnum,
-          observations: dailyMessage ? [dailyMessage] : [],
+          ...resumePayload,
         })
 
         const createdId = res.data?.id ?? res.data?.resumeId ?? null
@@ -276,9 +303,28 @@ export default function TeacherDashboard() {
       setDailySummary(resumeText)
       setSuccessMessage("Résumé de journée enregistré avec succès")
       setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (e) {
+    } catch (e: any) {
       console.error("[Teacher] handleSaveDailySummary error", e)
-      setError("Erreur lors de l'enregistrement du résumé")
+      const errorMessage = e.response?.data?.message || e.message || "Erreur lors de l'enregistrement du résumé"
+      setError(errorMessage)
+      // Si un résumé existe déjà, mettre à jour l'état local pour permettre la modification
+      if (errorMessage.includes("existe déjà")) {
+        // Recharger les résumés existants pour cet enfant
+        try {
+          const resumesRes = await apiClient.getResumes(teacherClass.id, today)
+          const resumes = resumesRes.data?.data ?? resumesRes.data ?? []
+          if (Array.isArray(resumes)) {
+            const existingResume = resumes.find((r: any) => r.enfantId === currentChild.id)
+            if (existingResume) {
+              setChildResumes((prev) => ({ ...prev, [currentChild.id]: { id: existingResume.id } }))
+            }
+          }
+        } catch (reloadError) {
+          console.error("[Teacher] Error reloading resumes", reloadError)
+        }
+      }
+    } finally {
+      setSavingResume(false)
     }
   }
 
@@ -304,13 +350,11 @@ export default function TeacherDashboard() {
     const current = currentChild
     if (!current) return
 
-    // Permettre de passer à l'enfant suivant même si présence/résumé déjà faits
-    // On vérifie seulement si on n'a pas encore fait la présence/résumé
+    // Autoriser le passage à l'enfant suivant dès que la présence est enregistrée.
+    // Si toutes les présences du jour sont déjà enregistrées (par ex. déjà faites plus tôt),
+    // autoriser aussi la navigation.
     const hasPresence = attendanceData[current.id] !== undefined
-    const hasResume = !!childResumes[current.id]
-
-    // Si présence et résumé sont déjà faits, on peut passer au suivant
-    if (hasPresence && hasResume) {
+    if (hasPresence || isAttendanceCompletedForToday) {
       if (currentChildIndex < children.length - 1) {
         setCurrentChildIndex((i) => i + 1)
         setError(null)
@@ -318,15 +362,7 @@ export default function TeacherDashboard() {
       return
     }
 
-    // Sinon, on demande de compléter
-    if (!hasPresence || !hasResume) {
-      setError("Veuillez d'abord enregistrer la présence et le résumé de cet enfant")
-      return
-    }
-
-    if (currentChildIndex < children.length - 1) {
-      setCurrentChildIndex((i) => i + 1)
-    }
+    setError("Veuillez enregistrer la présence avant de continuer.")
   }
 
   const handlePrevious = () => {
@@ -348,14 +384,17 @@ export default function TeacherDashboard() {
   const isAttendanceCompletedForToday = 
     children.length > 0 && 
     children.every((enfant) => attendanceData[enfant.id] !== undefined)
+
+  const canNavigateToSummary = isAllProcessed || isAttendanceCompletedForToday
   
   // Charger le résumé existant pour l'enfant actuel si disponible
   useEffect(() => {
     if (!currentChild || !teacherClass) return
+    const classeId = teacherClass.id
     
     async function loadCurrentChildResume() {
       try {
-        const resumesRes = await apiClient.getResumes(teacherClass.id, today)
+        const resumesRes = await apiClient.getResumes(classeId, today)
         const resumes = resumesRes.data?.data ?? resumesRes.data ?? []
         const currentResume = Array.isArray(resumes) 
           ? resumes.find((r: any) => r.enfantId === currentChild.id)
@@ -694,19 +733,21 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              <div className="pt-3 flex justify-end">
-                <Button
-                  onClick={handleSaveDailySummary}
-                  disabled={hasResumeForCurrent}
-                  className={`text-sm px-4 py-2 rounded-lg ${
-                    hasResumeForCurrent
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-sky-500 hover:bg-sky-600 text-white"
-                  }`}
-                >
-                  {hasResumeForCurrent ? "✓ Résumé déjà enregistré" : "Valider le résumé de journée"}
-                </Button>
-              </div>
+              {!hasResumeForCurrent && (
+                <div className="pt-3 flex justify-end">
+                  <Button
+                    onClick={handleSaveDailySummary}
+                    disabled={savingResume || !hasPresenceForCurrent}
+                    className={`text-sm px-4 py-2 rounded-lg ${
+                      savingResume
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-sky-500 hover:bg-sky-600 text-white"
+                    }`}
+                  >
+                    {savingResume ? "Enregistrement..." : "Valider le résumé de journée"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -736,7 +777,7 @@ export default function TeacherDashboard() {
           </span>
         </div>
 
-        {isAllProcessed ? (
+        {canNavigateToSummary ? (
           <Link href="/teacher/summary">
             <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-9 py-3 mx-2-semibold text-sm">
               {t("summaryCta")} →
@@ -745,7 +786,7 @@ export default function TeacherDashboard() {
         ) : (
           <Button
             onClick={handleNext}
-            disabled={!hasPresenceForCurrent || !hasResumeForCurrent}
+            disabled={!hasPresenceForCurrent && !isAttendanceCompletedForToday}
             className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-7 py-2 mx-5 emibold text-sm"
           >
             {t("next")} →

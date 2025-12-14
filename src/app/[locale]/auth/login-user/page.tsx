@@ -7,9 +7,11 @@ import { AxiosError } from 'axios';
 import { Baby, ShieldCheck } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
+import { usePathname } from 'next/navigation';
 
 export default function UserLoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +25,8 @@ export default function UserLoginPage() {
 
       // On suppose que l'API renvoie { accessToken, userId, role, email }
       const { accessToken, role } = data;
+      const normalizedRole = String(role || '').toUpperCase();
+      const localePrefix = pathname?.startsWith('/ar') ? '/ar' : '/fr';
 
       Cookies.set('token', accessToken, { expires: 7 });
       Cookies.set('auth_token', accessToken, { expires: 7 });
@@ -30,14 +34,15 @@ export default function UserLoginPage() {
       toast.success('Connexion réussie.');
 
       // Redirection selon le rôle
-      if (role === 'PARENT') {
-        router.push('/parent');
-      } else if (role === 'ENSEIGNANT') {
-        // TODO: changer si tu ajoutes un dashboard enseignant dédié
-        router.push('/teacher');
+      if (normalizedRole === 'PARENT') {
+        router.push(`${localePrefix}/parent`);
+      } else if (normalizedRole === 'ENSEIGNANT') {
+        router.push(`${localePrefix}/teacher`);
+      } else if (normalizedRole === 'ADMIN') {
+        router.push(`${localePrefix}/admin`);
       } else {
         // Fallback : on renvoie sur la page d'accueil publique
-        router.push('/');
+        router.push(localePrefix);
       }
     } catch (error) {
       const message =

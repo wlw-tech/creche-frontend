@@ -171,6 +171,17 @@ class ApiClient {
     return this.client.get('/admin/classes');
   }
 
+  // ---- CLASSES (Public) ----
+  listPublicClasses() {
+    const publicClient = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return publicClient.get('/public/classes');
+  }
+
   createClass(data: {
     nom: string;
     capacite?: number | null;

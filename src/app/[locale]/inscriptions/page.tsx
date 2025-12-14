@@ -74,9 +74,11 @@ export default function InscriptionsPage() {
     async function fetchClasses() {
       try {
         setClassesError(null)
-        const res = await apiClient.listClasses()
+        const res = await apiClient.listPublicClasses()
         const data = Array.isArray(res.data?.items)
           ? res.data.items
+          : Array.isArray(res.data?.data)
+          ? res.data.data
           : Array.isArray(res.data)
           ? res.data
           : []

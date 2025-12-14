@@ -56,6 +56,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
     date: string
     title: string
     time?: string | null
+    description?: string | null
   }[]>([])
 
   const [authorizedPersons, setAuthorizedPersons] = useState<
@@ -276,6 +277,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     date: dateLabel,
                     title: ev.titre ?? ev.title ?? "",
                     time: timeLabel,
+                    description: ev.description ?? null,
                   }
                 }),
               )
@@ -564,6 +566,9 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{event.title}</p>
+                      {event.description && (
+                        <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                      )}
                       <p className="text-sm text-gray-500">{event.time}</p>
                     </div>
                   </div>
@@ -639,42 +644,59 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                   Menus de la semaine
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                {Object.values(weekMenus)
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .map((menu) => (
-                    <div
-                      key={menu.date}
-                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-lg border border-sky-100 bg-white px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase">
-                          {new Date(menu.date).toLocaleDateString("fr-FR", {
-                            weekday: "long",
-                            day: "2-digit",
-                            month: "short",
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-3 text-xs md:text-sm text-gray-700">
-                        {menu.entree && (
-                          <span>
-                            <span className="font-semibold">Petit-déjeuner :</span> {menu.entree}
-                          </span>
-                        )}
-                        {menu.plat && (
-                          <span>
-                            <span className="font-semibold">Déjeuner :</span> {menu.plat}
-                          </span>
-                        )}
-                        {menu.dessert && (
-                          <span>
-                            <span className="font-semibold">Goûter :</span> {menu.dessert}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              <CardContent className="pt-4">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs font-semibold text-gray-600">
+                        <th className="px-3 py-2">Jour</th>
+                        <th className="px-3 py-2">🥛 Petit-déjeuner</th>
+                        <th className="px-3 py-2">🍗 Déjeuner</th>
+                        <th className="px-3 py-2">🍎 Goûter</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.values(weekMenus)
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                        .map((menu) => (
+                          <tr key={menu.date} className="border-t border-sky-100 align-top">
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <div className="text-xs font-semibold text-gray-800">
+                                {new Date(menu.date)
+                                  .toLocaleDateString("fr-FR", {
+                                    weekday: "long",
+                                    day: "2-digit",
+                                    month: "short",
+                                  })
+                                  .toUpperCase()}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-gray-700">
+                              {menu.entree ? (
+                                <span className="font-semibold">{menu.entree}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-gray-700">
+                              {menu.plat ? (
+                                <span className="font-semibold">{menu.plat}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-gray-700">
+                              {menu.dessert ? (
+                                <span className="font-semibold">{menu.dessert}</span>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           )}
