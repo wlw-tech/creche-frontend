@@ -31,7 +31,7 @@ export default function TeacherDashboard() {
   const [childResumes, setChildResumes] = useState<Record<string, { id: string }>>({})
   const [dailySummary, setDailySummary] = useState("")
   const [dailyMessage, setDailyMessage] = useState("")
-
+  const [teacherDailyMessage, setTeacherDailyMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -87,25 +87,50 @@ export default function TeacherDashboard() {
         const enfants = enfantsRes.data?.enfants ?? []
         if (!cancelled) setChildren(enfants)
 
-        const presRes = await apiClient.getPresences(cls.id, today)
-        const presItems = presRes.data?.items ?? presRes.data?.data ?? []
+        // Récupérer toutes les présences pour aujourd'hui (avec pagination si nécessaire)
+        let allPresences: any[] = []
+        let currentPage = 1
+        const pageSize = 100
+        let hasMore = true
+        
+        while (hasMore && !cancelled) {
+          const presRes = await apiClient.getPresences(cls.id, today, currentPage, pageSize)
+          const presItems = presRes.data?.items ?? presRes.data?.data ?? []
+          
+          if (!Array.isArray(presItems) || presItems.length === 0) {
+            hasMore = false
+            break
+          }
+          
+          allPresences = [...allPresences, ...presItems]
+          
+          // Vérifier s'il y a plus de pages
+          const hasNext = presRes.data?.hasNext ?? false
+          if (!hasNext || presItems.length < pageSize) {
+            hasMore = false
+          } else {
+            currentPage++
+          }
+        }
+        
         if (!cancelled) {
           const map: Record<string, "Present" | "Absent"> = {}
-          for (const p of presItems) {
-            if (p.enfantId && p.statut) {
-              map[p.enfantId] = p.statut
+          for (const p of allPresences) {
+            // L'API retourne enfant.id ou enfantId selon la structure
+            const enfantId = p.enfantId || p.enfant?.id
+            if (enfantId && p.statut) {
+              map[enfantId] = p.statut
             }
           }
           setAttendanceData(map)
-
-          // Si tous les enfants ont déjà une présence pour aujourd'hui,
-          // on envoie directement l'enseignant vers la page de résumé/statistiques
+          
+          // Vérifier si tous les enfants ont déjà une présence pour aujourd'hui
           const hasPresenceForAll =
             enfants.length > 0 &&
             enfants.every((enfant: any) => map[enfant.id] !== undefined)
 
-          if (hasPresenceForAll && typeof window !== "undefined") {
-            window.location.href = "/teacher/summary"
+          if (hasPresenceForAll) {
+            setSuccessMessage("Toutes les présences sont déjà enregistrées pour aujourd'hui. Vous pouvez consulter le résumé de journée.");
           }
         }
 
@@ -145,6 +170,13 @@ export default function TeacherDashboard() {
 
   const handlePresence = async (presence: "Present" | "Absent") => {
     if (!currentChild || !teacherClass) return
+    
+    // Vérifier si la présence est déjà faite
+    if (attendanceData[currentChild.id] !== undefined) {
+      setError("La présence pour cet enfant a déjà été enregistrée aujourd'hui.")
+      return
+    }
+    
     try {
       await apiClient.recordPresences({
         classeId: teacherClass.id,
@@ -159,12 +191,32 @@ export default function TeacherDashboard() {
         ],
       })
 
+      // Mettre à jour l'état local immédiatement
       setAttendanceData((prev) => ({ ...prev, [currentChild.id]: presence }))
       setError(null)
       setSuccessMessage(
         `Présence enregistrée pour ${currentChild.prenom ?? ""} ${currentChild.nom ?? ""}`.trim(),
       )
       setTimeout(() => setSuccessMessage(null), 3000)
+      
+      // Recharger les présences depuis l'API pour confirmer
+      try {
+        const presRes = await apiClient.getPresences(teacherClass.id, today, 1, 100)
+        const presItems = presRes.data?.items ?? presRes.data?.data ?? []
+        if (Array.isArray(presItems)) {
+          const map: Record<string, "Present" | "Absent"> = { ...attendanceData }
+          for (const p of presItems) {
+            const enfantId = p.enfantId || p.enfant?.id
+            if (enfantId && p.statut) {
+              map[enfantId] = p.statut
+            }
+          }
+          setAttendanceData(map)
+        }
+      } catch (reloadError) {
+        console.error("[Teacher] Error reloading presences", reloadError)
+        // Ne pas bloquer si le rechargement échoue, l'état local est déjà mis à jour
+      }
     } catch (e) {
       console.error("[Teacher] handlePresence error", e)
       setError("Erreur lors de l'enregistrement de la présence")
@@ -252,9 +304,21 @@ export default function TeacherDashboard() {
     const current = currentChild
     if (!current) return
 
+    // Permettre de passer à l'enfant suivant même si présence/résumé déjà faits
+    // On vérifie seulement si on n'a pas encore fait la présence/résumé
     const hasPresence = attendanceData[current.id] !== undefined
     const hasResume = !!childResumes[current.id]
 
+    // Si présence et résumé sont déjà faits, on peut passer au suivant
+    if (hasPresence && hasResume) {
+      if (currentChildIndex < children.length - 1) {
+        setCurrentChildIndex((i) => i + 1)
+        setError(null)
+      }
+      return
+    }
+
+    // Sinon, on demande de compléter
     if (!hasPresence || !hasResume) {
       setError("Veuillez d'abord enregistrer la présence et le résumé de cet enfant")
       return
@@ -279,6 +343,85 @@ export default function TeacherDashboard() {
     currentChild && attendanceData[currentChild.id] !== undefined
   const hasResumeForCurrent = currentChild && !!childResumes[currentChild.id]
   const progressPercent = children.length > 0 ? ((currentChildIndex + 1) / children.length) * 100 : 0
+
+  // Vérifier si la présence du jour est déjà terminée pour tous les enfants
+  const isAttendanceCompletedForToday = 
+    children.length > 0 && 
+    children.every((enfant) => attendanceData[enfant.id] !== undefined)
+  
+  // Charger le résumé existant pour l'enfant actuel si disponible
+  useEffect(() => {
+    if (!currentChild || !teacherClass) return
+    
+    async function loadCurrentChildResume() {
+      try {
+        const resumesRes = await apiClient.getResumes(teacherClass.id, today)
+        const resumes = resumesRes.data?.data ?? resumesRes.data ?? []
+        const currentResume = Array.isArray(resumes) 
+          ? resumes.find((r: any) => r.enfantId === currentChild.id)
+          : null
+        
+        if (currentResume) {
+          // Charger les valeurs du résumé existant
+          let loadedAppetit: "Bien" | "Moyen" | "Mal" = "Bien"
+          let loadedHumeur: "Bonne" | "Moyenne" | "Mauvaise" = "Bonne"
+          let loadedSieste: "Courte" | "Moyenne" | "Longue" = "Moyenne"
+          let loadedParticipation: "Bonne" | "Moyenne" | "Faible" = "Bonne"
+          
+          if (currentResume.appetit) {
+            const appetitMap: Record<string, "Bien" | "Moyen" | "Mal"> = {
+              "Bon": "Bien",
+              "Moyen": "Moyen",
+              "Faible": "Mal"
+            }
+            loadedAppetit = appetitMap[currentResume.appetit] || "Bien"
+            setAppetit(loadedAppetit)
+          }
+          if (currentResume.humeur) {
+            const humeurMap: Record<string, "Bonne" | "Moyenne" | "Mauvaise"> = {
+              "Bon": "Bonne",
+              "Moyen": "Moyenne",
+              "Difficile": "Mauvaise"
+            }
+            loadedHumeur = humeurMap[currentResume.humeur] || "Bonne"
+            setHumeur(loadedHumeur)
+          }
+          if (currentResume.sieste) {
+            const siesteMap: Record<string, "Courte" | "Moyenne" | "Longue"> = {
+              "Moyen": "Courte",
+              "Bon": "Moyenne",
+              "Excellent": "Longue"
+            }
+            loadedSieste = siesteMap[currentResume.sieste] || "Moyenne"
+            setSieste(loadedSieste)
+          }
+          if (currentResume.participation) {
+            const participationMap: Record<string, "Bonne" | "Moyenne" | "Faible"> = {
+              "Bon": "Bonne",
+              "Moyen": "Moyenne",
+              "Faible": "Faible"
+            }
+            loadedParticipation = participationMap[currentResume.participation] || "Bonne"
+            setParticipation(loadedParticipation)
+          }
+          if (currentResume.observations && Array.isArray(currentResume.observations) && currentResume.observations.length > 0) {
+            setDailyMessage(currentResume.observations[0])
+          }
+          
+          const resumeText = `Appétit: ${loadedAppetit}, Humeur: ${loadedHumeur}, Sieste: ${loadedSieste}, Participation: ${loadedParticipation}`
+          setDailySummary(resumeText)
+        } else {
+          // Réinitialiser si pas de résumé
+          setDailySummary("")
+          setDailyMessage("")
+        }
+      } catch (e) {
+        console.error("[Teacher] Error loading current child resume", e)
+      }
+    }
+    
+    void loadCurrentChildResume()
+  }, [currentChild?.id, teacherClass?.id, today])
 
   if (loading) {
     return <div className="p-6 text-sm text-gray-600">Chargement du tableau de bord enseignant...</div>
@@ -323,6 +466,15 @@ export default function TeacherDashboard() {
       {successMessage && (
         <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-800">
           {successMessage}
+          {successMessage.includes("Présence déjà enregistrée") && (
+            <div className="mt-3">
+              <Link href="/teacher/summary">
+                <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700">
+                  Voir le résumé de journée
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
@@ -371,17 +523,34 @@ export default function TeacherDashboard() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => handlePresence("Present")}
-                    className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg py-3 text-base"
+                    disabled={hasPresenceForCurrent}
+                    className={`flex-1 font-bold rounded-lg py-3 text-base ${
+                      hasPresenceForCurrent
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-green-500 hover:bg-green-600 text-white"
+                    }`}
                   >
                     ✓ {t("presentButton")}
+                    {hasPresenceForCurrent && attendanceData[currentChild.id] === "Present" && " ✓"}
                   </Button>
                   <Button
                     onClick={() => handlePresence("Absent")}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg py-3 text-base"
+                    disabled={hasPresenceForCurrent}
+                    className={`flex-1 font-bold rounded-lg py-3 text-base ${
+                      hasPresenceForCurrent
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-red-500 hover:bg-red-600 text-white"
+                    }`}
                   >
                     ✕ {t("absentButton")}
+                    {hasPresenceForCurrent && attendanceData[currentChild.id] === "Absent" && " ✓"}
                   </Button>
                 </div>
+                {hasPresenceForCurrent && (
+                  <div className="mt-2 text-xs text-emerald-600 font-medium">
+                    ✓ Présence déjà enregistrée pour aujourd'hui
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -517,13 +686,25 @@ export default function TeacherDashboard() {
                   Note du jour : {dailySummary}
                 </div>
               )}
+              
+              {/* Afficher le résumé si déjà enregistré */}
+              {hasResumeForCurrent && (
+                <div className="pt-2 text-xs text-emerald-600 text-center font-medium">
+                  ✓ Résumé de journée déjà enregistré pour cet enfant
+                </div>
+              )}
 
               <div className="pt-3 flex justify-end">
                 <Button
                   onClick={handleSaveDailySummary}
-                  className="bg-sky-500 hover:bg-sky-600 text-white text-sm px-4 py-2 rounded-lg"
+                  disabled={hasResumeForCurrent}
+                  className={`text-sm px-4 py-2 rounded-lg ${
+                    hasResumeForCurrent
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-sky-500 hover:bg-sky-600 text-white"
+                  }`}
                 >
-                  Valider le résumé de journée
+                  {hasResumeForCurrent ? "✓ Résumé déjà enregistré" : "Valider le résumé de journée"}
                 </Button>
               </div>
             </CardContent>

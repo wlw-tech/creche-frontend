@@ -53,6 +53,10 @@ class ApiClient {
     return this.client.get("/admin/dashboard/upcoming-events", { params });
   }
 
+  listDashboardTeacherAttendanceStatus(params?: { from?: string; to?: string }) {
+    return this.client.get("/admin/dashboard/teacher-attendance-status", { params });
+  }
+
   // ---- EVENTS (Admin) ----
 
   listAdminEvents(params?: { page?: number; pageSize?: number; status?: string; classeId?: string }) {
@@ -210,8 +214,8 @@ class ApiClient {
     return this.client.post('/presences/class', data);
   }
 
-  getPresences(classeId: string, date?: string) {
-    return this.client.get('/presences', { params: { classeId, date } });
+  getPresences(classeId: string, date?: string, page?: number, pageSize?: number) {
+    return this.client.get('/presences', { params: { classeId, date, page, pageSize } });
   }
 
   // Daily Resumes (Teacher)

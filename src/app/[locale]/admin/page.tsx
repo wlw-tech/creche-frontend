@@ -24,6 +24,8 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const [presenceStats, setPresenceStats] = useState<any[] | null>(null);
   const [inscriptionStats, setInscriptionStats] = useState<any[] | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[] | null>(null);
+  const [teacherAttendanceStatus, setTeacherAttendanceStatus] = useState<any[] | null>(null);
+  const [presencePeriod, setPresencePeriod] = useState<'day' | 'week' | 'month'>('week');
 
   useEffect(() => {
     const token = localStorage.getItem("token") || document.cookie.includes("token");
@@ -43,6 +45,23 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
         const oneMonthAhead = new Date(now);
         oneMonthAhead.setMonth(oneMonthAhead.getMonth() + 1);
 
+        // Calculer les dates selon la période sélectionnée
+        let presenceFrom: Date;
+        let presenceTo: Date = new Date(now);
+        presenceTo.setHours(23, 59, 59, 999);
+        
+        if (presencePeriod === 'day') {
+          presenceFrom = new Date(now);
+          presenceFrom.setHours(0, 0, 0, 0);
+        } else if (presencePeriod === 'week') {
+          presenceFrom = new Date(now);
+          presenceFrom.setDate(now.getDate() - 7);
+          presenceFrom.setHours(0, 0, 0, 0);
+        } else {
+          presenceFrom = fromMonthly;
+          presenceTo = toMonthly;
+        }
+
         const [
           inscriptionsRes,
           childrenRes,
@@ -51,20 +70,22 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           presencesRes,
           inscriptionStatsRes,
           upcomingEventsRes,
+          teacherAttendanceRes,
         ] = await Promise.all([
           apiClient.listAdminInscriptions(),
           apiClient.listChildren(1, 1000),
           apiClient.listClasses(),
           apiClient.listAdminEvents({ page: 1, pageSize: 100 }),
           apiClient.listDashboardPresences({
-            from: fromMonthly.toISOString().slice(0, 10),
-            to: toMonthly.toISOString().slice(0, 10),
+            from: presenceFrom.toISOString().slice(0, 10),
+            to: presenceTo.toISOString().slice(0, 10),
           }),
           apiClient.listDashboardInscriptions({ year: currentYear }),
           apiClient.listDashboardUpcomingEvents({
             from: now.toISOString(),
             to: oneMonthAhead.toISOString(),
           }),
+          apiClient.listDashboardTeacherAttendanceStatus(),
         ]);
 
         const insPayload = inscriptionsRes.data;
@@ -120,6 +141,12 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           ? upcomingPayload.items
           : [];
         setUpcomingEvents(upcomingItems);
+
+        const teacherAttendancePayload = teacherAttendanceRes.data;
+        const teacherAttendanceItems: any[] = Array.isArray(teacherAttendancePayload?.items)
+          ? teacherAttendancePayload.items
+          : [];
+        setTeacherAttendanceStatus(teacherAttendanceItems);
       } catch (err) {
         console.error("[Admin/Dashboard] Error loading inscriptions stats", err);
       } finally {
@@ -128,7 +155,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     }
 
     fetchStats();
-  }, [router]);
+  }, [router, presencePeriod]);
 
   if (loading) {
     return (
@@ -194,6 +221,12 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     : 0;
   const hasTodayPresence = todayTotal > 0;
 
+  // Statuts enseignants du jour
+  const todayTeacherAttendance = teacherAttendanceStatus?.filter((item: any) => item.date === todayStr) || [];
+  const totalTeachers = todayTeacherAttendance.length;
+  const completedTeachers = todayTeacherAttendance.filter((item: any) => item.completed).length;
+  const pendingTeachers = totalTeachers - completedTeachers;
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -258,6 +291,54 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
             </Card>
           </div>
 
+          {/* Teacher attendance status */}
+          <div className="mb-6">
+            <Card className="p-4 border border-blue-200 bg-blue-50">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Statut des enseignants
+                  </p>
+                  <p className="text-xs text-gray-700 mt-1">
+                    {completedTeachers}/{totalTeachers} enseignants ont complété l'appel aujourd'hui
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-emerald-500 text-white">
+                    {completedTeachers}
+                  </div>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-amber-400 text-white">
+                    {pendingTeachers}
+                  </div>
+                </div>
+              </div>
+              {todayTeacherAttendance.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {todayTeacherAttendance.map((teacher: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-700">
+                        {teacher.enseignantPrenom} {teacher.enseignantNom}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">
+                          {teacher.classes?.map((c: any) => c.classeNom).join(', ') || 'Aucune classe'}
+                        </span>
+                        <div
+                          className={
+                            "w-4 h-4 rounded-full " +
+                            (teacher.completed
+                              ? "bg-emerald-500"
+                              : "bg-amber-400")
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {stats.map((stat, index) => (
@@ -278,24 +359,68 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Presence chart */}
             <Card className="p-6 lg:col-span-2">
-              <h2 className="text-lg font-semibold mb-4">{t("presenceChartTitle")}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">{t("presenceChartTitle")}</h2>
+                <div className="flex gap-2">
+                  <Button
+                    variant={presencePeriod === 'day' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPresencePeriod('day')}
+                    className="text-xs"
+                  >
+                    Jour
+                  </Button>
+                  <Button
+                    variant={presencePeriod === 'week' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPresencePeriod('week')}
+                    className="text-xs"
+                  >
+                    Semaine
+                  </Button>
+                  <Button
+                    variant={presencePeriod === 'month' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPresencePeriod('month')}
+                    className="text-xs"
+                  >
+                    Mois
+                  </Button>
+                </div>
+              </div>
               {presenceStats && presenceStats.length > 0 && maxPresenceTotal > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {presenceStats.map((d: any) => {
                     const total = (d.present || 0) + (d.absent || 0) + (d.justifie || 0);
+                    const presentPercent = total > 0 ? Math.round(((d.present || 0) / total) * 100) : 0;
+                    const dateObj = new Date(d.date);
+                    const formattedDate = dateObj.toLocaleDateString('fr-FR', { 
+                      day: '2-digit', 
+                      month: '2-digit',
+                      ...(presencePeriod === 'week' || presencePeriod === 'month' ? { year: '2-digit' } : {})
+                    });
                     return (
-                      <div key={d.date} className="text-xs text-muted-foreground">
+                      <div key={d.date} className="text-xs text-muted-foreground border-b pb-2 last:border-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-foreground">{d.date}</span>
+                          <span className="font-medium text-foreground">{formattedDate}</span>
                           <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-green-600">✓ {d.present || 0}</span>
+                            <span className="text-[10px] text-red-600">✗ {d.absent || 0}</span>
+                            <span className="text-[10px] text-blue-600">~ {d.justifie || 0}</span>
                             <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                               {total}
                             </div>
                           </div>
                         </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {total} {t("presenceChartLabelChildren")}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 rounded-full" 
+                              style={{ width: `${presentPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-500">{presentPercent}% présents</span>
+                        </div>
                       </div>
                     );
                   })}

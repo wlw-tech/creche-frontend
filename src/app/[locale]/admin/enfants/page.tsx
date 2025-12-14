@@ -36,8 +36,13 @@ type EnfantItem = {
   classId?: string;
   teacher: string;
   parent: string;
-  status: string;
-  statusCode?: string;
+  todayStatus: string; // Changé de "status" à "todayStatus" pour plus de clarté
+  todayStatusCode?: string;
+  presences?: Array<{ // Ajout des présences historiques
+    id: string;
+    date: string;
+    statut: string;
+  }>;
 };
 
 export default function EnfantsPage({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -60,6 +65,9 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
     familleId: "",
     dateNaissance: "",
   });
+  
+  // Date d'aujourd'hui pour filtrer les présences
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -81,18 +89,37 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
             ? `${principal.prenom ?? ""} ${principal.nom ?? ""}`.trim() || principal.telephone || "—"
             : "—";
 
-          let status = "—";
-          let statusCode: string | undefined = undefined;
-          const presence = enfant.presences && enfant.presences[0];
-          if (presence?.statut === "Present") {
-            status = "Présent";
-            statusCode = "Present";
-          } else if (presence?.statut === "Absent") {
-            status = "Absent";
-            statusCode = "Absent";
-          } else if (presence?.statut === "Justifie") {
-            status = "Justifié";
-            statusCode = "Justifie";
+          // Trouver la présence pour aujourd'hui
+          let todayStatus = "Non défini";
+          let todayStatusCode: string | undefined = undefined;
+          
+          // Si l'enfant a des présences, chercher celle d'aujourd'hui
+          if (enfant.presences && Array.isArray(enfant.presences)) {
+            const todayPresence = enfant.presences.find((presence: any) => {
+              try {
+                if (!presence.date) return false;
+                const dateObj = new Date(presence.date);
+                if (isNaN(dateObj.getTime())) return false;
+                const presenceDate = dateObj.toISOString().split('T')[0];
+                return presenceDate === today;
+              } catch (e) {
+                console.warn('Invalid date in presence:', presence.date, e);
+                return false;
+              }
+            });
+            
+            if (todayPresence) {
+              if (todayPresence.statut === "Present") {
+                todayStatus = "Présent";
+                todayStatusCode = "Present";
+              } else if (todayPresence.statut === "Absent") {
+                todayStatus = "Absent";
+                todayStatusCode = "Absent";
+              } else if (todayPresence.statut === "Justifie") {
+                todayStatus = "Justifié";
+                todayStatusCode = "Justifie";
+              }
+            }
           }
 
           return {
@@ -102,8 +129,23 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
             classId: enfant.classe?.id,
             teacher: "—",
             parent: parentName,
-            status,
-            statusCode,
+            todayStatus,
+            todayStatusCode,
+            presences: enfant.presences?.map((presence: any) => {
+              try {
+                if (!presence.date) return null;
+                const dateObj = new Date(presence.date);
+                if (isNaN(dateObj.getTime())) return null;
+                return {
+                  id: presence.id,
+                  date: dateObj.toISOString().split('T')[0],
+                  statut: presence.statut
+                };
+              } catch (e) {
+                console.warn('Invalid date in presence:', presence.date, e);
+                return null;
+              }
+            }).filter((p: any) => p !== null) || []
           } as EnfantItem;
         });
 
@@ -179,24 +221,72 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
   };
 
   const handleChangeStatus = async (id: string, statut: string) => {
-    try {
-      await apiClient.updateChildStatus(id, statut);
-      setChildren((prev) =>
-        prev.map((c) => {
-          if (c.id !== id) return c;
-          let statusLabel = "—";
-          if (statut === "Present") statusLabel = "Présent";
-          else if (statut === "Absent") statusLabel = "Absent";
-          else if (statut === "Justifie") statusLabel = "Justifié";
-          return { ...c, statusCode: statut, status: statusLabel };
-        }),
-      );
-    } catch (err) {
-      console.error("[Admin/Enfants] Error updating status", err);
-      alert("Erreur lors de la mise à jour du statut.");
+  try {
+    // Vérifier si une présence existe déjà pour aujourd'hui
+    const enfant = children.find(c => c.id === id);
+    
+    if (!enfant) {
+      console.error('Enfant non trouvé');
+      return;
     }
-  };
-
+    
+    const hasTodayPresence = enfant?.presences?.some(p => p.date === today);
+    
+    if (hasTodayPresence) {
+      // Mettre à jour la présence existante
+      const todayPresence = enfant.presences?.find(p => p.date === today);
+      if (todayPresence) {
+        // Ici, vous devriez appeler un endpoint pour mettre à jour la présence
+        // Pour l'instant, nous utilisons l'endpoint existant qui crée/écrase
+        await apiClient.updateChildStatus(id, statut);
+      }
+    } else {
+      // Créer une nouvelle présence
+      await apiClient.updateChildStatus(id, statut);
+    }
+    
+    // Mettre à jour l'état local
+    setChildren((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        
+        let todayStatusLabel = "Non défini";
+        if (statut === "Present") todayStatusLabel = "Présent";
+        else if (statut === "Absent") todayStatusLabel = "Absent";
+        else if (statut === "Justifie") todayStatusLabel = "Justifié";
+        
+        // Mettre à jour ou ajouter la présence pour aujourd'hui
+        const updatedPresences = [...(c.presences || [])];
+        const todayIndex = updatedPresences.findIndex(p => p.date === today);
+        
+        if (todayIndex !== -1) {
+          // Mettre à jour la présence existante
+          updatedPresences[todayIndex] = {
+            ...updatedPresences[todayIndex],
+            statut: statut
+          };
+        } else {
+          // Ajouter une nouvelle présence
+          updatedPresences.push({
+            id: `temp-${Date.now()}`, // ID temporaire
+            date: today,
+            statut: statut
+          });
+        }
+        
+        return { 
+          ...c, 
+          todayStatusCode: statut, 
+          todayStatus: todayStatusLabel,
+          presences: updatedPresences
+        };
+      }),
+    );
+  } catch (err) {
+    console.error("[Admin/Enfants] Error updating status", err);
+    alert("Erreur lors de la mise à jour du statut.");
+  }
+};
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -232,11 +322,29 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
           ? `${principal.prenom ?? ""} ${principal.nom ?? ""}`.trim() || principal.telephone || "—"
           : "—";
 
-        let status = "—";
-        const presence = enfant.presences && enfant.presences[0];
-        if (presence?.statut === "Present") status = "Présent";
-        else if (presence?.statut === "Absent") status = "Absent";
-        else if (presence?.statut === "Justifie") status = "Justifié";
+        // Trouver la présence pour aujourd'hui
+        let todayStatus = "Non défini";
+        
+        if (enfant.presences && Array.isArray(enfant.presences)) {
+          const todayPresence = enfant.presences.find((presence: any) => {
+            try {
+              if (!presence.date) return false;
+              const dateObj = new Date(presence.date);
+              if (isNaN(dateObj.getTime())) return false;
+              const presenceDate = dateObj.toISOString().split('T')[0];
+              return presenceDate === today;
+            } catch (e) {
+              console.warn('Invalid date in presence:', presence.date, e);
+              return false;
+            }
+          });
+          
+          if (todayPresence) {
+            if (todayPresence.statut === "Present") todayStatus = "Présent";
+            else if (todayPresence.statut === "Absent") todayStatus = "Absent";
+            else if (todayPresence.statut === "Justifie") todayStatus = "Justifié";
+          }
+        }
 
         return {
           id: enfant.id,
@@ -244,7 +352,22 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
           group,
           teacher: "—",
           parent: parentName,
-          status,
+          todayStatus,
+          presences: enfant.presences?.map((presence: any) => {
+            try {
+              if (!presence.date) return null;
+              const dateObj = new Date(presence.date);
+              if (isNaN(dateObj.getTime())) return null;
+              return {
+                id: presence.id,
+                date: dateObj.toISOString().split('T')[0],
+                statut: presence.statut
+              };
+            } catch (e) {
+              console.warn('Invalid date in presence:', presence.date, e);
+              return null;
+            }
+          }).filter((p: any) => p !== null) || []
         } as EnfantItem;
       });
       setChildren(mapped);
@@ -313,20 +436,25 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                   : `${children.length} enfant${children.length > 1 ? 's' : ''}`}
               </p>
             </div>
-            <Button
-              onClick={async () => {
-                try {
-                  const res = await apiClient.listChildFamilies();
-                  setFamilies(res.data ?? []);
-                  setModalOpen(true);
-                } catch (err) {
-                  console.error('[Admin/Enfants] Error loading families', err);
-                  alert('Impossible de charger les familles.');
-                }
-              }}
-            >
-              Ajouter un enfant
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                Aujourd'hui: {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await apiClient.listChildFamilies();
+                    setFamilies(res.data ?? []);
+                    setModalOpen(true);
+                  } catch (err) {
+                    console.error('[Admin/Enfants] Error loading families', err);
+                    alert('Impossible de charger les familles.');
+                  }
+                }}
+              >
+                Ajouter un enfant
+              </Button>
+            </div>
           </div>
 
           <Card className="p-6">
@@ -378,7 +506,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('name')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('group')}</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('parent')}</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('status')}</th>
+                    <th className="px-6 py-3 text-left font-semibold text-foreground">Présence aujourd'hui</th>
                     <th className="px-6 py-3 text-left font-semibold text-foreground">{t('actions')}</th>
                   </tr>
                 </thead>
@@ -413,24 +541,41 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                         <td className="px-6 py-3 text-muted-foreground text-xs">{child.parent}</td>
                         <td className="px-6 py-3">
                           <select
-                            value={child.statusCode ?? ""}
+                            value={child.todayStatusCode ?? ""}
                             onChange={(e) => handleChangeStatus(child.id, e.target.value)}
                             className="border border-input rounded-md px-2 py-1 text-xs bg-background mb-1"
                           >
-                            <option value="">—</option>
+                            <option value="">Sélectionner</option>
                             <option value="Present">Présent</option>
                             <option value="Absent">Absent</option>
                             <option value="Justifie">Justifié</option>
                           </select>
                           <Badge
                             className={
-                              child.status === "Présent"
+                              child.todayStatus === "Présent"
                                 ? "bg-green-100 text-green-700"
+                                : child.todayStatus === "Absent"
+                                ? "bg-red-100 text-red-700"
+                                : child.todayStatus === "Justifié"
+                                ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-100 text-gray-700"
                             }
                           >
-                            {child.status}
+                            {child.todayStatus}
                           </Badge>
+                          {child.presences && child.presences.length > 0 && (
+                            <div className="mt-1 text-xs text-gray-500">
+                              Historique: {child.presences.slice(-3).map(p => {
+                                try {
+                                  const dateObj = new Date(p.date);
+                                  if (isNaN(dateObj.getTime())) return null;
+                                  return `${dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}: ${p.statut === 'Present' ? '✓' : p.statut === 'Absent' ? '✗' : '~'}`;
+                                } catch (e) {
+                                  return null;
+                                }
+                              }).filter((s: any) => s !== null).join(', ')}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-3 flex gap-2 justify-end">
                           <Link
