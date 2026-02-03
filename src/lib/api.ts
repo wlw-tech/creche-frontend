@@ -154,8 +154,12 @@ class ApiClient {
     return this.client.post('/admin/users', data);
   }
 
-  listUsers() {
-    return this.client.get('/admin/users');
+  listUsers(params?: { role?: string; statut?: string; q?: string; page?: number; limit?: number }) {
+    return this.client.get('/admin/users', { params });
+  }
+
+  getAdminUser(id: string) {
+    return this.client.get(`/admin/users/${id}`);
   }
 
   updateUserStatus(id: string, statut: 'INVITED' | 'ACTIVE' | 'DISABLED') {
@@ -227,6 +231,21 @@ class ApiClient {
 
   getPresences(classeId: string, date?: string, page?: number, pageSize?: number) {
     return this.client.get('/presences', { params: { classeId, date, page, pageSize } });
+  }
+
+  listPresences(params?: {
+    date?: string;
+    dateMin?: string;
+    dateMax?: string;
+    classeId?: string;
+    enfantId?: string;
+    enregistreParId?: string;
+    statut?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    return this.client.get('/presences', { params });
   }
 
   // Daily Resumes (Teacher)

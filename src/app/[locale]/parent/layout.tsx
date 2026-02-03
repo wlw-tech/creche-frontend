@@ -58,7 +58,7 @@ export default function ParentLayout({
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Dashboard Parent</h1>
-              <p className="text-sm text-gray-500">Bienvenue sur Le Nido</p>
+              <p className="text-sm text-gray-500">Bienvenue sur Petitspas</p>
             </div>
           </div>
           <div className="flex items-center gap-4">

@@ -5,7 +5,7 @@
     "logout": "Déconnexion"
   },
   "home": {
-    "title": "Le Nido",
+    "title": "Petitspas",
     "subtitle": "Plateforme complète de gestion pour crèches et garderies",
     "adminSection": "Pour l'administration",
     "adminDescription": "Gérez les enfants, inscriptions, présences et facturation",
@@ -120,6 +120,7 @@
     "teachers": "Enseignants & classes",
     "menus": "Menu enfant",
     "events": "Événements",
+    "presenceHistory": "Historique de présence",
     "users": "Tous les utilisateurs",
     "profile": "Profil / Mot de passe",
     "settings": "Paramètres",

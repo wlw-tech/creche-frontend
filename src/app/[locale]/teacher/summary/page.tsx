@@ -66,14 +66,23 @@ export default function TeacherSummary() {
         ])
 
         const summary = summaryRes.data
-        const statsArray = statsRes.data ?? []
+        const statsPayload = statsRes.data
+        const statsArray: any[] = Array.isArray(statsPayload)
+          ? statsPayload
+          : Array.isArray(statsPayload?.data)
+            ? statsPayload.data
+            : Array.isArray(statsPayload?.items)
+              ? statsPayload.items
+              : []
         const classDailyArray = classDailyRes.data?.data ?? classDailyRes.data ?? []
         const classDaily =
           Array.isArray(classDailyArray) && classDailyArray.length > 0
             ? classDailyArray[0]
             : null
         const statsForDay =
-          Array.isArray(statsArray) && statsArray.length > 0 ? statsArray[0] : null
+          Array.isArray(statsArray) && statsArray.length > 0
+            ? statsArray.find((s: any) => s?.date === todayDate) ?? statsArray[0]
+            : null
 
         if (!cancelled) {
           setSummaryData(summary)

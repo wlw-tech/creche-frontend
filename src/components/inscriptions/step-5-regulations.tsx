@@ -21,9 +21,9 @@ export default function Step5Regulations({ formData, updateFormData }: Step5Prop
       {/* Regulations Content */}
       <div className="bg-muted/30 border border-border rounded-lg p-6 max-h-96 overflow-y-auto space-y-4 text-sm">
         <section>
-          <h3 className="font-semibold text-foreground mb-2">Le Nido - Crèche Maternelle</h3>
+          <h3 className="font-semibold text-foreground mb-2">Petitspas - Crèche Maternelle</h3>
           <p className="text-muted-foreground leading-relaxed">
-            Le Nido est une crèche maternelle qui accueille les enfants de la Pouponnière à la Moyenne-section. Les
+            Petitspas est une crèche maternelle qui accueille les enfants de la Pouponnière à la Moyenne-section. Les
             petits y trouveront un accueil bienveillant et chaleureux, entourés par des adultes passionnés et dévoués.
           </p>
         </section>
@@ -69,7 +69,7 @@ export default function Step5Regulations({ formData, updateFormData }: Step5Prop
           className="w-5 h-5 rounded mt-0.5 accent-secondary flex-shrink-0"
         />
         <span className="text-sm font-medium text-foreground">
-          Je reconnais avoir lu et accepté le règlement intérieur de Le Nido et m'engage à le respecter sans réserve.
+          Je reconnais avoir lu et accepté le règlement intérieur de Petitspas et m'engage à le respecter sans réserve.
         </span>
       </label>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -265,7 +266,6 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Email</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Rôle</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Statut</th>
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Dernier accès</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Actions</th>
                     </tr>
                   </thead>
@@ -297,20 +297,22 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                             <option value="DISABLED">DISABLED</option>
                           </select>
                         </td>
-                        <td className="px-6 py-3 text-muted-foreground text-xs">
-                          {u.dernierAcces
-                            ? new Date(u.dernierAcces).toLocaleString(currentLocale)
-                            : "—"}
-                        </td>
                         <td className="px-6 py-3 text-xs">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 border-red-500 hover:bg-red-50"
-                            onClick={() => handleDelete(u.id)}
-                          >
-                            Supprimer
-                          </Button>
+                          <div className="flex gap-2">
+                            <Link href={`/admin/utilisateurs/${u.id}`}>
+                              <Button variant="outline" size="sm">
+                                Voir profil
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-500 hover:bg-red-50"
+                              onClick={() => handleDelete(u.id)}
+                            >
+                              Supprimer
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

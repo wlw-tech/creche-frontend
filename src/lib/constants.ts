@@ -2,7 +2,7 @@
  * Constantes globales
  */
 
-export const APP_NAME = 'Crèche WLW';
+export const APP_NAME = 'Crèche Petitspas';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 

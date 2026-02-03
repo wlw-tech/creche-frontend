@@ -78,7 +78,7 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="font-bold text-lg text-sidebar-foreground">
-              Le Nido
+              Petitspas
             </h1>
             <p className="text-xs text-sidebar-foreground/60">Admin</p>
           </div>

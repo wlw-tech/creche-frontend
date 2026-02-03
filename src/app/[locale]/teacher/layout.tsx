@@ -56,7 +56,7 @@ export default function TeacherLayout({
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Tableau de bord Enseignant</h1>
-              <p className="text-sm text-gray-500">Crèche Le WLW</p>
+              <p className="text-sm text-gray-500">Crèche Petitspas</p>
             </div>
           </div>
           <div className="flex items-center gap-4">

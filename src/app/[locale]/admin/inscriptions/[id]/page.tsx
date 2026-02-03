@@ -83,6 +83,7 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
 
   const enfant = inscription.payload?.enfant
   const parents = inscription.parents ?? []
+  const famille = inscription.payload?.famille
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8 md:px-10 md:py-10">
@@ -112,16 +113,77 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
 
           <div className="space-y-4 text-sm">
             <div>
+              <h3 className="font-semibold mb-2">Enfant</h3>
+              {enfant ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Nom complet:</span>
+                    <span className="font-medium">{`${enfant.prenom ?? ""} ${enfant.nom ?? ""}`.trim() || "—"}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Date de naissance:</span>
+                    <span className="font-medium">{enfant.dateNaissance ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Genre:</span>
+                    <span className="font-medium">{enfant.genre ?? "—"}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-xs">Aucune information enfant dans le dossier.</p>
+              )}
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Famille</h3>
+              {famille ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Langue préférée:</span>
+                    <span className="font-medium">{famille.languePreferee ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Adresse facturation:</span>
+                    <span className="font-medium">{famille.adresseFacturation ?? "—"}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-xs">Aucune information famille dans le dossier.</p>
+              )}
+            </div>
+
+            <div>
               <h3 className="font-semibold mb-2">Parents / Tuteurs</h3>
               {parents.length === 0 ? (
                 <p className="text-muted-foreground text-xs">Aucun parent trouvé dans le dossier.</p>
               ) : (
                 <ul className="space-y-2">
                   {parents.map((p: any, idx: number) => (
-                    <li key={idx} className="flex justify-between gap-4">
-                      <span className="font-medium">{p.nom}</span>
-                      <span className="text-muted-foreground text-xs">{p.email}</span>
-                      <span className="text-muted-foreground text-xs">{p.lien}</span>
+                    <li key={idx} className="rounded-md border p-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="font-medium">
+                          {`${p.prenom ?? ""} ${p.nom ?? ""}`.trim() || "—"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{p.lien ?? "—"}</span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-medium">{p.email ?? "—"}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Téléphone:</span>
+                          <span className="font-medium">{p.telephone ?? "—"}</span>
+                        </div>
+                        <div className="flex justify-between gap-3 md:col-span-2">
+                          <span className="text-muted-foreground">Adresse:</span>
+                          <span className="font-medium">{p.adresse ?? "—"}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <span className="text-muted-foreground">Principal:</span>
+                          <span className="font-medium">{p.principal ? "Oui" : "Non"}</span>
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>

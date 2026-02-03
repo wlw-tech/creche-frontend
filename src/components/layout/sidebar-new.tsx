@@ -15,6 +15,7 @@ import {
   LogOut,
   UtensilsCrossed,
   Calendar,
+  ClipboardList,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -67,6 +68,11 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       icon: <Calendar className="w-5 h-5" />,
     },
     {
+      labelKey: "presenceHistory",
+      href: "/admin/presences",
+      icon: <ClipboardList className="w-5 h-5" />,
+    },
+    {
       labelKey: "users",
       href: "/admin/utilisateurs",
       icon: <Users className="w-5 h-5" />,
@@ -110,7 +116,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           </div>
           <div>
             <h1 className="font-bold text-lg text-sidebar-foreground">
-              Le Nido
+              Petitspas
             </h1>
             <p className="text-xs text-sidebar-foreground/60">Admin</p>
           </div>
