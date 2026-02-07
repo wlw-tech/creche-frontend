@@ -2,6 +2,7 @@
 
 import type React from "react"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -43,7 +44,7 @@ export default function ParentLayout({
       // ignore
     }
 
-    const loginPath = `/${currentLocale}/auth/login-user`
+    const loginPath = `/${currentLocale}`
     router.push(loginPath)
   }
 
@@ -53,8 +54,13 @@ export default function ParentLayout({
       <header className="border-b bg-white">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200">
-              <span className="text-lg">👨‍👩‍👧</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 overflow-hidden">
+              <Image
+                src="/Group 13.svg"
+                alt="Logo Petitspas"
+                width={40}
+                height={40}
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Dashboard Parent</h1>

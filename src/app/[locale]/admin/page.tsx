@@ -169,7 +169,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     localStorage.removeItem("token");
-    router.push("/auth/login");
+    router.push(`/${currentLocale}`);
   };
 
   const stats = [
@@ -228,14 +228,14 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
   const pendingTeachers = totalTeachers - completedTeachers;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5FBFF] via-[#FFF7ED] to-[#FFE4DD] flex">
       {/* Sidebar */}
       <SidebarNew currentLocale={currentLocale} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-64 flex flex-col">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-white/90 backdrop-blur border-b border-border/70 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
@@ -257,210 +257,211 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Today presence status */}
-          <div className="mb-6">
-            <Card className={
-              hasTodayPresence
-                ? "p-4 border border-emerald-200 bg-emerald-50"
-                : "p-4 border border-amber-200 bg-amber-50"
-            }>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Présence du jour
-                  </p>
-                  <p className="text-xs text-gray-700 mt-1">
-                    {hasTodayPresence
-                      ? "Les enseignants ont déjà enregistré la présence pour aujourd'hui."
-                      : "Aucune présence enregistrée pour aujourd'hui. Merci de vérifier que les enseignants ont fait l'appel."}
-                  </p>
-                </div>
-                <div
-                  className={
-                    "flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold " +
-                    (hasTodayPresence
-                      ? "bg-emerald-500 text-white"
-                      : "bg-amber-400 text-white")
-                  }
-                >
-                  {hasTodayPresence ? "OK" : "!"}
-                </div>
-              </div>
-            </Card>
+    {/* Dashboard Content */}
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Today presence status */}
+      <div className="mb-6">
+        <Card className={
+          hasTodayPresence
+            ? "p-4 border border-emerald-200 bg-emerald-50"
+            : "p-4 border border-amber-200 bg-amber-50"
+        }>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                Présence du jour
+              </p>
+              <p className="text-xs text-gray-700 mt-1">
+                {hasTodayPresence
+                  ? "Les enseignants ont déjà enregistré la présence pour aujourd'hui."
+                  : "Aucune présence enregistrée pour aujourd'hui. Merci de vérifier que les enseignants ont fait l'appel."}
+              </p>
+            </div>
+            <div
+              className={
+                "flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold " +
+                (hasTodayPresence
+                  ? "bg-emerald-500 text-white"
+                  : "bg-amber-400 text-white")
+              }
+            >
+              {hasTodayPresence ? "OK" : "!"}
+            </div>
           </div>
+        </Card>
+      </div>
 
-          {/* Teacher attendance status */}
-          <div className="mb-6">
-            <Card className="p-4 border border-blue-200 bg-blue-50">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Statut des enseignants
-                  </p>
-                  <p className="text-xs text-gray-700 mt-1">
-                    {completedTeachers}/{totalTeachers} enseignants ont complété l'appel aujourd'hui
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-emerald-500 text-white">
-                    {completedTeachers}
-                  </div>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-amber-400 text-white">
-                    {pendingTeachers}
-                  </div>
-                </div>
+      {/* Teacher attendance status */}
+      <div className="mb-6">
+        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                Statut des enseignants
+              </p>
+              <p className="text-xs text-gray-700 mt-1">
+                {completedTeachers}/{totalTeachers} enseignants ont complété l'appel aujourd'hui
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-emerald-500 text-white">
+                {completedTeachers}
               </div>
-              {todayTeacherAttendance.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {todayTeacherAttendance.map((teacher: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-gray-700">
-                        {teacher.enseignantPrenom} {teacher.enseignantNom}
-                      </span>
+              <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-amber-400 text-white">
+                {pendingTeachers}
+              </div>
+            </div>
+          </div>
+          {todayTeacherAttendance.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {todayTeacherAttendance.map((teacher: any, index: number) => (
+                <div key={index} className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-gray-700">
+                    {teacher.enseignantPrenom} {teacher.enseignantNom}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">
+                      {teacher.classes?.map((c: any) => c.classeNom).join(', ') || 'Aucune classe'}
+                    </span>
+                    <div
+                      className={
+                        "w-4 h-4 rounded-full " +
+                        (teacher.completed
+                          ? "bg-emerald-500"
+                          : "bg-amber-400")
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {stats.map((stat, index) => (
+          <Card
+            key={index}
+            className="min-h-[120px] border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl hover:-translate-y-0.5 hover:shadow-lg transition-transform transition-shadow flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className={`text-sm ${stat.color}`}>{stat.change}</p>
+              </div>
+              <stat.icon className={`h-8 w-8 ${stat.color}`} />
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts section */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Presence chart */}
+        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
+          <h2 className="text-lg font-semibold">{t("presenceChartTitle")}</h2>
+          <div className="flex gap-2">
+            <Button
+              variant={presencePeriod === 'day' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPresencePeriod('day')}
+              className="text-xs"
+            >
+              Jour
+            </Button>
+            <Button
+              variant={presencePeriod === 'week' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPresencePeriod('week')}
+              className="text-xs"
+            >
+              Semaine
+            </Button>
+            <Button
+              variant={presencePeriod === 'month' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPresencePeriod('month')}
+              className="text-xs"
+            >
+              Mois
+            </Button>
+          </div>
+          {presenceStats && presenceStats.length > 0 && maxPresenceTotal > 0 ? (
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {presenceStats.map((d: any) => {
+                const total = (d.present || 0) + (d.absent || 0) + (d.justifie || 0);
+                const presentPercent = total > 0 ? Math.round(((d.present || 0) / total) * 100) : 0;
+                const dateObj = new Date(d.date);
+                const formattedDate = dateObj.toLocaleDateString('fr-FR', { 
+                  day: '2-digit', 
+                  month: '2-digit',
+                  ...(presencePeriod === 'week' || presencePeriod === 'month' ? { year: '2-digit' } : {})
+                });
+                return (
+                  <div key={d.date} className="text-xs text-muted-foreground border-b pb-2 last:border-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-foreground">{formattedDate}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500">
-                          {teacher.classes?.map((c: any) => c.classeNom).join(', ') || 'Aucune classe'}
-                        </span>
-                        <div
-                          className={
-                            "w-4 h-4 rounded-full " +
-                            (teacher.completed
-                              ? "bg-emerald-500"
-                              : "bg-amber-400")
-                          }
-                        />
+                        <span className="text-[10px] text-green-600">✓ {d.present || 0}</span>
+                        <span className="text-[10px] text-red-600">✗ {d.absent || 0}</span>
+                        <span className="text-[10px] text-blue-600">~ {d.justifie || 0}</span>
+                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                          {total}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className={`text-sm ${stat.color}`}>{stat.change}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-green-500 rounded-full" 
+                          style={{ width: `${presentPercent}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500">{presentPercent}% présents</span>
+                    </div>
                   </div>
-                  <stat.icon className={`h-8 w-8 ${stat.color}`} />
-                </div>
-              </Card>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t("presenceChartEmpty")}</p>
+          )}
+        </Card>
 
-          {/* Charts section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Presence chart */}
-            <Card className="p-6 lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">{t("presenceChartTitle")}</h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant={presencePeriod === 'day' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPresencePeriod('day')}
-                    className="text-xs"
-                  >
-                    Jour
-                  </Button>
-                  <Button
-                    variant={presencePeriod === 'week' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPresencePeriod('week')}
-                    className="text-xs"
-                  >
-                    Semaine
-                  </Button>
-                  <Button
-                    variant={presencePeriod === 'month' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPresencePeriod('month')}
-                    className="text-xs"
-                  >
-                    Mois
-                  </Button>
-                </div>
-              </div>
-              {presenceStats && presenceStats.length > 0 && maxPresenceTotal > 0 ? (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {presenceStats.map((d: any) => {
-                    const total = (d.present || 0) + (d.absent || 0) + (d.justifie || 0);
-                    const presentPercent = total > 0 ? Math.round(((d.present || 0) / total) * 100) : 0;
-                    const dateObj = new Date(d.date);
-                    const formattedDate = dateObj.toLocaleDateString('fr-FR', { 
-                      day: '2-digit', 
-                      month: '2-digit',
-                      ...(presencePeriod === 'week' || presencePeriod === 'month' ? { year: '2-digit' } : {})
-                    });
-                    return (
-                      <div key={d.date} className="text-xs text-muted-foreground border-b pb-2 last:border-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-foreground">{formattedDate}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-green-600">✓ {d.present || 0}</span>
-                            <span className="text-[10px] text-red-600">✗ {d.absent || 0}</span>
-                            <span className="text-[10px] text-blue-600">~ {d.justifie || 0}</span>
-                            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                              {total}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-500 rounded-full" 
-                              style={{ width: `${presentPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-gray-500">{presentPercent}% présents</span>
+        {/* Inscriptions chart */}
+        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
+          <h2 className="text-lg font-semibold mb-4">{t("inscriptionChartTitle")}</h2>
+          {inscriptionStats && inscriptionStats.length > 0 && maxInscriptionsTotal > 0 ? (
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {inscriptionStats.map((m: any) => {
+                const label = m.month;
+                return (
+                  <div key={label} className="text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-foreground">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
+                          {m.total}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("presenceChartEmpty")}</p>
-              )}
-            </Card>
-
-            {/* Inscriptions chart */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">{t("inscriptionChartTitle")}</h2>
-              {inscriptionStats && inscriptionStats.length > 0 && maxInscriptionsTotal > 0 ? (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {inscriptionStats.map((m: any) => {
-                    const label = m.month;
-                    return (
-                      <div key={label} className="text-xs text-muted-foreground">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-foreground">{label}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
-                              {m.total}
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {m.total} {t("inscriptionChartLabelApplications")}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("inscriptionChartEmpty")}</p>
-              )}
-            </Card>
-          </div>
-        </main>
-      </div>
-    </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {m.total} {t("inscriptionChartLabelApplications")}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t("inscriptionChartEmpty")}</p>
+          )}
+        </Card>
+      </section>
+    </main>
+  </div>
+</div>
   );
 }

@@ -86,6 +86,16 @@ export default function TeacherSummary() {
 
         if (!cancelled) {
           setSummaryData(summary)
+
+          // Debug: inspect raw statistics returned by the API for this day
+          if (statsForDay) {
+            // eslint-disable-next-line no-console
+            console.log("[TeacherSummary] statsForDay", statsForDay)
+          } else {
+            // eslint-disable-next-line no-console
+            console.log("[TeacherSummary] no statsForDay for", todayDate, statsArray)
+          }
+
           setStats(
             statsForDay
               ? {

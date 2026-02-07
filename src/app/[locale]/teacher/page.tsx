@@ -150,9 +150,12 @@ export default function TeacherDashboard() {
         console.error("[Teacher] loadData error", e)
         if (!cancelled) {
           if (e?.response?.status === 401) {
-            setError("Session expirée. Merci de vous reconnecter en tant qu'enseignant.")
+            setError("Session expirée. Merci de vous reconnecter.")
             if (typeof window !== "undefined") {
-              window.location.href = "/auth/login-user"
+              const pathname = window.location.pathname || "";
+              const isArabic = pathname.startsWith("/ar");
+              const targetLocale = isArabic ? "ar" : "fr";
+              window.location.href = `/${targetLocale}`;
             }
           } else {
             setError("Impossible de charger les données")
@@ -517,240 +520,199 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Child Card */}
-        <div className="lg:col-span-1">
-          <Card className="border-2 border-sky-200 bg-white shadow-md h-full rounded-2xl">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {/* Child Info */}
-                <div className="flex items-start gap-4 pb-4 border-b border-gray-200">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-200 to-sky-300 flex items-center justify-center text-2xl md:text-3xl font-bold text-sky-700 flex-shrink-0">
-                    {(currentChild?.prenom ?? currentChild?.nom ?? "?").charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-900">
-                      {`${currentChild?.prenom ?? ""} ${currentChild?.nom ?? ""}`.trim()}
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">{teacherClass.nom}</p>
-                    {currentChild && (
-                      <div className="mt-2 text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full border ">
-                        {attendanceData[currentChild.id] !== undefined && childResumes[currentChild.id] ? (
-                          <span className="text-emerald-700 border-emerald-300 bg-emerald-50">
-                            ✓ Présence & résumé faits
-                          </span>
-                        ) : (
-                          <span className="text-amber-700 border-amber-300 bg-amber-50">
-                            À faire pour cet enfant
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {Array.isArray(currentChild?.allergies) && currentChild.allergies.length > 0 && (
-                      <p className="text-xs font-bold text-red-600 mt-2">
-                        🚨 {currentChild.allergies.join(", ")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Presence Time */}
-                <div className="text-xs text-gray-600 font-medium">{presenceHeader}</div>
-
-                {/* Attendance Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handlePresence("Present")}
-                    disabled={hasPresenceForCurrent}
-                    className={`flex-1 font-bold rounded-lg py-3 text-base ${
-                      hasPresenceForCurrent
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-green-500 hover:bg-green-600 text-white"
-                    }`}
-                  >
-                    ✓ {t("presentButton")}
-                    {hasPresenceForCurrent && attendanceData[currentChild.id] === "Present" && " ✓"}
-                  </Button>
-                  <Button
-                    onClick={() => handlePresence("Absent")}
-                    disabled={hasPresenceForCurrent}
-                    className={`flex-1 font-bold rounded-lg py-3 text-base ${
-                      hasPresenceForCurrent
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-red-500 hover:bg-red-600 text-white"
-                    }`}
-                  >
-                    ✕ {t("absentButton")}
-                    {hasPresenceForCurrent && attendanceData[currentChild.id] === "Absent" && " ✓"}
-                  </Button>
-                </div>
-                {hasPresenceForCurrent && (
-                  <div className="mt-2 text-xs text-emerald-600 font-medium">
-                    ✓ Présence déjà enregistrée pour aujourd'hui
-                  </div>
-                )}
+      {/* Layout principal : enfant à gauche, résumé de journée à droite */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Colonne gauche : enfant + infos */}
+        <Card className="border border-gray-200 shadow-sm rounded-2xl lg:col-span-1">
+          <CardContent className="pt-4 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold">
+                {currentChild?.prenom?.[0] ?? "A"}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {`${currentChild?.prenom ?? ""} ${currentChild?.nom ?? ""}`.trim()}
+                </h2>
+                <p className="text-xs text-gray-600 mt-1">{teacherClass.nom}</p>
+              </div>
+            </div>
 
-        {/* Right Column: Daily Summary */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="border border-gray-200 shadow-sm rounded-2xl">
-            <CardContent className="pt-4 space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">{t("daySummaryTitle")}</h3>
-
-              {/* Summary Cards Grid (Appétit, Humeur, Sieste, Participation) */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Appétit */}
-                <Card className="border border-gray-200 shadow-sm rounded-2xl group overflow-hidden">
-                  <CardContent className="pt-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">
-                        {appetit === "Bien" ? "🍽️" : appetit === "Moyen" ? "😐" : "🤢"}
-                      </div>
-                      <p className="text-xs font-medium text-gray-600">Appétit</p>
-                      <p className="text-lg font-bold text-green-600 mt-1">{appetit}</p>
-                    </div>
-                    <div className="mt-3 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {["Bien", "Moyen", "Mal"].map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setAppetit(opt as typeof appetit)}
-                          className={`px-2 py-1 text-xs rounded-full border ${
-                            appetit === opt
-                              ? "bg-green-500 text-white border-green-500"
-                              : "bg-white text-gray-700 border-gray-300"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Humeur */}
-                <Card className="border border-gray-200 shadow-sm rounded-2xl group overflow-hidden">
-                  <CardContent className="pt-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">
-                        {humeur === "Bonne" ? "😊" : humeur === "Moyenne" ? "😐" : "😢"}
-                      </div>
-                      <p className="text-xs font-medium text-gray-600">Humeur</p>
-                      <p className="text-lg font-bold text-sky-500 mt-1">{humeur}</p>
-                    </div>
-                    <div className="mt-3 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {["Bonne", "Moyenne", "Mauvaise"].map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setHumeur(opt as typeof humeur)}
-                          className={`px-2 py-1 text-xs rounded-full border ${
-                            humeur === opt
-                              ? "bg-sky-500 text-white border-sky-500"
-                              : "bg-white text-gray-700 border-gray-300"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Sieste */}
-                <Card className="border border-gray-200 shadow-sm rounded-2xl group overflow-hidden">
-                  <CardContent className="pt-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">
-                        {sieste === "Courte" ? "😴" : sieste === "Moyenne" ? "😌" : "🛌"}
-                      </div>
-                      <p className="text-xs font-medium text-gray-600">Sieste</p>
-                      <p className="text-lg font-bold text-gray-700 mt-1">{sieste}</p>
-                    </div>
-                    <div className="mt-3 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {["Courte", "Moyenne", "Longue"].map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setSieste(opt as typeof sieste)}
-                          className={`px-2 py-1 text-xs rounded-full border ${
-                            sieste === opt
-                              ? "bg-gray-700 text-white border-gray-700"
-                              : "bg-white text-gray-700 border-gray-300"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Participation */}
-                <Card className="border border-gray-200 shadow-sm rounded-2xl group overflow-hidden">
-                  <CardContent className="pt-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">
-                        {participation === "Bonne" ? "⭐" : participation === "Moyenne" ? "✨" : "⚪"}
-                      </div>
-                      <p className="text-xs font-medium text-gray-600">Participation</p>
-                      <p className="text-lg font-bold text-green-600 mt-1">{participation}</p>
-                    </div>
-                    <div className="mt-3 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {["Bonne", "Moyenne", "Faible"].map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setParticipation(opt as typeof participation)}
-                          className={`px-2 py-1 text-xs rounded-full border ${
-                            participation === opt
-                              ? "bg-green-500 text-white border-green-500"
-                              : "bg-white text-gray-700 border-gray-300"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+            {currentChild && (
+            <>
+              <div className="mt-3 flex gap-3">
+                <Button
+                  type="button"
+                  onClick={() => handlePresence("Present")}
+                  disabled={attendanceData[currentChild.id] !== undefined}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {t("presentButton")}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handlePresence("Absent")}
+                  disabled={attendanceData[currentChild.id] !== undefined}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {t("absentButton")}
+                </Button>
               </div>
 
-              {dailySummary && (
-                <div className="pt-2 text-xs text-gray-500 text-center">
-                  Note du jour : {dailySummary}
+                <div className="mt-2 text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full border">
+                  {attendanceData[currentChild.id] !== undefined && childResumes[currentChild.id] ? (
+                    <span className="text-emerald-700 border-emerald-300 bg-emerald-50">
+                      ✓ Présence & résumé faits
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 border-amber-300 bg-amber-50">
+                      À faire pour cet enfant
+                    </span>
+                  )}
                 </div>
-              )}
-              
-              {/* Afficher le résumé si déjà enregistré */}
-              {hasResumeForCurrent && (
-                <div className="pt-2 text-xs text-emerald-600 text-center font-medium">
-                  ✓ Résumé de journée déjà enregistré pour cet enfant
-                </div>
-              )}
+              </>
+            )}
 
-              {!hasResumeForCurrent && (
-                <div className="pt-3 flex justify-end">
-                  <Button
-                    onClick={handleSaveDailySummary}
-                    disabled={savingResume || !hasPresenceForCurrent}
-                    className={`text-sm px-4 py-2 rounded-lg ${
-                      savingResume
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-sky-500 hover:bg-sky-600 text-white"
-                    }`}
-                  >
-                    {savingResume ? "Enregistrement..." : "Valider le résumé de journée"}
-                  </Button>
+            {Array.isArray(currentChild?.allergies) && currentChild.allergies.length > 0 && (
+              <p className="text-xs font-bold text-red-600 mt-2">
+                🚨 {currentChild.allergies.join(", ")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Colonne droite : résumé de journée avec 4 cartes */}
+        <Card className="border border-gray-200 shadow-sm rounded-2xl lg:col-span-2">
+          <CardContent className="pt-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base md:text-lg font-bold text-gray-900">
+                {t("daySummaryTitle")}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Appétit */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
+                <div className="text-3xl">🍽️</div>
+                <p className="text-xs text-gray-500">Appétit</p>
+                <p className="text-lg font-bold text-emerald-600">{appetit}</p>
+                <div className="mt-2 flex gap-2">
+                  {["Bien", "Moyen", "Mal"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setAppetit(opt as typeof appetit)}
+                      className={`px-2 py-1 text-xs rounded-full border ${
+                        appetit === opt
+                          ? "bg-emerald-500 text-white border-emerald-500"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+
+              {/* Humeur */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
+                <div className="text-3xl">😊</div>
+                <p className="text-xs text-gray-500">Humeur</p>
+                <p className="text-lg font-bold text-sky-600">{humeur}</p>
+                <div className="mt-2 flex gap-2">
+                  {["Bonne", "Moyenne", "Mauvaise"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setHumeur(opt as typeof humeur)}
+                      className={`px-2 py-1 text-xs rounded-full border ${
+                        humeur === opt
+                          ? "bg-sky-500 text-white border-sky-500"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sieste */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
+                <div className="text-3xl">😴</div>
+                <p className="text-xs text-gray-500">Sieste</p>
+                <p className="text-lg font-bold text-gray-700">{sieste}</p>
+                <div className="mt-2 flex gap-2">
+                  {["Courte", "Moyenne", "Longue"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setSieste(opt as typeof sieste)}
+                      className={`px-2 py-1 text-xs rounded-full border ${
+                        sieste === opt
+                          ? "bg-gray-700 text-white border-gray-700"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Participation */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
+                <div className="text-3xl">⭐</div>
+                <p className="text-xs text-gray-500">Participation</p>
+                <p className="text-lg font-bold text-emerald-600">{participation}</p>
+                <div className="mt-2 flex gap-2">
+                  {["Bonne", "Moyenne", "Faible"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setParticipation(opt as typeof participation)}
+                      className={`px-2 py-1 text-xs rounded-full border ${
+                        participation === opt
+                          ? "bg-emerald-500 text-white border-emerald-500"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Infos de résumé et bouton */}
+            {dailySummary && (
+              <div className="pt-2 text-xs text-gray-500 text-center">
+                Note du jour : {dailySummary}
+              </div>
+            )}
+
+            {hasResumeForCurrent && (
+              <div className="pt-2 text-xs text-emerald-600 text-center font-medium">
+                ✓ Résumé de journée déjà enregistré pour cet enfant
+              </div>
+            )}
+
+            {!hasResumeForCurrent && (
+              <div className="pt-3 flex justify-end">
+                <Button
+                  onClick={handleSaveDailySummary}
+                  disabled={savingResume || !hasPresenceForCurrent}
+                  className={`text-sm px-4 py-2 rounded-lg ${
+                    savingResume
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-sky-500 hover:bg-sky-600 text-white"
+                  }`}
+                >
+                  {savingResume ? "Enregistrement..." : "Valider le résumé de journée"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Navigation & Progress */}

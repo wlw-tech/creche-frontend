@@ -5,8 +5,13 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Crèche SaaS',
-  description: 'Gestion complète des crèches et garderies',
+  title: 'Petitspas',
+  description: 'Plateforme de gestion pour crèches et garderies',
+  icons: {
+    icon: "/Group 13.svg",
+    shortcut: "/Group 13.svg",
+    apple: "/Group 13.svg",
+  },
 };
 
 export default function RootLayout({

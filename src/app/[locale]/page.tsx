@@ -1,48 +1,162 @@
 "use client"
 
+import { use, useState, FormEvent } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
+import { AxiosError } from "axios"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
-import { useTranslations } from 'next-intl'
-import { use } from 'react'
-import { Locale } from '@/lib/i18n/config'
+import { useTranslations } from "next-intl"
+import { Locale } from "@/lib/i18n/config"
+import { apiClient } from "@/lib/api"
 
 export default function Home({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params)
   const currentLocale = resolvedParams.locale
-  const t = useTranslations('home')
+  const t = useTranslations("home")
+  const router = useRouter()
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+
+    const emailValue = email.trim()
+
+    try {
+      // 1) Essayer d'abord le login ADMIN
+      try {
+        const { data } = await apiClient.loginAdmin(emailValue, password)
+
+        const { accessToken } = data as { accessToken: string }
+        Cookies.set("token", accessToken, { expires: 7 })
+        Cookies.set("auth_token", accessToken, { expires: 7 })
+
+        router.push(`/${currentLocale}/admin`)
+        return
+      } catch (error) {
+        // Si ce n'est pas une erreur "auth" claire, on la remonte
+        const status = (error as AxiosError).response?.status
+        if (status && status !== 400 && status !== 401 && status !== 403) {
+          throw error
+        }
+        // Sinon on continue avec loginUser
+      }
+
+      // 2) Essayer le loginUser (parent / enseignant / admin via cet endpoint)
+      const { data } = await apiClient.loginUser(emailValue, password)
+
+      const { accessToken, role } = data as { accessToken: string; role?: string }
+      const normalizedRole = String(role || "").toUpperCase()
+
+      Cookies.set("token", accessToken, { expires: 7 })
+      Cookies.set("auth_token", accessToken, { expires: 7 })
+
+      // Redirection selon le rôle
+      if (normalizedRole === "PARENT") {
+        router.push(`/${currentLocale}/parent`)
+      } else if (normalizedRole === "ENSEIGNANT") {
+        router.push(`/${currentLocale}/teacher`)
+      } else if (normalizedRole === "ADMIN") {
+        router.push(`/${currentLocale}/admin`)
+      } else {
+        // Fallback : page d accueil locale
+        router.push(`/${currentLocale}`)
+      }
+    } catch (error) {
+      const message =
+        error instanceof AxiosError
+          ? ((error.response?.data as { message?: string })?.message || "Identifiants invalides")
+          : "Impossible de se connecter."
+      // eslint-disable-next-line no-alert
+      alert(message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-end mb-8">
+    <main className="min-h-screen bg-gradient-to-br from-[#AEDFF7]/30 via-[#FFF7ED] to-[#FF6F61]/25 flex items-center justify-center px-4 py-8">
+      <div className="container mx-auto">
+        <div className="flex justify-end mb-6">
           <LanguageSwitcher currentLocale={currentLocale} />
         </div>
-        
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">{t('title')}</h1>
-          <p className="text-lg text-muted-foreground mb-8">{t('subtitle')}</p>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <Card className="p-6 border-2 border-primary/20">
-              <h2 className="font-semibold mb-2">{t('adminSection')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t('adminDescription')}
-              </p>
-              <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                <Link href="/auth/login-user">{t('adminAccess')}</Link>
-              </Button>
-            </Card>
-
-            <Card className="p-6 border-2 border-secondary/20">
-              <h2 className="font-semibold mb-2">{t('parentSection')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{t('parentDescription')}</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
-                <Link href="/inscriptions">{t('inscription')}</Link>
-              </Button>
-            </Card>
+        <div className="max-w-md mx-auto">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 rounded-full overflow-hidden mb-4 shadow-md bg-white">
+              <Image
+                src="/Group 13.svg"
+                alt="Logo Petitspas"
+                width={80}
+                height={80}
+              />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-1 tracking-tight">
+              {t("title")}
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground text-center max-w-xs">
+              {t("subtitle")}
+            </p>
           </div>
+
+          <Card className="p-6 md:p-7 bg-white shadow-md rounded-2xl">
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2 text-left">
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                  placeholder="exemple@thepetitspas.com"
+                />
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Mot de passe
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full mt-2 bg-[#FF6F61] hover:bg-[#e45f54] text-white font-semibold rounded-xl py-2.5"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Connexion…" : "Se connecter"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center text-xs md:text-sm text-muted-foreground">
+              <span>Pas encore inscrit ? </span>
+              <Link
+                href={`/${currentLocale}/inscriptions`}
+                className="text-primary hover:underline"
+              >
+                Accéder au formulaire d inscription
+              </Link>
+            </div>
+          </Card>
         </div>
       </div>
     </main>

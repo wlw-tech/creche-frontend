@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/providers/i18n-provider";
@@ -71,10 +72,13 @@ export function Sidebar() {
       {/* Logo + titre */}
       <div className="px-6 mb-8">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-            <span className="text-sidebar-primary-foreground font-bold text-lg">
-              🏠
-            </span>
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
+            <Image
+              src="/Group 13.svg"
+              alt="Logo Petitspas"
+              width={40}
+              height={40}
+            />
           </div>
           <div>
             <h1 className="font-bold text-lg text-sidebar-foreground">

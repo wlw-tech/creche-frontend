@@ -24,9 +24,11 @@ export const api = ky.create({
         // Gérer les erreurs 401 (non authentifié)
         if (response.status === 401) {
           useAuthStore.getState().logout();
-          // Rediriger vers login
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth/login';
+            const pathname = window.location.pathname || '';
+            const isArabic = pathname.startsWith('/ar');
+            const targetLocale = isArabic ? 'ar' : 'fr';
+            window.location.href = `/${targetLocale}`;
           }
         }
 

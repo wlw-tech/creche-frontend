@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from './store';
 
 interface ProtectedRouteProps {
@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 /**
  * Composant pour protéger les routes
- * Redirige vers /login si non authentifié
+ * Redirige vers / si non authentifié
  * Redirige vers / si rôle insuffisant
  */
 export function ProtectedRoute({
@@ -19,11 +19,14 @@ export function ProtectedRoute({
   requiredRoles,
 }: ProtectedRouteProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, token } = useAuthStore();
 
   // Vérifier l'authentification
   if (!token || !user) {
-    router.push('/login');
+    const isArabic = pathname?.startsWith('/ar');
+    const targetLocale = isArabic ? 'ar' : 'fr';
+    router.push(`/${targetLocale}`);
     return null;
   }
 

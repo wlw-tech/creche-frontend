@@ -442,25 +442,13 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                   <p className="text-xs text-gray-500">
                     Date : {new Date(childDailyResume.date).toLocaleDateString("fr-FR", {
                       weekday: "long",
-                      day: "2-digit",
-                      month: "long",
                       year: "numeric",
+                      month: "long",
+                      day: "numeric",
                     })}
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
-                      <div className="text-3xl">😋</div>
-                      <div>
-                        <p className="text-sm text-gray-500">Appétit</p>
-                        <p className="text-lg font-bold text-emerald-600">{childDailyResume.appetit ?? "-"}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {renderLevelPill(childDailyResume.appetit, "Bien")}
-                        {renderLevelPill(childDailyResume.appetit, "Moyen")}
-                        {renderLevelPill(childDailyResume.appetit, "Mal")}
-                      </div>
-                    </div>
 
+                  <div className="grid gap-3 mt-3">
                     <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
                       <div className="text-3xl">🙂</div>
                       <div>
