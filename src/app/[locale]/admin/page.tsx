@@ -221,19 +221,13 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
     : 0;
   const hasTodayPresence = todayTotal > 0;
 
-  // Statuts enseignants du jour
-  const todayTeacherAttendance = teacherAttendanceStatus?.filter((item: any) => item.date === todayStr) || [];
-  const totalTeachers = todayTeacherAttendance.length;
-  const completedTeachers = todayTeacherAttendance.filter((item: any) => item.completed).length;
-  const pendingTeachers = totalTeachers - completedTeachers;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5FBFF] via-[#FFF7ED] to-[#FFE4DD] flex">
+    <div className="min-h-screen bg-white flex">
       {/* Sidebar */}
       <SidebarNew currentLocale={currentLocale} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col">
+      <div className="flex-1 ml-64 flex flex-col bg-white">
         {/* Header */}
         <header className="bg-white/90 backdrop-blur border-b border-border/70 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -258,14 +252,10 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
         </header>
 
     {/* Dashboard Content */}
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 bg-white">
       {/* Today presence status */}
       <div className="mb-6">
-        <Card className={
-          hasTodayPresence
-            ? "p-4 border border-emerald-200 bg-emerald-50"
-            : "p-4 border border-amber-200 bg-amber-50"
-        }>
+        <Card className="p-4 border border-gray-200 bg-white rounded-xl shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-900">
@@ -291,65 +281,17 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
         </Card>
       </div>
 
-      {/* Teacher attendance status */}
-      <div className="mb-6">
-        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                Statut des enseignants
-              </p>
-              <p className="text-xs text-gray-700 mt-1">
-                {completedTeachers}/{totalTeachers} enseignants ont complété l'appel aujourd'hui
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-emerald-500 text-white">
-                {completedTeachers}
-              </div>
-              <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold bg-amber-400 text-white">
-                {pendingTeachers}
-              </div>
-            </div>
-          </div>
-          {todayTeacherAttendance.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {todayTeacherAttendance.map((teacher: any, index: number) => (
-                <div key={index} className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-gray-700">
-                    {teacher.enseignantPrenom} {teacher.enseignantNom}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">
-                      {teacher.classes?.map((c: any) => c.classeNom).join(', ') || 'Aucune classe'}
-                    </span>
-                    <div
-                      className={
-                        "w-4 h-4 rounded-full " +
-                        (teacher.completed
-                          ? "bg-emerald-500"
-                          : "bg-amber-400")
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
-
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="min-h-[120px] border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl hover:-translate-y-0.5 hover:shadow-lg transition-transform transition-shadow flex flex-col justify-between"
+            className="min-h-[160px] border border-gray-200 shadow-sm bg-white rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-transform transition-shadow flex flex-col justify-between px-5 py-4"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-base font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
                 <p className={`text-sm ${stat.color}`}>{stat.change}</p>
               </div>
               <stat.icon className={`h-8 w-8 ${stat.color}`} />
@@ -359,10 +301,17 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
       </div>
 
       {/* Charts section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Presence chart */}
-        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
-          <h2 className="text-lg font-semibold">{t("presenceChartTitle")}</h2>
+        <Card className="border border-gray-200 shadow-sm bg-white rounded-2xl px-5 py-4">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-gray-900">
+              {t("presenceChartTitle")}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Présence des enfants sur la période.
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button
               variant={presencePeriod === 'day' ? 'default' : 'outline'}
@@ -427,13 +376,27 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">{t("presenceChartEmpty")}</p>
+            <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center">
+              <p className="text-sm font-medium text-gray-700">
+                {t("presenceChartEmpty")}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Les présences apparaîtront ici dès qu'elles seront enregistrées.
+              </p>
+            </div>
           )}
         </Card>
 
         {/* Inscriptions chart */}
-        <Card className="border border-white/60 shadow-md shadow-primary/10 bg-white/90 backdrop-blur rounded-2xl">
-          <h2 className="text-lg font-semibold mb-4">{t("inscriptionChartTitle")}</h2>
+        <Card className="border border-gray-200 shadow-sm bg-white rounded-2xl px-5 py-4">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-gray-900">
+              {t("inscriptionChartTitle")}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Dossiers d'inscription reçus chaque mois.
+            </p>
+          </div>
           {inscriptionStats && inscriptionStats.length > 0 && maxInscriptionsTotal > 0 ? (
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {inscriptionStats.map((m: any) => {
@@ -456,7 +419,14 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">{t("inscriptionChartEmpty")}</p>
+            <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center">
+              <p className="text-sm font-medium text-gray-700">
+                {t("inscriptionChartEmpty")}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Les demandes apparaîtront ici dès qu'elles seront enregistrées.
+              </p>
+            </div>
           )}
         </Card>
       </section>
