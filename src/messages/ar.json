@@ -134,6 +134,10 @@
     "roleAdmin": "إدارة"
   },
   "parent": {
+    "dashboard": {
+      "title": "لوحة تحكم ولي الأمر",
+      "subtitle": "مرحباً بك في النيدو"
+    },
     "tabs": {
       "overview": "نظرة عامة",
       "menu": "قائمة اليوم",
@@ -141,26 +145,40 @@
     },
     "overview": {
       "dailySummaryTitle": "ملخص اليوم",
-      "upcomingEventsTitle": "الأحداث القادمة"
+      "upcomingEventsTitle": "الأحداث القادمة",
+      "loadingIndividualSummary": "جاري تحميل الملخص الفردي…",
+      "moodLabel": "المزاج",
+      "napLabel": "القيلولة",
+      "participationLabel": "المشاركة",
+      "observationsLabel": "ملاحظات",
+      "noIndividualSummary": "لم يتم إدخال أي ملخص فردي لهذه الفترة بعد.",
+      "loadingDailySummary": "جاري تحميل ملخص اليوم…",
+      "noDailyMessage": "لم تتم مشاركة أي رسالة ليوم اليوم بعد.",
+      "noUpcomingEvents": "لا توجد أحداث قادمة مخطط حالياً. سيتم إعلامك هنا بالاجتماعات أو الاحتفالات أو الرحلات القادمة."
     },
     "menu": {
       "title": "قائمة اليوم"
     },
     "profile": {
       "childInfoTitle": "معلومات الطفل",
+      "classLabel": "الفصل",
       "birthdateLabel": "تاريخ الميلاد",
       "allergiesLabel": "الحساسية",
+      "noAllergies": "لا توجد",
+      "phoneLabel": "الهاتف",
       "authorizedPersonsTitle": "الأشخاص المصرح لهم",
       "securityTitle": "الأمان",
       "changePasswordCta": "تغيير كلمة المرور",
       "passwordChanged": "تم تغيير كلمة المرور بنجاح!",
       "passwordMismatch": "كلمتا المرور غير متطابقتين!",
-      "mother": "السيدة ولي الأمر",
-      "motherRole": "الأم",
-      "father": "السيد ولي الأمر",
-      "fatherRole": "الأب",
-      "grandmother": "الجدة",
-      "grandmotherRole": "الجدة"
+      "currentPasswordLabel": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة مرور جديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "saveButton": "حفظ",
+      "cancelButton": "إلغاء"
     },
     "events": {
       "parentMeeting": "اجتماع أولياء الأمور والمعلمين",

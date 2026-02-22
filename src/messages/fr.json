@@ -135,33 +135,51 @@
   },
 
   "parent": {
+    "dashboard": {
+      "title": "Dashboard Parent",
+      "subtitle": "Bienvenue sur Petitspas"
+    },
     "tabs": {
       "overview": "Vue d'ensemble",
       "menu": "Menu du jour",
       "profile": "Profil"
     },
     "overview": {
-      "dailySummaryTitle": "Résumé de la journée",
-      "upcomingEventsTitle": "Événements à venir"
+      "dailySummaryTitle": "Résumé de journée",
+      "upcomingEventsTitle": "Événements à venir",
+      "loadingIndividualSummary": "Chargement du résumé individuel…",
+      "moodLabel": "Humeur",
+      "napLabel": "Sieste",
+      "participationLabel": "Participation",
+      "observationsLabel": "Observations",
+      "noIndividualSummary": "Aucun résumé individuel n'a encore été saisi pour cette période.",
+      "loadingDailySummary": "Chargement du résumé de la journée…",
+      "noDailyMessage": "Aucun message de la journée n'a encore été partagé pour aujourd'hui.",
+      "noUpcomingEvents": "Aucun événement à venir n'est planifié pour le moment. Vous serez informé ici des prochaines réunions, fêtes ou sorties."
     },
     "menu": {
       "title": "Menu du jour"
     },
     "profile": {
       "childInfoTitle": "Informations de l'enfant",
+      "classLabel": "Classe",
       "birthdateLabel": "Date de naissance",
       "allergiesLabel": "Allergies",
+      "noAllergies": "Aucune",
+      "phoneLabel": "Téléphone",
       "authorizedPersonsTitle": "Personnes autorisées",
       "securityTitle": "Sécurité",
       "changePasswordCta": "Changer le mot de passe",
       "passwordChanged": "Mot de passe modifié avec succès !",
       "passwordMismatch": "Les mots de passe ne correspondent pas !",
-      "mother": "Mme. Parent",
-      "motherRole": "Mère",
-      "father": "M. Parent",
-      "fatherRole": "Père",
-      "grandmother": "Mme. Grand-mère",
-      "grandmotherRole": "Grand-mère"
+      "currentPasswordLabel": "Mot de passe actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
+      "newPasswordLabel": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Entrez un nouveau mot de passe",
+      "confirmPasswordLabel": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
+      "saveButton": "Enregistrer",
+      "cancelButton": "Annuler"
     },
     "events": {
       "parentMeeting": "Réunion parents-enseignants",

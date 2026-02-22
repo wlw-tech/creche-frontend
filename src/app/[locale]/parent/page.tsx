@@ -343,7 +343,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto px-3 md:px-4 lg:px-0 pb-10">
+    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto px-3 md:px-4 lg:px-0 pb-6 md:pb-10">
       {/* Child Header Card */}
       <Card className="border-0 bg-gradient-to-r from-sky-100 to-sky-50 shadow-md rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
         <CardContent className="pt-6">
@@ -365,7 +365,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
               </div>
             </div>
             <div className="rounded-lg bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium text-gray-500 uppercase">Classe</p>
+                          <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.classLabel')}</p>
               <p className="text-lg font-bold text-gray-900">{child?.class}</p>
             </div>
           </div>
@@ -432,11 +432,11 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
           {/* Child Daily Resume */}
           <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
             <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-              <CardTitle className="text-base font-bold text-gray-900">Résumé de journée</CardTitle>
+              <CardTitle className="text-base font-bold text-gray-900">{t('overview.dailySummaryTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               {profileLoading && !childDailyResume ? (
-                <p className="text-sm text-gray-500">Chargement du résumé individuel…</p>
+                <p className="text-sm text-gray-500">{t('overview.loadingIndividualSummary')}</p>
               ) : childDailyResume ? (
                 <>
                   <p className="text-xs text-gray-500">
@@ -452,7 +452,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
                       <div className="text-3xl">🙂</div>
                       <div>
-                        <p className="text-sm text-gray-500">Humeur</p>
+                      <p className="text-sm text-gray-500">{t('overview.moodLabel')}</p>
                         <p className="text-lg font-bold text-sky-600">{childDailyResume.humeur ?? "-"}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -465,7 +465,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
                       <div className="text-3xl">😴</div>
                       <div>
-                        <p className="text-sm text-gray-500">Sieste</p>
+                      <p className="text-sm text-gray-500">{t('overview.napLabel')}</p>
                         <p className="text-lg font-bold text-sky-700">{childDailyResume.sieste ?? "-"}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -478,7 +478,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
                       <div className="text-3xl">✨</div>
                       <div>
-                        <p className="text-sm text-gray-500">Participation</p>
+                      <p className="text-sm text-gray-500">{t('overview.participationLabel')}</p>
                         <p className="text-lg font-bold text-emerald-600">{childDailyResume.participation ?? "-"}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -491,7 +491,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
 
                   {childDailyResume.observations && childDailyResume.observations.length > 0 && (
                     <div className="pt-2 border-t border-gray-100 mt-2">
-                      <p className="text-xs font-medium text-gray-500 mb-1">Observations</p>
+                      <p className="text-xs font-medium text-gray-500 mb-1">{t('overview.observationsLabel')}</p>
                       <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
                         {childDailyResume.observations.map((obs, idx) => (
                           <li key={idx}>{obs}</li>
@@ -505,9 +505,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                   {dailyResumeError ? (
                     <p className="text-sm text-gray-500">{dailyResumeError}</p>
                   ) : (
-                    <p className="text-sm text-gray-500">
-                      Aucun résumé individuel n'a encore été saisi pour cette période.
-                    </p>
+                    <p className="text-sm text-gray-500">{t('overview.noIndividualSummary')}</p>
                   )}
                 </>
               )}
@@ -521,13 +519,11 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             </CardHeader>
             <CardContent className="pt-6">
               {profileLoading ? (
-                <p className="text-sm text-gray-500">Chargement du résumé de la journée…</p>
+                <p className="text-sm text-gray-500">{t('overview.loadingDailySummary')}</p>
               ) : dailyMessage ? (
                 <p className="text-sm leading-relaxed text-gray-600">{dailyMessage}</p>
               ) : (
-                <p className="text-sm text-gray-500">
-                  Aucun message de la journée n'a encore été partagé pour aujourd'hui.
-                </p>
+                <p className="text-sm text-gray-500">{t('overview.noDailyMessage')}</p>
               )}
             </CardContent>
           </Card>
@@ -539,10 +535,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             </CardHeader>
             <CardContent className="space-y-3 pt-6">
               {upcomingEvents.length === 0 ? (
-                <p className="text-sm text-gray-500">
-                  Aucun événement à venir n'est planifié pour le moment. Vous serez informé ici des prochaines
-                  réunions, fêtes ou sorties.
-                </p>
+                <p className="text-sm text-gray-500">{t('overview.noUpcomingEvents')}</p>
               ) : (
                 upcomingEvents.map((event) => (
                   <div
@@ -578,7 +571,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             <CardContent className="pt-6">
               {todayMenu ? (
                 <>
-                  <p className="text-sm font-semibold text-sky-700 mb-4">
+                  <p className="text-sm font-semibold text-sky-700 mt-1">
                     {new Date(todayMenu.date).toLocaleDateString("fr-FR", {
                       weekday: "long",
                       year: "numeric",
@@ -727,16 +720,9 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 {child?.allergies && child.allergies.length > 0 && (
                   <div className="border-t pt-4">
                     <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.allergiesLabel')}</p>
-                    <div className="mt-2 flex gap-2 flex-wrap">
-                      {child.allergies.map((allergy) => (
-                        <span
-                          key={allergy}
-                          className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700"
-                        >
-                          {allergy}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-sm font-semibold text-gray-700 mt-1">
+                      {child.allergies.join(", ") ?? t('profile.noAllergies')}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -757,7 +743,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                       <p className="text-xs text-gray-600">{person.role}</p>
                     )}
                     {person.phone && (
-                      <p className="text-sm font-semibold text-gray-700 mt-1">{person.phone}</p>
+                      <p className="text-sm font-medium text-gray-500 uppercase">{t('profile.phoneLabel')}</p>
                     )}
                   </div>
                 ))}
@@ -793,30 +779,30 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">Mot de passe actuel</label>
+                          <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.currentPasswordLabel')}</p>
                       <Input
                         type="password"
-                        placeholder="Entrez votre mot de passe actuel"
+                        placeholder={t('profile.currentPasswordPlaceholder')}
                         value={passwords.current}
                         onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
                         className="mt-1 border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">Nouveau mot de passe</label>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.newPasswordLabel')}</p>
                       <Input
                         type="password"
-                        placeholder="Entrez un nouveau mot de passe"
+                        placeholder={t('profile.newPasswordPlaceholder')}
                         value={passwords.new}
                         onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
                         className="mt-1 border-gray-300"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">Confirmer le mot de passe</label>
+                      <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.confirmPasswordLabel')}</p>
                       <Input
                         type="password"
-                        placeholder="Confirmez le nouveau mot de passe"
+                        placeholder={t('profile.confirmPasswordPlaceholder')}
                         value={passwords.confirm}
                         onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
                         className="mt-1 border-gray-300"
@@ -824,10 +810,10 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                     </div>
                     <div className="flex gap-3 pt-2">
                       <Button onClick={handlePasswordChange} className="bg-green-600 hover:bg-green-700 text-white">
-                        Enregistrer
+                        {t('profile.saveButton')}
                       </Button>
                       <Button onClick={() => setShowPasswordForm(false)} variant="outline" className="border-gray-300">
-                        Annuler
+                        {t('profile.cancelButton')}
                       </Button>
                     </div>
                   </div>
