@@ -4,6 +4,12 @@
     "settings": "Paramètres",
     "logout": "Déconnexion"
   },
+  "parent": {
+    "dashboard": {
+      "title": "Dashboard Parent",
+      "subtitle": "Bienvenue sur Petitspas"
+    }
+  },
   "home": {
     "title": "Petitspas",
     "subtitle": "Plateforme complète de gestion pour crèches et garderies",
@@ -163,62 +169,76 @@
     }
   },
   "teacher": {
-  "dashboard": {
-    "title": "Tableau de bord Enseignant",
-    "subtitle": "Salle Bleue • Présence du jour",
-    "langToggle": "FR / AR",
-    "presenceTime": "Présence du 29/09 — 08:35",
-    "presentButton": "Présent",
-    "absentButton": "Absent",
-    "daySummaryTitle": "Résumé de journée",
-    "cards": {
-      "appetiteLabel": "Appétit",
-      "appetiteValue": "Bien",
-      "moodLabel": "Humeur",
-      "moodValue": "Bonne",
-      "napLabel": "Sieste",
-      "napValue": "1h",
-      "participationLabel": "Participation",
-      "participationValue": "Bonne"
+    "summary": {
+      "errors": {
+        "noClass": "Aucune classe disponible",
+        "loadSummaryError": "Impossible de charger le résumé de classe",
+        "summaryUnavailable": "Résumé indisponible",
+        "saveMessageError": "Erreur lors de l'enregistrement du message",
+        "sendMessageError": "Erreur lors de l'envoi du message"
+      },
+      "success": {
+        "dailyMessageSaved": "Message de la journée enregistré",
+        "messageSentToParents": "Message envoyé à tous les parents pour aujourd'hui"
+      },
+      "loading": "Chargement du résumé de journée..."
     },
-    "prev": "Précédent",
-    "next": "Suivant",
-    "summaryCta": "Résumé jour"
-  },
-  "summary": {
-    "title": "Résumé de la journée",
-    "back": "Retour",
-    "kpis": {
-      "presentLabel": "Présents",
-      "attendanceRateLabel": "Taux présence",
-      "avgNapLabel": "Sieste moyenne"
+    "dashboard": {
+      "title": "Tableau de bord Enseignant",
+      "subtitle": "Salle Bleue • Présence du jour",
+      "langToggle": "FR / AR",
+      "presenceTime": "Présence du 29/09 — 08:35",
+      "presentButton": "Présent",
+      "absentButton": "Absent",
+      "daySummaryTitle": "Résumé de journée",
+      "cards": {
+        "appetiteLabel": "Appétit",
+        "appetiteValue": "Bien",
+        "moodLabel": "Humeur",
+        "moodValue": "Bonne",
+        "napLabel": "Sieste",
+        "napValue": "1h",
+        "participationLabel": "Participation",
+        "participationValue": "Bonne"
+      },
+      "prev": "Précédent",
+      "next": "Suivant",
+      "summaryCta": "Résumé jour"
     },
-    "sections": {
-      "appetiteTitle": "Appétit",
-      "appetite": {
-        "little": "Un peu",
-        "good": "Bien",
-        "all": "Tout"
+    "summary": {
+      "title": "Résumé de la journée",
+      "back": "Retour",
+      "kpis": {
+        "presentLabel": "Présents",
+        "attendanceRateLabel": "Taux présence",
+        "avgNapLabel": "Sieste moyenne"
       },
-      "moodTitle": "Humeur",
-      "mood": {
-        "bad": "Mauvaise",
-        "good": "Bonne",
-        "excellent": "Excellente"
-      },
-      "participationTitle": "Participation",
-      "participation": {
-        "low": "Faible",
-        "good": "Bonne",
-        "excellent": "Excellente"
-      },
-      "dailyMessageTitle": "Message de la journée",
-      "dailyMessagePlaceholder": "Résumez la journée pour les parents...",
-      "dailyMessageDefault": "Aujourd'hui, les enfants ont travaillé la motricité fine et les mathématiques. Excellente participation et bonne ambiance!",
-      "saveButton": "Enregistrer",
-      "sendAllButton": "Envoyer à tous",
-      "finishDayButton": "Terminer la journée"
+      "sections": {
+        "appetiteTitle": "Appétit",
+        "appetite": {
+          "little": "Un peu",
+          "good": "Bien",
+          "all": "Tout"
+        },
+        "moodTitle": "Humeur",
+        "mood": {
+          "bad": "Mauvaise",
+          "good": "Bonne",
+          "excellent": "Excellente"
+        },
+        "participationTitle": "Participation",
+        "participation": {
+          "low": "Faible",
+          "good": "Bonne",
+          "excellent": "Excellente"
+        },
+        "dailyMessageTitle": "Message de la journée",
+        "dailyMessagePlaceholder": "Résumez la journée pour les parents...",
+        "dailyMessageDefault": "Aujourd'hui, les enfants ont travaillé la motricité fine et les mathématiques. Excellente participation et bonne ambiance!",
+        "saveButton": "Enregistrer",
+        "sendAllButton": "Envoyer à tous",
+        "finishDayButton": "Terminer la journée"
+      }
     }
   }
-}
 }

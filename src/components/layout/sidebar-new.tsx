@@ -17,6 +17,8 @@ import {
   UtensilsCrossed,
   Calendar,
   ClipboardList,
+  Menu,
+  X,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -30,6 +32,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
 
   const sidebarItems: SidebarItem[] = [
@@ -102,121 +105,264 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
     }
 
     const loginPath = `/${currentLocale}/auth/login-user`;
+    setMobileOpen(false);
     router.push(loginPath);
   };
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-6">
-      {/* Logo + titre */}
-      <div className="px-6 mb-8">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
-            <Image
-              src="/Group 13.svg"
-              alt="Logo Petitspas"
-              width={40}
-              height={40}
-            />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg text-sidebar-foreground">
-              Petitspas
-            </h1>
-            <p className="text-xs text-sidebar-foreground/60">Admin</p>
-          </div>
-        </Link>
-      </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50 inline-flex items-center justify-center h-10 w-10 rounded-lg border border-gray-200 bg-white shadow-sm"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-      {/* Liens */}
-      <nav className="space-y-1 px-3">
-        {sidebarItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          const hasSubmenu = item.submenu && item.submenu.length > 0;
-          const isExpanded = expandedMenus.includes(item.labelKey);
-
-          // 🔹 Cas SANS sous-menu : simple Link clickable
-          if (!hasSubmenu) {
-            return (
-              <Link
-                key={item.labelKey}
-                href={item.href}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/30",
-                )}
-              >
-                {item.icon}
-                <span className="flex-1 text-left">{t(item.labelKey)}</span>
-              </Link>
-            );
-          }
-
-          // 🔹 Cas AVEC sous-menu
-          return (
-            <div key={item.labelKey}>
-              <button
-                type="button"
-                onClick={() => toggleMenu(item.labelKey)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/30",
-                )}
-              >
-                {item.icon}
-                <span className="flex-1 text-left">{t(item.labelKey)}</span>
-                <Baby
-                  className={cn(
-                    "w-4 h-4 transition-transform",
-                    isExpanded && "rotate-180",
-                  )}
-                />
-              </button>
-
-              {isExpanded && item.submenu && (
-                <div className="ml-4 mt-1 space-y-1">
-                  {item.submenu.map((subitem) => {
-                    const isSubActive = pathname === subitem.href;
-                    return (
-                      <Link
-                        key={subitem.href}
-                        href={subitem.href}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all",
-                          isSubActive
-                            ? "bg-primary/20 text-primary-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20",
-                        )}
-                      >
-                        <span>•</span>
-                        {t(subitem.labelKey)}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Bas de sidebar */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
-        <div className="px-4 py-2">
-          <LanguageSwitcher currentLocale={currentLocale as any} />
-        </div>
+      {mobileOpen && (
         <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-          {t('logout')}
-        </button>
-      </div>
-    </aside>
+          type="button"
+          className="md:hidden fixed inset-0 z-40 bg-black/30"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close menu"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-6 z-50",
+          "hidden md:block",
+        )}
+      >
+        <div className="px-6 mb-8">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
+              <Image
+                src="/Group 13.svg"
+                alt="Logo Petitspas"
+                width={40}
+                height={40}
+              />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg text-sidebar-foreground">Petitspas</h1>
+              <p className="text-xs text-sidebar-foreground/60">Admin</p>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="space-y-1 px-3 pb-28">
+          {sidebarItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+            const isExpanded = expandedMenus.includes(item.labelKey);
+
+            if (!hasSubmenu) {
+              return (
+                <Link
+                  key={item.labelKey}
+                  href={item.href}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/30",
+                  )}
+                >
+                  {item.icon}
+                  <span className="flex-1 min-w-0 text-left truncate">{t(item.labelKey)}</span>
+                </Link>
+              );
+            }
+
+            return (
+              <div key={item.labelKey}>
+                <button
+                  type="button"
+                  onClick={() => toggleMenu(item.labelKey)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/30",
+                  )}
+                >
+                  {item.icon}
+                  <span className="flex-1 min-w-0 text-left truncate">{t(item.labelKey)}</span>
+                  <Baby
+                    className={cn(
+                      "w-4 h-4 transition-transform",
+                      isExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {isExpanded && item.submenu && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {item.submenu.map((subitem) => {
+                      const isSubActive = pathname === subitem.href;
+                      return (
+                        <Link
+                          key={subitem.href}
+                          href={subitem.href}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all",
+                            isSubActive
+                              ? "bg-primary/20 text-primary-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20",
+                          )}
+                        >
+                          <span>•</span>
+                          {t(subitem.labelKey)}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
+          <div className="px-4 py-2">
+            <LanguageSwitcher currentLocale={currentLocale as any} />
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            {t('logout')}
+          </button>
+        </div>
+      </aside>
+
+      <aside
+        className={cn(
+          "md:hidden w-[85vw] max-w-[20rem] bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-[calc(env(safe-area-inset-top)+1.5rem)] z-50 transition-transform duration-200",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="px-6 mb-6 flex items-start justify-between gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3"
+            onClick={() => setMobileOpen(false)}
+          >
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
+              <Image
+                src="/Group 13.svg"
+                alt="Logo Petitspas"
+                width={40}
+                height={40}
+              />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg text-sidebar-foreground">Petitspas</h1>
+              <p className="text-xs text-sidebar-foreground/60">Admin</p>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-sidebar-border text-sidebar-foreground"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <nav className="space-y-1 px-3 pb-28">
+          {sidebarItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+            const isExpanded = expandedMenus.includes(item.labelKey);
+
+            if (!hasSubmenu) {
+              return (
+                <Link
+                  key={item.labelKey}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/30",
+                  )}
+                >
+                  {item.icon}
+                  <span className="flex-1 min-w-0 text-left truncate [@media(max-width:220px)]:hidden">{t(item.labelKey)}</span>
+                </Link>
+              );
+            }
+
+            return (
+              <div key={item.labelKey}>
+                <button
+                  type="button"
+                  onClick={() => toggleMenu(item.labelKey)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/30",
+                  )}
+                >
+                  {item.icon}
+                  <span className="flex-1 min-w-0 text-left truncate [@media(max-width:220px)]:hidden">{t(item.labelKey)}</span>
+                  <Baby
+                    className={cn(
+                      "w-4 h-4 transition-transform",
+                      isExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {isExpanded && item.submenu && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {item.submenu.map((subitem) => {
+                      const isSubActive = pathname === subitem.href;
+                      return (
+                        <Link
+                          key={subitem.href}
+                          href={subitem.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all",
+                            isSubActive
+                              ? "bg-primary/20 text-primary-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20",
+                          )}
+                        >
+                          <span>•</span>
+                          {t(subitem.labelKey)}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
+          <div className="px-4 py-2">
+            <LanguageSwitcher currentLocale={currentLocale as any} />
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            {t('logout')}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

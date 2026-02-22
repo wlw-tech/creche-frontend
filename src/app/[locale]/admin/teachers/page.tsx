@@ -220,7 +220,7 @@ export default function TeachersPage({ params }: TeachersPageProps) {
       <SidebarNew currentLocale={currentLocale} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-1">Enseignants & classes</h1>

@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import type { ReactNode } from "react";
 import { UIProvider } from "@/lib/ui-context";
@@ -12,9 +12,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <UIProvider>
         <div className="flex">
           <Sidebar />
-          <div className="ml-64 flex-1 min-h-screen">
+          <div className="md:ml-64 flex-1 min-h-screen pt-16 md:pt-0">
             <Header />
-            <main className="p-6">{children}</main>
+            <main className="p-4 md:p-6">{children}</main>
           </div>
         </div>
       </UIProvider>

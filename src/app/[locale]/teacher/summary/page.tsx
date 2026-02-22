@@ -53,7 +53,7 @@ export default function TeacherSummary() {
         const classesRes = await apiClient.listClasses()
         const classes = classesRes.data?.data ?? classesRes.data ?? []
         if (!classes.length) {
-          if (!cancelled) setError("Aucune classe disponible")
+          if (!cancelled) setError(t("errors.noClass"))
           return
         }
 
@@ -121,7 +121,7 @@ export default function TeacherSummary() {
         }
       } catch (e) {
         console.error("[TeacherSummary] loadSummary error", e)
-        if (!cancelled) setError("Impossible de charger le résumé de classe")
+        if (!cancelled) setError(t("errors.loadSummaryError"))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -160,11 +160,11 @@ export default function TeacherSummary() {
         }
       }
 
-      setInfoMessage("Message de la journée enregistré")
+      setInfoMessage(t("success.dailyMessageSaved"))
       setTimeout(() => setInfoMessage(null), 3000)
     } catch (e) {
       console.error("[TeacherSummary] handleSaveDailyMessage error", e)
-      setInfoMessage("Erreur lors de l'enregistrement du message")
+      setInfoMessage(t("errors.saveMessageError"))
     } finally {
       setSaving(false)
     }
@@ -201,22 +201,22 @@ export default function TeacherSummary() {
         }
       }
 
-      setInfoMessage("Message envoyé à tous les parents pour aujourd'hui")
+      setInfoMessage(t("success.messageSentToParents"))
       setTimeout(() => setInfoMessage(null), 4000)
     } catch (e) {
       console.error("[TeacherSummary] handleSendToAll error", e)
-      setInfoMessage("Erreur lors de l'envoi du message")
+      setInfoMessage(t("errors.sendMessageError"))
     } finally {
       setSending(false)
     }
   }
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-600">Chargement du résumé de journée...</div>
+    return <div className="p-6 text-sm text-gray-600">{t("loading")}</div>
   }
 
   if (error || !summaryData) {
-    return <div className="p-6 text-sm text-red-600">{error ?? "Résumé indisponible"}</div>
+    return <div className="p-6 text-sm text-red-600">{error ?? t("errors.summaryUnavailable")}</div>
   }
 
   const presentCount = summaryData.presentsCount

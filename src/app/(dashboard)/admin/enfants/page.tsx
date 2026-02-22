@@ -82,10 +82,10 @@ export default function EnfantsPage() {
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         {/* Filtres */}
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Rechercher par nom..."
@@ -94,7 +94,7 @@ export default function EnfantsPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 w-full sm:w-auto">
             Filtrer
           </Button>
         </div>

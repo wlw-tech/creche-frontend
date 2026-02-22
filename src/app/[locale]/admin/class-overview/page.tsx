@@ -105,7 +105,7 @@ export default function ClassOverviewPage({
     return (
       <div className="min-h-screen bg-gray-50 flex">
         <SidebarNew currentLocale={currentLocale} />
-        <div className="flex-1 ml-64 p-8 flex items-center justify-center">
+        <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
           <div className="space-y-4 text-center">
             <h1 className="text-2xl font-bold">Aperçu classes / enfants</h1>
             <p className="text-muted-foreground">Chargement...</p>
@@ -119,7 +119,7 @@ export default function ClassOverviewPage({
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={currentLocale} />
 
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <div>

@@ -60,7 +60,7 @@ export default function AdminProfilePage({ params }: { params: Promise<{ locale:
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={currentLocale} />
-      <div className="flex-1 ml-64 p-8 flex items-center justify-center">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
         <div className="w-full max-w-lg space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-1">{t("profile.title")}</h1>

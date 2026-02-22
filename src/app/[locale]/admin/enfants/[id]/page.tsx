@@ -56,7 +56,7 @@ export default function EnfantDetailPage({
     return (
       <div className="min-h-screen bg-gray-50 flex">
         <SidebarNew currentLocale={locale} />
-        <div className="flex-1 ml-64 p-8 flex items-center justify-center">
+        <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
           <p className="text-muted-foreground">Chargement de la fiche enfant…</p>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function EnfantDetailPage({
     return (
       <div className="min-h-screen bg-gray-50 flex">
         <SidebarNew currentLocale={locale} />
-        <div className="flex-1 ml-64 p-8 flex items-center justify-center">
+        <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
           <p className="text-destructive text-sm">{error ?? "Fiche enfant introuvable."}</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function EnfantDetailPage({
       <SidebarNew currentLocale={locale} />
 
       {/* Main content */}
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="max-w-5xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div>

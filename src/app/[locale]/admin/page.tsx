@@ -227,7 +227,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
       <SidebarNew currentLocale={currentLocale} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64 flex flex-col bg-white">
+      <div className="flex-1 md:ml-64 flex flex-col bg-white pt-16 md:pt-0">
         {/* Header */}
         <header className="bg-white/90 backdrop-blur border-b border-border/70 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

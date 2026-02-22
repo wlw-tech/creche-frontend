@@ -135,7 +135,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={currentLocale} />
 
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between">

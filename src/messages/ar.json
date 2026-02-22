@@ -4,6 +4,12 @@
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج"
   },
+  "parent": {
+    "dashboard": {
+      "title": "لوحة تحكم ولي الأمر",
+      "subtitle": "مرحباً بك في النيدو"
+    }
+  },
   "home": {
     "title": "النيدو",
     "subtitle": "منصة متكاملة لإدارة الحضانات ورياض الأطفال",
@@ -162,9 +168,23 @@
     }
   },
   "teacher": {
-  "dashboard": {
-    "title": "لوحة تحكم المعلم",
-    "subtitle": "قاعة الزرقاء • حضور اليوم",
+    "summary": {
+      "errors": {
+        "noClass": "لا توجد فصول متاحة",
+        "loadSummaryError": "غير قادر على تحميل ملخص الفصل",
+        "summaryUnavailable": "الملخص غير متاح",
+        "saveMessageError": "خطأ في حفظ الرسالة",
+        "sendMessageError": "خطأ في إرسال الرسالة"
+      },
+      "success": {
+        "dailyMessageSaved": "تم حفظ رسالة اليوم",
+        "messageSentToParents": "تم إرسال رسالة إلى جميع أولياء الأمور ليوم اليوم"
+      },
+      "loading": "جاري تحميل ملخص اليوم..."
+    },
+    "dashboard": {
+      "title": "لوحة تحكم المعلم",
+      "subtitle": "قاعة الزرقاء • حضور اليوم",
     "langToggle": "FR / AR",
     "presenceTime": "حضور 29/09 — 08:35",
     "presentButton": "حاضر",

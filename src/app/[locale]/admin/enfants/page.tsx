@@ -425,7 +425,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
       <SidebarNew currentLocale={currentLocale} />
       
       {/* Main Content */}
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>

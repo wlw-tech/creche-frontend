@@ -64,7 +64,7 @@ export default function UtilisateursPage() {
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         {/* Erreur */}
         {error && <p className="text-sm text-destructive mb-4">{error}</p>}
 

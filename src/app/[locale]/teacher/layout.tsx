@@ -5,6 +5,7 @@ import type React from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 export default function TeacherLayout({
   children,
 }: {
@@ -12,6 +13,7 @@ export default function TeacherLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations()
 
   const isArabic = pathname?.startsWith("/ar")
   const currentLocale = isArabic ? "ar" : "fr"
@@ -50,7 +52,7 @@ export default function TeacherLayout({
     <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
       {/* Header */}
       <header className="border-b bg-white">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3 md:px-6 py-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 overflow-hidden">
               <Image
@@ -61,11 +63,11 @@ export default function TeacherLayout({
               />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Tableau de bord Enseignant</h1>
+              <h1 className="text-xl font-bold text-gray-900">{t("teacher.dashboard.title")}</h1>
               <p className="text-sm text-gray-500">Crèche Petitspas</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4">
             <Button
               variant="outline"
               size="sm"
@@ -75,14 +77,14 @@ export default function TeacherLayout({
               {currentLabel} • {nextLabel}
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Déconnexion
+              {t("common.logout")}
             </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-8">{children}</main>
+      <main className="px-3 md:px-6 py-6 md:py-8">{children}</main>
     </div>
   )
 }
