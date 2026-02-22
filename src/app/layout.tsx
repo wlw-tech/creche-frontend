@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Petitspas",
   description: "Plateforme de gestion pour crèches et garderies",
-  manifest: "../public/manifest.json",
+  manifest: "/manifest.json",
   themeColor: "#AEDFF7",
   icons: {
     icon: "/icons/icon-192.png",
