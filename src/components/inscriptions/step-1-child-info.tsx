@@ -51,7 +51,7 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="childFirstName" className="text-sm font-medium">
-            Prénom de l'enfant
+            Prénom de l'enfant <span className="text-red-500">*</span>
           </Label>
           <Input
             id="childFirstName"
@@ -59,11 +59,12 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
             value={formData.childFirstName}
             onChange={(e) => updateFormData({ childFirstName: e.target.value })}
             className="mt-2"
+            required
           />
         </div>
         <div>
           <Label htmlFor="childLastName" className="text-sm font-medium">
-            Nom de l'enfant
+            Nom de l'enfant <span className="text-red-500">*</span>
           </Label>
           <Input
             id="childLastName"
@@ -71,6 +72,7 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
             value={formData.childLastName}
             onChange={(e) => updateFormData({ childLastName: e.target.value })}
             className="mt-2"
+            required
           />
         </div>
       </div>
@@ -78,7 +80,7 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
       <div className="grid md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-            Date de naissance
+            Date de naissance <span className="text-red-500">*</span>
           </Label>
           <Input
             id="dateOfBirth"
@@ -86,6 +88,7 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
             value={formData.dateOfBirth}
             onChange={(e) => updateFormData({ dateOfBirth: e.target.value })}
             className="mt-2"
+            required
           />
         </div>
         <div>

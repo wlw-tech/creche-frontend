@@ -120,20 +120,20 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50 inline-flex items-center justify-center h-10 w-10 rounded-lg border border-gray-200 bg-white shadow-sm"
+        className="md:hidden fixed left-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[60] inline-flex items-center justify-center h-10 w-10 rounded-lg border border-gray-200 bg-white shadow-md active:scale-95 transition-transform"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
       </button>
 
-      {mobileOpen && (
-        <button
-          type="button"
-          className="md:hidden fixed inset-0 z-40 bg-black/30"
-          onClick={() => setMobileOpen(false)}
-          aria-label="Close menu"
-        />
-      )}
+      <div
+        className={cn(
+          "md:hidden fixed inset-0 z-[55] bg-black/40 transition-opacity duration-200",
+          mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        )}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
 
       <aside
         className={cn(
@@ -247,8 +247,8 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
 
       <aside
         className={cn(
-          "md:hidden w-[85vw] max-w-[20rem] bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-[calc(env(safe-area-inset-top)+1.5rem)] z-50 transition-transform duration-200",
-          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          "md:hidden w-[85vw] max-w-[20rem] bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-[calc(env(safe-area-inset-top)+1.5rem)] z-[60] transition-transform duration-200 ease-in-out",
+          mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
         )}
       >
         <div className="px-6 mb-6 flex items-start justify-between gap-3">

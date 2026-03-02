@@ -102,6 +102,44 @@ export default function InscriptionsPage() {
   }, [])
 
   const handleNext = () => {
+    setSubmitError(null)
+
+    if (currentStep === 1) {
+      if (!formData.childFirstName.trim()) {
+        setSubmitError("Le prénom de l'enfant est obligatoire.")
+        return
+      }
+      if (!formData.childLastName.trim()) {
+        setSubmitError("Le nom de l'enfant est obligatoire.")
+        return
+      }
+      if (!formData.dateOfBirth) {
+        setSubmitError("La date de naissance est obligatoire.")
+        return
+      }
+      if (!formData.classeIdSouhaitee) {
+        setSubmitError("Veuillez sélectionner une classe souhaitée.")
+        return
+      }
+    }
+
+    if (currentStep === 2) {
+      const hasMotherInfo = formData.motherFirstName.trim() || formData.motherEmail.trim() || formData.motherPhone.trim()
+      const hasFatherInfo = formData.fatherFirstName.trim() || formData.fatherEmail.trim() || formData.fatherPhone.trim()
+      if (!hasMotherInfo && !hasFatherInfo) {
+        setSubmitError("Veuillez renseigner les informations d'au moins un parent.")
+        return
+      }
+      if (!formData.motherEmail.trim() && !formData.fatherEmail.trim()) {
+        setSubmitError("L'email d'au moins un parent est obligatoire.")
+        return
+      }
+      if (!formData.declarationHonneur) {
+        setSubmitError("La déclaration sur l'honneur est obligatoire.")
+        return
+      }
+    }
+
     if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
 

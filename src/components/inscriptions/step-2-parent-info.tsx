@@ -89,7 +89,9 @@ function ParentSection({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-medium">E-mail</Label>
+          <Label className="text-sm font-medium">
+            E-mail {prefix === "mother" ? <span className="text-red-500">*</span> : null}
+          </Label>
           <Input
             type="email"
             placeholder="Ex : parent@email.com"
@@ -135,7 +137,8 @@ export default function Step2ParentInfo({ formData, updateFormData }: Step2Props
           Informations des parents / tuteurs
         </h2>
         <p className="text-sm text-muted-foreground">
-          Désignez le responsable principal. Le champ CIN est obligatoire.
+          Désignez le responsable principal. L'email et le CIN sont obligatoires.
+          Les champs marqués <span className="text-red-500">*</span> sont requis.
         </p>
       </div>
 

@@ -601,7 +601,9 @@ export default function TeacherDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Appétit */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
-                <div className="text-3xl">🍽️</div>
+                <div className="text-3xl">
+                  {appetit === "Bien" ? "😋" : appetit === "Moyen" ? "😐" : "😟"}
+                </div>
                 <p className="text-xs text-gray-500">Appétit</p>
                 <p className="text-lg font-bold text-emerald-600">{appetit}</p>
                 <div className="mt-2 flex gap-2">
@@ -624,7 +626,9 @@ export default function TeacherDashboard() {
 
               {/* Humeur */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
-                <div className="text-3xl">😊</div>
+                <div className="text-3xl">
+                  {humeur === "Bonne" ? "😄" : humeur === "Moyenne" ? "😐" : "😢"}
+                </div>
                 <p className="text-xs text-gray-500">Humeur</p>
                 <p className="text-lg font-bold text-sky-600">{humeur}</p>
                 <div className="mt-2 flex gap-2">
@@ -647,7 +651,9 @@ export default function TeacherDashboard() {
 
               {/* Sieste */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
-                <div className="text-3xl">😴</div>
+                <div className="text-3xl">
+                  {sieste === "Courte" ? "😪" : sieste === "Moyenne" ? "😴" : "🛌"}
+                </div>
                 <p className="text-xs text-gray-500">Sieste</p>
                 <p className="text-lg font-bold text-gray-700">{sieste}</p>
                 <div className="mt-2 flex gap-2">
@@ -670,7 +676,9 @@ export default function TeacherDashboard() {
 
               {/* Participation */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col items-center gap-2">
-                <div className="text-3xl">⭐</div>
+                <div className="text-3xl">
+                  {participation === "Bonne" ? "⭐" : participation === "Moyenne" ? "✨" : "💤"}
+                </div>
                 <p className="text-xs text-gray-500">Participation</p>
                 <p className="text-lg font-bold text-emerald-600">{participation}</p>
                 <div className="mt-2 flex gap-2">
