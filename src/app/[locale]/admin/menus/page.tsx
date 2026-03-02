@@ -131,6 +131,20 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
   const cancelEdit = () => setEditing(null);
 
+  const clearCell = async (date: string, field: keyof DayMenu) => {
+    const existing = allMenus[date];
+    if (!existing?.id) return;
+    try {
+      await apiClient.updateMenu(existing.id, { [field]: null } as any);
+      setAllMenus((prev) => ({
+        ...prev,
+        [date]: { ...prev[date], [field]: "" },
+      }));
+    } catch {
+      alert("Erreur lors de la suppression du champ.");
+    }
+  };
+
   const saveEdit = async () => {
     if (!editing) return;
     const { date, field } = editing;
@@ -345,24 +359,35 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                                   </div>
                                 </div>
                               ) : (
-                                <button
-                                  className={`w-full text-left text-xs rounded-md p-1.5 min-h-[32px] transition-colors ${
-                                    isPublished
-                                      ? "cursor-default text-foreground/80"
-                                      : "hover:bg-primary/8 cursor-pointer group"
-                                  }`}
-                                  onClick={() => !isPublished && startEdit(iso, row.key)}
-                                  disabled={isPublished}
-                                  title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier"}
-                                >
-                                  {value ? (
-                                    <span>{value}</span>
-                                  ) : (
-                                    <span className={`text-muted-foreground/50 ${!isPublished ? "group-hover:text-muted-foreground/80" : ""}`}>
-                                      —
-                                    </span>
+                                <div className="group relative min-h-[32px]">
+                                  <button
+                                    className={`w-full text-left text-xs rounded-md p-1.5 min-h-[32px] transition-colors pr-6 ${
+                                      isPublished
+                                        ? "cursor-default text-foreground/80"
+                                        : "hover:bg-primary/8 cursor-pointer"
+                                    }`}
+                                    onClick={() => !isPublished && startEdit(iso, row.key)}
+                                    disabled={isPublished}
+                                    title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier"}
+                                  >
+                                    {value ? (
+                                      <span>{value}</span>
+                                    ) : (
+                                      <span className={`text-muted-foreground/40 ${!isPublished ? "group-hover:text-muted-foreground/70" : ""}`}>
+                                        —
+                                      </span>
+                                    )}
+                                  </button>
+                                  {value && !isPublished && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); clearCell(iso, row.key); }}
+                                      className="absolute top-1 right-1 text-[10px] text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Effacer ce champ"
+                                    >
+                                      ×
+                                    </button>
                                   )}
-                                </button>
+                                </div>
                               )}
                             </td>
                           );

@@ -7,11 +7,11 @@
   "parent": {
     "dashboard": {
       "title": "لوحة تحكم ولي الأمر",
-      "subtitle": "مرحباً بك في النيدو"
+      "subtitle": "مرحباً بك في PetitsPas"
     }
   },
   "home": {
-    "title": "النيدو",
+    "title": "PetitsPas",
     "subtitle": "منصة متكاملة لإدارة الحضانات ورياض الأطفال",
     "adminSection": "للإدارة",
     "adminDescription": "إدارة الأطفال، التسجيلات، الحضور والفواتير",
@@ -84,15 +84,38 @@
       "inscriptionChartLabelApplications": "ملفات"
     },
     "menus": {
+      "title": "قوائم الأسبوع",
+      "subtitle": "انقر على خلية لتعديل محتواها.",
+      "rows": {
+        "collationMatin": "وجبة الصباح",
+        "repas": "وجبة الغداء",
+        "gouter": "وجبة العصر"
+      },
+      "jours": {
+        "lundi": "الاثنين",
+        "mardi": "الثلاثاء",
+        "mercredi": "الأربعاء",
+        "jeudi": "الخميس",
+        "vendredi": "الجمعة"
+      },
+      "actions": {
+        "publish": "نشر",
+        "published": "منشور",
+        "delete": "حذف",
+        "today": "اليوم",
+        "exportPdf": "تصدير PDF",
+        "clearCell": "مسح هذا الحقل"
+      },
+      "legend": "انقر على خلية فارغة أو ممتلئة للتعديل. Enter = حفظ • Echap = إلغاء.",
       "weekForm": {
         "title": "إنشاء سريع لقائمة أسبوعية",
         "description": "اختر تاريخًا مرجعيًا (الاثنين)، ثم حدد وجبة مختلفة لكل يوم من أيام الأسبوع.",
         "baseDateLabel": "تاريخ الأساس (الاثنين من الأسبوع)",
         "columns": {
           "day": "اليوم",
-          "entree": "الوجبة الأولى",
-          "plat": "الطبق الرئيسي",
-          "dessert": "الحلوى"
+          "entree": "وجبة الصباح",
+          "plat": "وجبة الغداء",
+          "dessert": "وجبة العصر"
         },
         "applyButton": "تطبيق هذه القوائم على الأسبوع"
       }
@@ -126,7 +149,7 @@
     "teachers": "المعلمون والفصول",
     "menus": "قائمة الأطفال",
     "events": "الفعاليات",
-    "presenceHistory": "سجل الحضور",
+    "presenceHistory": "الحضور",
     "users": "جميع المستخدمين",
     "reglement": "النظام الداخلي",
     "profile": "الملف الشخصي / كلمة المرور",
@@ -137,7 +160,7 @@
   "parent": {
     "dashboard": {
       "title": "لوحة تحكم ولي الأمر",
-      "subtitle": "مرحباً بك في النيدو"
+      "subtitle": "مرحباً بك في PetitsPas"
     },
     "tabs": {
       "overview": "نظرة عامة",

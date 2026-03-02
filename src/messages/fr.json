@@ -84,15 +84,38 @@
       "inscriptionChartLabelApplications": "dossiers"
     },
     "menus": {
+      "title": "Menus de la semaine",
+      "subtitle": "Cliquez sur une cellule pour modifier son contenu.",
+      "rows": {
+        "collationMatin": "Collation du matin",
+        "repas": "Repas (déjeuner)",
+        "gouter": "Goûter"
+      },
+      "jours": {
+        "lundi": "Lundi",
+        "mardi": "Mardi",
+        "mercredi": "Mercredi",
+        "jeudi": "Jeudi",
+        "vendredi": "Vendredi"
+      },
+      "actions": {
+        "publish": "Publier",
+        "published": "Publié",
+        "delete": "Supprimer",
+        "today": "Aujourd'hui",
+        "exportPdf": "Exporter PDF",
+        "clearCell": "Effacer ce champ"
+      },
+      "legend": "Cliquez sur une cellule vide ou remplie pour modifier. Entrée = valider • Echap = annuler. Publiez un jour une fois le menu finalisé.",
       "weekForm": {
         "title": "Création rapide d'un menu hebdomadaire",
         "description": "Choisissez une date de référence (lundi), puis définissez un repas différent pour chaque jour de la semaine.",
         "baseDateLabel": "Date de base (lundi de la semaine)",
         "columns": {
           "day": "Jour",
-          "entree": "Entrée",
-          "plat": "Plat principal",
-          "dessert": "Dessert"
+          "entree": "Collation du matin",
+          "plat": "Repas (déjeuner)",
+          "dessert": "Goûter"
         },
         "applyButton": "Appliquer ces menus à la semaine"
       }
@@ -126,7 +149,7 @@
     "teachers": "Enseignants & classes",
     "menus": "Menu enfant",
     "events": "Événements",
-    "presenceHistory": "Historique de présence",
+    "presenceHistory": "Présences",
     "users": "Tous les utilisateurs",
     "reglement": "Règlement intérieur",
     "profile": "Profil / Mot de passe",

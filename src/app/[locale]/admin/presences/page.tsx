@@ -276,19 +276,28 @@ export default function AdminPresencesPage({
     w.document.write(`
       <html>
         <head>
-          <title>Historique de présence</title>
+          <title>Présences — PetitsPas</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 24px; }
-            h1 { font-size: 18px; margin: 0 0 12px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+            h1 { font-size: 20px; margin: 0 0 4px; font-weight: bold; }
+            .subtitle { font-size: 12px; color: #666; }
             .meta { font-size: 12px; color: #444; margin: 0 0 16px; }
             table { border-collapse: collapse; width: 100%; }
             th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
-            th { background: #f5f5f5; text-align: left; }
+            th { background: #f0f0f0; text-align: left; font-weight: bold; }
+            tr:nth-child(even) { background: #fafafa; }
+            @media print { body { padding: 16px; } }
           </style>
         </head>
         <body>
-          <h1>Historique de présence</h1>
-          <div class="meta">Période: ${dateMin || "—"} → ${dateMax || "—"}</div>
+          <div class="header">
+            <div>
+              <h1>PetitsPas — Présences</h1>
+              <div class="subtitle">Exporté le ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+            </div>
+          </div>
+          <div class="meta">Période : ${dateMin || "—"} → ${dateMax || "—"}</div>
           <table>
             <thead>
               <tr>
@@ -319,13 +328,16 @@ export default function AdminPresencesPage({
 
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Historique de présence</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Présences</h1>
               <p className="text-muted-foreground text-sm">
-                Affichage des présences du jour sélectionné, avec l'enseignant qui a enregistré.
+                Consultez et exportez les présences par période, classe ou enseignant.
               </p>
             </div>
+            <Button onClick={printTable} className="bg-primary gap-2">
+              📄 Exporter PDF
+            </Button>
           </div>
 
           <Card className="p-4">
@@ -406,9 +418,6 @@ export default function AdminPresencesPage({
                 </Button>
                 <Button variant="outline" onClick={exportCsv}>
                   Export CSV
-                </Button>
-                <Button variant="outline" onClick={printTable}>
-                  Imprimer
                 </Button>
               </div>
 
