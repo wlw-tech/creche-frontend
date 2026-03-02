@@ -7,11 +7,11 @@
   "parent": {
     "dashboard": {
       "title": "Dashboard Parent",
-      "subtitle": "Bienvenue sur Petitspas"
+      "subtitle": "Bienvenue sur PetitsPas"
     }
   },
   "home": {
-    "title": "Petitspas",
+    "title": "PetitsPas",
     "subtitle": "Plateforme complète de gestion pour crèches et garderies",
     "adminSection": "Pour l'administration",
     "adminDescription": "Gérez les enfants, inscriptions, présences et facturation",
@@ -128,6 +128,7 @@
     "events": "Événements",
     "presenceHistory": "Historique de présence",
     "users": "Tous les utilisateurs",
+    "reglement": "Règlement intérieur",
     "profile": "Profil / Mot de passe",
     "settings": "Paramètres",
     "logout": "Déconnexion",
@@ -137,7 +138,7 @@
   "parent": {
     "dashboard": {
       "title": "Dashboard Parent",
-      "subtitle": "Bienvenue sur Petitspas"
+      "subtitle": "Bienvenue sur PetitsPas"
     },
     "tabs": {
       "overview": "Vue d'ensemble",

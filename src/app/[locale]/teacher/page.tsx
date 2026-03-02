@@ -14,6 +14,7 @@ type Enfant = {
   prenom?: string | null
   nom?: string | null
   allergies?: string[] | null
+  photoUrl?: string | null
 }
 
 type Classe = {
@@ -526,8 +527,16 @@ export default function TeacherDashboard() {
         <Card className="border border-gray-200 shadow-sm rounded-2xl lg:col-span-1">
           <CardContent className="pt-4 flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold">
-                {currentChild?.prenom?.[0] ?? "A"}
+              <div className="h-12 w-12 rounded-full overflow-hidden bg-sky-500 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
+                {(currentChild as any)?.photoUrl ? (
+                  <img
+                    src={(currentChild as any).photoUrl}
+                    alt={`${currentChild?.prenom ?? ""} ${currentChild?.nom ?? ""}`.trim()}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  currentChild?.prenom?.[0] ?? "A"
+                )}
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-900">

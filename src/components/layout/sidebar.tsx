@@ -97,14 +97,14 @@ export function Sidebar() {
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />
             </div>
             <div>
               <h1 className="font-bold text-lg text-sidebar-foreground">
-                Petitspas
+                PetitsPas
               </h1>
               <p className="text-xs text-sidebar-foreground/60">Admin</p>
             </div>
@@ -217,13 +217,13 @@ export function Sidebar() {
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-sidebar-foreground">Petitspas</h1>
+              <h1 className="font-bold text-lg text-sidebar-foreground">PetitsPas</h1>
               <p className="text-xs text-sidebar-foreground/60">Admin</p>
             </div>
           </Link>

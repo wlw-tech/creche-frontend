@@ -5,10 +5,22 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit2, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, Users, UserPlus, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { Locale } from "@/lib/i18n/config";
+
+interface EnseignantInClasse {
+  enseignant: {
+    id: string;
+    utilisateur: {
+      id: string;
+      prenom: string;
+      nom: string;
+      email: string;
+    };
+  };
+}
 
 interface Classe {
   id: string;
@@ -16,33 +28,51 @@ interface Classe {
   capacite?: number;
   trancheAge?: string;
   active: boolean;
+  enseignants?: EnseignantInClasse[];
+}
+
+interface TeacherUser {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  statut: string;
 }
 
 export default function ClassesPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params);
   const currentLocale = resolvedParams.locale;
   const [classes, setClasses] = useState<Classe[]>([]);
+  const [teachers, setTeachers] = useState<TeacherUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nom: "",
+    niveau: "",
     capacite: "",
     trancheAge: "",
     active: true,
   });
+  // Teacher assignment state per class
+  const [assigningClassId, setAssigningClassId] = useState<string | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
-  // Charger les classes
   useEffect(() => {
-    fetchClasses();
+    fetchData();
   }, []);
 
-  const fetchClasses = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.listClasses();
-      const payload = response.data;
+      const [classesRes, teachersRes] = await Promise.all([
+        apiClient.listClasses(),
+        apiClient.listUsers({ role: "ENSEIGNANT", limit: 200 }),
+      ]);
+      const payload = classesRes.data;
       const items: any[] = Array.isArray(payload?.data)
         ? payload.data
         : Array.isArray(payload?.items)
@@ -51,10 +81,11 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
         ? payload
         : [];
       setClasses(items);
+      setTeachers(teachersRes.data?.data ?? []);
       setError(null);
     } catch (err) {
-      console.error("[Classes] Error fetching classes:", err);
-      setError("Erreur lors du chargement des classes");
+      console.error("[Classes] Error fetching data:", err);
+      setError("Erreur lors du chargement des données");
     } finally {
       setLoading(false);
     }
@@ -64,7 +95,6 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, type, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]:
@@ -76,29 +106,21 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const payload = {
       nom: formData.nom,
+      niveau: formData.niveau || null,
       capacite: formData.capacite ? Number(formData.capacite) : null,
       trancheAge: formData.trancheAge || null,
       active: formData.active,
     };
-
     try {
       if (editingId) {
         await apiClient.updateClass(editingId, payload);
       } else {
         await apiClient.createClass(payload);
       }
-
-      await fetchClasses();
-
-      setFormData({
-        nom: "",
-        capacite: "",
-        trancheAge: "",
-        active: true,
-      });
+      await fetchData();
+      setFormData({ nom: "", niveau: "", capacite: "", trancheAge: "", active: true });
       setEditingId(null);
       setShowForm(false);
     } catch (err) {
@@ -110,6 +132,7 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
   const handleEdit = (classe: Classe) => {
     setFormData({
       nom: classe.nom,
+      niveau: (classe as any).niveau || "",
       capacite: classe.capacite?.toString() || "",
       trancheAge: classe.trancheAge || "",
       active: classe.active,
@@ -120,14 +143,49 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer cette classe ?")) return;
-
     try {
       await apiClient.deleteClass(id);
-      await fetchClasses();
+      await fetchData();
     } catch (err) {
       console.error("[Classes] Error deleting:", err);
       setError("Erreur lors de la suppression");
     }
+  };
+
+  const handleAssignTeacher = async (classeId: string) => {
+    if (!selectedTeacherId) return;
+    setAssignLoading(true);
+    setAssignError(null);
+    try {
+      await apiClient.assignTeacherToClass(selectedTeacherId, classeId);
+      await fetchData();
+      setAssigningClassId(null);
+      setSelectedTeacherId("");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? "Erreur lors de l'assignation";
+      setAssignError(msg);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleRemoveTeacher = async (classeId: string, enseignantId: string) => {
+    if (!confirm("Retirer cet enseignant de la classe ?")) return;
+    try {
+      await apiClient.removeTeacherFromClass(classeId, enseignantId);
+      await fetchData();
+    } catch (err) {
+      console.error("[Classes] Error removing teacher:", err);
+      setError("Erreur lors du retrait de l'enseignant");
+    }
+  };
+
+  // Teachers not yet assigned to a given class
+  const getAvailableTeachers = (classe: Classe): TeacherUser[] => {
+    const assignedUserIds = new Set(
+      (classe.enseignants ?? []).map((e) => e.enseignant.utilisateur.id)
+    );
+    return teachers.filter((t) => !assignedUserIds.has(t.id));
   };
 
   if (loading) {
@@ -146,19 +204,16 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <SidebarNew currentLocale={currentLocale} />
 
-      {/* Main content */}
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-5xl mx-auto">
           {/* HEADER */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Gestion des classes</h1>
-              <p className="text-muted-foreground">Organisez vos groupes d’enfants</p>
+              <p className="text-muted-foreground">Organisez vos groupes d'enfants</p>
             </div>
-
             <Button
               onClick={() => setShowForm(!showForm)}
               className="gap-2 bg-primary hover:bg-primary/90"
@@ -168,7 +223,6 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
             </Button>
           </div>
 
-          {/* ERREUR */}
           {error && (
             <Card className="p-4 bg-destructive/10 border border-destructive/30">
               <p className="text-destructive">{error}</p>
@@ -181,26 +235,37 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
               <h2 className="text-lg font-semibold mb-4">
                 {editingId ? "Modifier la classe" : "Créer une nouvelle classe"}
               </h2>
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Nom de la classe *
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Nom de la classe *</label>
                     <Input
                       name="nom"
-                      placeholder="Ex : Petite section"
+                      placeholder="Ex : Groupe Soleil"
                       value={formData.nom}
                       onChange={handleInputChange}
                       required
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Tranche d’âge
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Niveau</label>
+                    <select
+                      name="niveau"
+                      value={formData.niveau}
+                      onChange={handleInputChange}
+                      className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="">— Aucun niveau —</option>
+                      <option value="TPS">TPS — Toute Petite Section (18 mois – 2 ans)</option>
+                      <option value="PS">PS — Petite Section (2 – 3 ans)</option>
+                      <option value="MS">MS — Moyenne Section (3 – 4 ans)</option>
+                      <option value="GS">GS — Grande Section (4 – 5 ans)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tranche d'âge</label>
                     <Input
                       name="trancheAge"
                       placeholder="Ex : 2–3 ans"
@@ -208,19 +273,17 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
                       onChange={handleInputChange}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Capacité</label>
+                    <Input
+                      type="number"
+                      name="capacite"
+                      placeholder="Ex : 20"
+                      value={formData.capacite}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Capacité</label>
-                  <Input
-                    type="number"
-                    name="capacite"
-                    placeholder="Ex : 20"
-                    value={formData.capacite}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -229,16 +292,12 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
                     checked={formData.active}
                     onChange={handleInputChange}
                   />
-                  <label htmlFor="active" className="text-sm font-medium">
-                    Classe active
-                  </label>
+                  <label htmlFor="active" className="text-sm font-medium">Classe active</label>
                 </div>
-
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" className="bg-primary hover:bg-primary/90">
                     {editingId ? "Mettre à jour" : "Créer"}
                   </Button>
-
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -258,73 +317,174 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
             {classes.length === 0 ? (
               <Card className="p-12 text-center border-dashed">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">
-                  Aucune classe créée pour le moment.
-                </p>
+                <p className="text-muted-foreground">Aucune classe créée pour le moment.</p>
               </Card>
             ) : (
-              classes.map((classe) => (
-                <Card
-                  key={classe.id}
-                  className="p-6 border-2 border-primary/20 hover:border-primary/40 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold">{classe.nom}</h3>
+              classes.map((classe) => {
+                const assignedTeachers = classe.enseignants ?? [];
+                const availableTeachers = getAvailableTeachers(classe);
+                const isAssigning = assigningClassId === classe.id;
 
-                        {classe.active ? (
-                          <Badge className="bg-secondary text-secondary-foreground">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Inactive</Badge>
+                return (
+                  <Card
+                    key={classe.id}
+                    className="p-6 border-2 border-primary/20 hover:border-primary/40 transition-colors"
+                  >
+                    {/* Class header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold">{classe.nom}</h3>
+                          {classe.active ? (
+                            <Badge className="bg-secondary text-secondary-foreground">Active</Badge>
+                          ) : (
+                            <Badge variant="secondary">Inactive</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => handleEdit(classe)}
+                        >
+                          <Edit2 className="w-4 h-4" /> Modifier
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(classe.id)}
+                        >
+                          <Trash2 className="w-4 h-4" /> Supprimer
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Class info badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {(classe as any).niveau && (
+                        <div className="px-3 py-1.5 bg-primary/15 border border-primary/30 rounded-full text-xs font-bold text-primary">
+                          {(classe as any).niveau}
+                        </div>
+                      )}
+                      {classe.trancheAge && (
+                        <div className="p-2 px-3 bg-muted rounded-lg text-sm">
+                          <span className="text-xs text-muted-foreground">Tranche : </span>
+                          <span className="font-semibold">{classe.trancheAge}</span>
+                        </div>
+                      )}
+                      {classe.capacite && (
+                        <div className="p-2 px-3 bg-secondary/10 rounded-lg text-sm">
+                          <span className="text-xs text-muted-foreground">Capacité : </span>
+                          <span className="font-semibold">{classe.capacite} enfants</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Teachers section */}
+                    <div className="border-t border-border pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <Users className="w-4 h-4 text-primary" />
+                          Enseignants assignés
+                          {assignedTeachers.length > 0 && (
+                            <Badge variant="outline" className="ml-1 text-xs">
+                              {assignedTeachers.length}
+                            </Badge>
+                          )}
+                        </h4>
+                        {availableTeachers.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1 text-xs h-7"
+                            onClick={() => {
+                              setAssigningClassId(isAssigning ? null : classe.id);
+                              setSelectedTeacherId("");
+                              setAssignError(null);
+                            }}
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            {isAssigning ? "Annuler" : "Ajouter"}
+                          </Button>
                         )}
                       </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1"
-                        onClick={() => handleEdit(classe)}
-                      >
-                        <Edit2 className="w-4 h-4" /> Modifier
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(classe.id)}
-                      >
-                        <Trash2 className="w-4 h-4" /> Supprimer
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {classe.trancheAge && (
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Tranche d’âge
+                      {/* Current teachers list */}
+                      {assignedTeachers.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">
+                          Aucun enseignant assigné à cette classe.
                         </p>
-                        <p className="font-semibold">{classe.trancheAge}</p>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {assignedTeachers.map((ec) => (
+                            <div
+                              key={ec.enseignant.id}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-full text-sm"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                                {ec.enseignant.utilisateur.prenom[0]}
+                                {ec.enseignant.utilisateur.nom[0]}
+                              </div>
+                              <span className="font-medium">
+                                {ec.enseignant.utilisateur.prenom} {ec.enseignant.utilisateur.nom}
+                              </span>
+                              <span className="text-muted-foreground text-xs hidden sm:inline">
+                                · {ec.enseignant.utilisateur.email}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  handleRemoveTeacher(classe.id, ec.enseignant.id)
+                                }
+                                className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                                title="Retirer de la classe"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                    {classe.capacite && (
-                      <div className="p-3 bg-secondary/10 rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          Capacité
+                      {/* Assignment form */}
+                      {isAssigning && (
+                        <div className="flex gap-2 mt-2">
+                          <select
+                            value={selectedTeacherId}
+                            onChange={(e) => setSelectedTeacherId(e.target.value)}
+                            className="flex-1 border border-border rounded-md px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          >
+                            <option value="">— Sélectionner un enseignant —</option>
+                            {availableTeachers.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.prenom} {t.nom} · {t.email}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            size="sm"
+                            className="bg-primary text-primary-foreground"
+                            disabled={!selectedTeacherId || assignLoading}
+                            onClick={() => handleAssignTeacher(classe.id)}
+                          >
+                            {assignLoading ? "…" : "Assigner"}
+                          </Button>
+                        </div>
+                      )}
+                      {isAssigning && assignError && (
+                        <p className="text-xs text-destructive mt-1">{assignError}</p>
+                      )}
+                      {availableTeachers.length === 0 && assignedTeachers.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          Tous les enseignants sont déjà assignés à cette classe.
                         </p>
-                        <p className="font-semibold">{classe.capacite} enfants</p>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))
+                      )}
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>

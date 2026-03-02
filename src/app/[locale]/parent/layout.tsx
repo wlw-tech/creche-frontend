@@ -59,7 +59,7 @@ export default function ParentLayout({
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 overflow-hidden">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />

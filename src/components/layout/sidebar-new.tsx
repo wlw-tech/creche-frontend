@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Menu,
   X,
+  ScrollText,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -82,6 +83,11 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
       icon: <Users className="w-5 h-5" />,
     },
     {
+      labelKey: "reglement",
+      href: "/admin/reglement-interieur",
+      icon: <ScrollText className="w-5 h-5" />,
+    },
+    {
       labelKey: "profile",
       href: "/admin/profile",
       icon: <Settings className="w-5 h-5" />,
@@ -140,13 +146,13 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-sidebar-foreground">Petitspas</h1>
+              <h1 className="font-bold text-lg text-sidebar-foreground">PetitsPas</h1>
               <p className="text-xs text-sidebar-foreground/60">Admin</p>
             </div>
           </Link>
@@ -254,13 +260,13 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-sidebar-foreground">Petitspas</h1>
+              <h1 className="font-bold text-lg text-sidebar-foreground">PetitsPas</h1>
               <p className="text-xs text-sidebar-foreground/60">Admin</p>
             </div>
           </Link>

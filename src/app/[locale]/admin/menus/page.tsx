@@ -2,735 +2,385 @@
 
 import type React from "react";
 import { useState, useEffect, use } from "react";
-import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit2, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit2, Trash2, Calendar } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { Locale } from "@/lib/i18n/config";
 
-interface MenuItem {
-  id: string;
-  date: string;
-  // Champs "UI" mappés sur le backend
-  entree: string | null; // = collationMatin backend
-  plat: string | null; // = repas backend
-  dessert: string | null; // = gouter backend
-  allergenes: string[];
-  statut: "Brouillon" | "Publie";
+// ─── types ────────────────────────────────────────────────────────────────────
+interface DayMenu {
+  id?: string | null;
+  collationMatin: string;
+  repas: string;
+  gouter: string;
+  statut?: "Brouillon" | "Publie";
 }
 
-// Retourne le lundi (ISO) de la semaine de la date passée, au format YYYY-MM-DD
-const getWeekStart = (dateStr: string) => {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "";
-  const day = (d.getDay() + 6) % 7; // 0 = lundi
-  d.setDate(d.getDate() - day);
+// ISO YYYY-MM-DD → DayMenu
+type WeekData = Record<string, DayMenu>;
+
+// ─── constants ────────────────────────────────────────────────────────────────
+const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"] as const;
+type Jour = (typeof JOURS)[number];
+
+const ROWS: { key: keyof DayMenu; label: string; color: string }[] = [
+  { key: "collationMatin", label: "🍎 Collation du matin", color: "bg-orange-50 text-orange-800 border-orange-200" },
+  { key: "repas",          label: "🍽️ Repas (déjeuner)",   color: "bg-green-50 text-green-800 border-green-200" },
+  { key: "gouter",         label: "🧃 Goûter",             color: "bg-purple-50 text-purple-800 border-purple-200" },
+];
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+const toISO = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Returns the Monday ISO date of the week that contains `date` */
+const getMondayOf = (date: Date): Date => {
+  const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
+  const day = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+  d.setDate(d.getDate() - day);
+  return d;
 };
 
-const formatWeekLabel = (weekStart: string) => {
-  if (!weekStart) return "";
-  const start = new Date(weekStart);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  const startStr = start.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
+/** Returns array of 5 ISO dates Mon-Fri for the week starting at `monday` */
+const getWeekDates = (monday: Date): string[] =>
+  Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return toISO(d);
   });
-  const endStr = end.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-  });
-  return `Semaine du ${startStr} au ${endStr}`;
+
+const formatWeekLabel = (monday: Date) => {
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  return `${monday.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} – ${friday.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`;
 };
 
+const empty = (): DayMenu => ({ collationMatin: "", repas: "", gouter: "" });
+
+// ─── component ────────────────────────────────────────────────────────────────
 export default function MenusPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params);
   const currentLocale = resolvedParams.locale;
-  const t = useTranslations("admin.menus");
-  const [menus, setMenus] = useState<MenuItem[]>([]);
+
+  // current week (monday)
+  const [monday, setMonday] = useState<Date>(() => getMondayOf(new Date()));
+  // all menus from API, keyed by ISO date
+  const [allMenus, setAllMenus] = useState<WeekData>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedWeekStart, setSelectedWeekStart] = useState<string>("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    date: "",
-    entree: "",
-    plat: "",
-    dessert: "",
-    allergenes: "",
-  });
-  const [weekBaseDate, setWeekBaseDate] = useState<string>("");
-  const [weekMenus, setWeekMenus] = useState(
-    () =>
-      Array.from({ length: 7 }, () => ({
-        entree: "",
-        plat: "",
-        dessert: "",
-      })),
-  );
+  // editing state: per-cell inline editing
+  const [editing, setEditing] = useState<{ date: string; field: keyof DayMenu } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // Charger les menus au mount
-  useEffect(() => {
-    void fetchMenus();
-  }, []);
-
+  // ── fetch ──────────────────────────────────────────────────────────────────
   const fetchMenus = async () => {
     try {
       setLoading(true);
       setError(null);
+      const response = await apiClient.listMenus(1, 200);
+      const rawItems: any[] = response.data?.data ?? response.data?.items ?? [];
 
-      const response = await apiClient.listMenus(1, 50);
-      // backend = { data: MenuResponseDto[], total, ... }
-      const rawItems = response.data?.data ?? response.data?.items ?? [];
-
-      const items: MenuItem[] = rawItems.map((menu: any) => ({
-        id: menu.id,
-        date: menu.date,
-        entree: menu.collationMatin ?? null,
-        plat: menu.repas ?? null,
-        dessert: menu.gouter ?? null,
-        allergenes: Array.isArray(menu.allergenes) ? menu.allergenes : [],
-        statut: menu.statut,
-      }));
-
-      setMenus(items);
-
-      if (!selectedWeekStart && items.length > 0) {
-        const firstWeek = getWeekStart(items[0].date);
-        setSelectedWeekStart(firstWeek);
-      }
+      const mapped: WeekData = {};
+      rawItems.forEach((menu: any) => {
+        const iso = menu.date?.slice(0, 10);
+        if (iso) {
+          mapped[iso] = {
+            id: menu.id,
+            collationMatin: menu.collationMatin ?? "",
+            repas: menu.repas ?? "",
+            gouter: menu.gouter ?? "",
+            statut: menu.statut,
+          };
+        }
+      });
+      setAllMenus(mapped);
     } catch (err) {
-      console.error("[Menus] Error fetching menus:", err);
+      console.error("[Menus] fetch error", err);
       setError("Erreur lors du chargement des menus.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  useEffect(() => { fetchMenus(); }, []);
+
+  // ── navigation ─────────────────────────────────────────────────────────────
+  const prevWeek = () => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() - 7);
+    setMonday(d);
+  };
+  const nextWeek = () => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + 7);
+    setMonday(d);
+  };
+  const goToday = () => setMonday(getMondayOf(new Date()));
+
+  // ── editing ────────────────────────────────────────────────────────────────
+  const startEdit = (date: string, field: keyof DayMenu) => {
+    if (allMenus[date]?.statut === "Publie") return;
+    setEditing({ date, field });
+    setEditValue((allMenus[date]?.[field] as string) ?? "");
   };
 
-  const handleWeekMenuChange = (
-    index: number,
-    field: "entree" | "plat" | "dessert",
-    value: string,
-  ) => {
-    setWeekMenus((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-  };
+  const cancelEdit = () => setEditing(null);
 
-  const handleCreateWeek = async () => {
-    if (!weekBaseDate) {
-      setError("Veuillez choisir une date de base (lundi de la semaine).");
-      return;
-    }
+  const saveEdit = async () => {
+    if (!editing) return;
+    const { date, field } = editing;
+    const existing = allMenus[date];
 
+    setSaving(true);
     try {
-      setError(null);
-
-      // calcul du lundi à partir de la date choisie
-      const base = new Date(weekBaseDate);
-      if (Number.isNaN(base.getTime())) {
-        setError("Date de base invalide.");
-        return;
-      }
-      const day = (base.getDay() + 6) % 7; // 0 = lundi
-      base.setDate(base.getDate() - day);
-      base.setHours(0, 0, 0, 0);
-
-      const ops: Promise<any>[] = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(base);
-        d.setDate(base.getDate() + i);
-        const dateStr = d.toISOString().slice(0, 10);
-        const menuForDay = weekMenus[i];
-        const allergenesArray: string[] = [];
-        const existing = menus.find((m) => m.date === dateStr);
-        if (existing) {
-          ops.push(
-            apiClient.updateMenu(existing.id, {
-              collationMatin: menuForDay.entree || undefined,
-              repas: menuForDay.plat || undefined,
-              gouter: menuForDay.dessert || undefined,
-              allergenes: allergenesArray,
-            }),
-          );
-        } else {
-          ops.push(
-            apiClient.createMenu({
-              date: dateStr,
-              collationMatin: menuForDay.entree || undefined,
-              repas: menuForDay.plat || undefined,
-              gouter: menuForDay.dessert || undefined,
-              allergenes: allergenesArray,
-            }),
-          );
-        }
-      }
-
-      await Promise.all(ops);
-      await fetchMenus();
-    } catch (err) {
-      console.error("[Menus] Error creating week menus:", err);
-      setError("Erreur lors de la création des menus de la semaine.");
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const allergenesArray = formData.allergenes
-      .split(",")
-      .map((a) => a.trim())
-      .filter((a) => a.length > 0);
-
-    try {
-      setError(null);
-
-      if (editingId) {
-        // Update → on envoie uniquement les champs gérés par UpdateMenuDto
-        await apiClient.updateMenu(editingId, {
-          collationMatin: formData.entree || undefined,
-          repas: formData.plat || undefined,
-          gouter: formData.dessert || undefined,
-          allergenes: allergenesArray,
-        });
+      const payload = { [field === "collationMatin" ? "collationMatin" : field === "repas" ? "repas" : "gouter"]: editValue || undefined };
+      let saved: any;
+      if (existing?.id) {
+        const res = await apiClient.updateMenu(existing.id, payload as any);
+        saved = res.data;
       } else {
-        // Create → DTO backend = { date, collationMatin, repas, gouter, allergenes }
-        await apiClient.createMenu({
-          date: formData.date,
-          collationMatin: formData.entree || undefined,
-          repas: formData.plat || undefined,
-          gouter: formData.dessert || undefined,
-          allergenes: allergenesArray,
-        });
+        const createPayload: any = { date, collationMatin: undefined, repas: undefined, gouter: undefined };
+        createPayload[field] = editValue || undefined;
+        const res = await apiClient.createMenu(createPayload);
+        saved = res.data;
       }
 
-      await fetchMenus();
-      setFormData({
-        date: "",
-        entree: "",
-        plat: "",
-        dessert: "",
-        allergenes: "",
+      setAllMenus((prev) => ({
+        ...prev,
+        [date]: {
+          id: saved?.id ?? existing?.id,
+          collationMatin: saved?.collationMatin ?? existing?.collationMatin ?? "",
+          repas: saved?.repas ?? existing?.repas ?? "",
+          gouter: saved?.gouter ?? existing?.gouter ?? "",
+          statut: saved?.statut ?? existing?.statut,
+        },
+      }));
+      setEditing(null);
+    } catch (err) {
+      console.error("[Menus] save error", err);
+      alert("Erreur lors de la sauvegarde.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async (date: string) => {
+    const menu = allMenus[date];
+    if (!menu?.id || menu.statut === "Publie") return;
+    try {
+      await apiClient.publishMenu(menu.id);
+      setAllMenus((prev) => ({
+        ...prev,
+        [date]: { ...prev[date], statut: "Publie" },
+      }));
+    } catch (err) {
+      alert("Erreur lors de la publication.");
+    }
+  };
+
+  const handleDelete = async (date: string) => {
+    const menu = allMenus[date];
+    if (!menu?.id) return;
+    if (menu.statut === "Publie") { alert("Impossible de supprimer un menu publié."); return; }
+    if (!confirm("Supprimer le menu de ce jour ?")) return;
+    try {
+      await apiClient.deleteMenu(menu.id);
+      setAllMenus((prev) => {
+        const next = { ...prev };
+        delete next[date];
+        return next;
       });
-      setEditingId(null);
-      setShowForm(false);
     } catch (err) {
-      console.error("[Menus] Error saving menu:", err);
-      setError("Erreur lors de la sauvegarde.");
+      alert("Erreur lors de la suppression.");
     }
   };
 
-  const handleEdit = (menu: MenuItem) => {
-    setFormData({
-      date: menu.date,
-      entree: menu.entree ?? "",
-      plat: menu.plat ?? "",
-      dessert: menu.dessert ?? "",
-      allergenes: menu.allergenes.join(", "),
-    });
-    setEditingId(menu.id);
-    setShowForm(true);
-  };
+  // ── weekly data ────────────────────────────────────────────────────────────
+  const weekDates = getWeekDates(monday);
 
-  const handleDelete = async (id: string, statut: string) => {
-    if (statut === "Publie") {
-      setError("Impossible de supprimer un menu publié.");
-      return;
-    }
-
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce menu ?")) return;
-
-    try {
-      setError(null);
-      await apiClient.deleteMenu(id);
-      await fetchMenus();
-    } catch (err) {
-      console.error("[Menus] Error deleting menu:", err);
-      setError("Erreur lors de la suppression.");
-    }
-  };
-
-  const handlePublish = async (id: string, statut: string) => {
-    if (statut === "Publie") return; // backend renverra 400 sinon
-
-    try {
-      setError(null);
-      await apiClient.publishMenu(id);
-      await fetchMenus();
-    } catch (err) {
-      console.error("[Menus] Error publishing menu:", err);
-      setError("Erreur lors de la publication.");
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <SidebarNew currentLocale={currentLocale} />
-        <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
-          <div className="space-y-4 text-center">
-            <h1 className="text-2xl font-bold">Menu enfant</h1>
-            <p className="text-muted-foreground">Chargement...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={currentLocale} />
 
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="space-y-6 max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Menu enfant</h1>
-              <p className="text-muted-foreground mt-1">
-                Gérez les menus quotidiens de la crèche
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menus de la semaine</h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Cliquez sur une cellule pour modifier son contenu.
               </p>
             </div>
-            <Button
-              onClick={() => setShowForm(!showForm)}
-              className="gap-2 bg-primary hover:bg-primary/90"
-            >
-              <Plus className="w-4 h-4" />
-              {showForm ? "Fermer le formulaire" : "Ajouter un menu"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={prevWeek}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
+                {formatWeekLabel(monday)}
+              </span>
+              <Button variant="outline" size="sm" onClick={nextWeek}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToday}>
+                Aujourd'hui
+              </Button>
+            </div>
           </div>
 
           {error && (
-            <Card className="p-4 bg-destructive/10 border-destructive/30">
-              <p className="text-destructive">{error}</p>
-            </Card>
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
+              {error}
+            </div>
           )}
 
-          {/* Création rapide d'une semaine */}
-          <Card className="p-6 border border-secondary/40">
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              {t("weekForm.title")}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t("weekForm.description")}
-            </p>
-            <div className="mb-4 max-w-xs">
-              <label className="block text-sm font-medium text-foreground mb-1">
-                {t("weekForm.baseDateLabel")}
-              </label>
-              <Input
-                type="date"
-                value={weekBaseDate}
-                onChange={(e) => setWeekBaseDate(e.target.value)}
-              />
-            </div>
-            <div className="overflow-x-auto mb-4">
-              <table className="w-full text-sm border border-border/60 rounded-md">
-                <thead>
-                  <tr className="bg-muted/40">
-                    <th className="px-3 py-2 text-left font-semibold text-foreground w-32">{t("weekForm.columns.day")}</th>
-                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.entree")}</th>
-                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.plat")}</th>
-                    <th className="px-3 py-2 text-left font-semibold text-foreground">{t("weekForm.columns.dessert")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 7 }).map((_, idx) => {
-                    const base = weekBaseDate ? new Date(weekBaseDate) : null;
-                    let label = `Jour ${idx + 1}`;
-                    if (base && !Number.isNaN(base.getTime())) {
-                      const day = (base.getDay() + 6) % 7;
-                      base.setDate(base.getDate() - day + idx);
-                      label = base.toLocaleDateString("fr-FR", {
-                        weekday: "short",
-                        day: "2-digit",
-                        month: "short",
-                      });
-                    }
-                    const menu = weekMenus[idx];
-                    return (
-                      <tr key={idx} className="border-t border-border/40">
-                        <td className="px-3 py-2 font-semibold text-foreground">{label}</td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="text"
-                            value={menu.entree}
-                            onChange={(e) =>
-                              handleWeekMenuChange(idx, "entree", e.target.value)
-                            }
-                            placeholder={t("weekForm.columns.entree")}
-                          />
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Chargement des menus...</p>
+          ) : (
+            <Card className="p-0 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-muted/60 border-b border-border">
+                      {/* Category column header */}
+                      <th className="px-4 py-3 text-left font-semibold text-foreground w-44 border-r border-border">
+                        Catégorie
+                      </th>
+                      {weekDates.map((iso, idx) => {
+                        const d = new Date(iso);
+                        const isToday = toISO(new Date()) === iso;
+                        const menu = allMenus[iso];
+                        return (
+                          <th key={iso} className={`px-3 py-3 text-center font-semibold min-w-[140px] border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
+                            <div className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
+                              {JOURS[idx]}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-normal">
+                              {d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                            </div>
+                            {/* Publish/Delete actions */}
+                            {menu?.id && (
+                              <div className="flex justify-center gap-1 mt-1">
+                                {menu.statut === "Publie" ? (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                                    Publié
+                                  </span>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handlePublish(iso)}
+                                      className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200 hover:bg-amber-200 transition-colors"
+                                    >
+                                      Publier
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(iso)}
+                                      className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors"
+                                    >
+                                      ✕
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ROWS.map((row, rowIdx) => (
+                      <tr key={row.key} className={`border-b border-border last:border-b-0 ${rowIdx % 2 === 0 ? "bg-white" : "bg-muted/20"}`}>
+                        {/* Category label */}
+                        <td className={`px-4 py-3 font-semibold text-sm border-r border-border ${row.color}`}>
+                          {row.label}
                         </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="text"
-                            value={menu.plat}
-                            onChange={(e) =>
-                              handleWeekMenuChange(idx, "plat", e.target.value)
-                            }
-                            placeholder={t("weekForm.columns.plat")}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="text"
-                            value={menu.dessert}
-                            onChange={(e) =>
-                              handleWeekMenuChange(idx, "dessert", e.target.value)
-                            }
-                            placeholder={t("weekForm.columns.dessert")}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <Button onClick={handleCreateWeek} className="bg-primary hover:bg-primary/90">
-              {t("weekForm.applyButton")}
-            </Button>
-          </Card>
+                        {/* Day cells */}
+                        {weekDates.map((iso) => {
+                          const menu = allMenus[iso];
+                          const value = (menu?.[row.key] as string) || "";
+                          const isEditing = editing?.date === iso && editing?.field === row.key;
+                          const isPublished = menu?.statut === "Publie";
 
-          {/* Vue hebdomadaire */}
-          {menus.length > 0 && (
-            <Card className="p-6 border border-secondary/40">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Vue hebdomadaire</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Visualisez rapidement les menus de la semaine.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Semaine :</span>
-                  <select
-                    className="border border-input rounded-md px-2 py-1 text-sm bg-background min-w-[200px]"
-                    value={selectedWeekStart}
-                    onChange={(e) => setSelectedWeekStart(e.target.value)}
-                  >
-                    {Array.from(
-                      menus.reduce((acc, m) => {
-                        const w = getWeekStart(m.date);
-                        if (w) acc.add(w);
-                        return acc;
-                      }, new Set<string>()),
-                    )
-                      .sort()
-                      .map((week) => (
-                        <option key={week} value={week}>
-                          {formatWeekLabel(week)}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-
-              {selectedWeekStart && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border border-border/60 rounded-md">
-                    <thead>
-                      <tr className="bg-muted/40">
-                        <th className="px-3 py-2 text-left font-semibold text-foreground w-32">Repas</th>
-                        {Array.from({ length: 7 }).map((_, idx) => {
-                          const d = new Date(selectedWeekStart);
-                          d.setDate(d.getDate() + idx);
                           return (
-                            <th key={idx} className="px-3 py-2 text-left font-semibold text-foreground">
-                              {d.toLocaleDateString("fr-FR", {
-                                weekday: "short",
-                                day: "2-digit",
-                                month: "short",
-                              })}
-                            </th>
+                            <td
+                              key={iso}
+                              className={`px-3 py-3 border-r border-border last:border-r-0 align-top min-w-[140px] ${
+                                isPublished ? "bg-emerald-50/30" : ""
+                              }`}
+                            >
+                              {isEditing ? (
+                                <div className="space-y-1">
+                                  <Input
+                                    autoFocus
+                                    className="h-8 text-xs"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") saveEdit();
+                                      if (e.key === "Escape") cancelEdit();
+                                    }}
+                                    placeholder="Saisir..."
+                                  />
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={saveEdit}
+                                      disabled={saving}
+                                      className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded hover:opacity-90"
+                                    >
+                                      {saving ? "..." : "✓"}
+                                    </button>
+                                    <button
+                                      onClick={cancelEdit}
+                                      className="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded hover:bg-gray-300"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  className={`w-full text-left text-xs rounded-md p-1.5 min-h-[32px] transition-colors ${
+                                    isPublished
+                                      ? "cursor-default text-foreground/80"
+                                      : "hover:bg-primary/8 cursor-pointer group"
+                                  }`}
+                                  onClick={() => !isPublished && startEdit(iso, row.key)}
+                                  disabled={isPublished}
+                                  title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier"}
+                                >
+                                  {value ? (
+                                    <span>{value}</span>
+                                  ) : (
+                                    <span className={`text-muted-foreground/50 ${!isPublished ? "group-hover:text-muted-foreground/80" : ""}`}>
+                                      —
+                                    </span>
+                                  )}
+                                </button>
+                              )}
+                            </td>
                           );
                         })}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {(["entree", "plat", "dessert"] as const).map((type) => (
-                        <tr key={type} className="border-t border-border/40">
-                          <td className="px-3 py-2 font-semibold text-foreground capitalize">
-                            {type === "entree" && "Entrée"}
-                            {type === "plat" && "Plat principal"}
-                            {type === "dessert" && "Dessert"}
-                          </td>
-                          {Array.from({ length: 7 }).map((_, idx) => {
-                            const d = new Date(selectedWeekStart);
-                            d.setDate(d.getDate() + idx);
-                            const key = d.toISOString().slice(0, 10);
-                            const menuOfDay = menus.find((m) => m.date === key);
-                            const value = menuOfDay ? menuOfDay[type] : null;
-                            return (
-                              <td
-                                key={idx}
-                                className="px-3 py-2 align-top text-xs text-foreground/90 min-w-[120px]"
-                              >
-                                {value ? (
-                                  <span>{value}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Legend */}
+              <div className="px-4 py-3 bg-muted/30 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-4">
+                <span>💡 Cliquez sur une cellule vide ou remplie pour modifier le contenu.</span>
+                <span>• Entrée = valider | Echap = annuler</span>
+                <span>• Publiez un jour une fois le menu finalisé (visible par les parents).</span>
+              </div>
             </Card>
           )}
-
-          {/* Form */}
-          {showForm && (
-            <Card className="p-6 border-2 border-primary/20">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                {editingId ? "Modifier le menu" : "Créer un nouveau menu"}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Date
-                    </label>
-                    <Input
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Entrée
-                    </label>
-                    <Input
-                      type="text"
-                      name="entree"
-                      placeholder="Ex: Salade"
-                      value={formData.entree}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Plat principal
-                    </label>
-                    <Input
-                      type="text"
-                      name="plat"
-                      placeholder="Ex: Poulet riz"
-                      value={formData.plat}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Dessert
-                    </label>
-                    <Input
-                      type="text"
-                      name="dessert"
-                      placeholder="Ex: Fruit"
-                      value={formData.dessert}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Allergènes
-                  </label>
-                  <Textarea
-                    name="allergenes"
-                    placeholder="Entrez les allergènes séparés par des virgules (ex: Arachides, Noix, Gluten)"
-                    value={formData.allergenes}
-                    onChange={handleInputChange}
-                    className="resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Séparez les allergènes par des virgules
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" className="bg-primary hover:bg-primary/90">
-                    {editingId ? "Mettre à jour" : "Créer"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowForm(false);
-                      setEditingId(null);
-                      setFormData({
-                        date: "",
-                        entree: "",
-                        plat: "",
-                        dessert: "",
-                        allergenes: "",
-                      });
-                    }}
-                  >
-                    Annuler
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-
-          {/* Menus List */}
-          <div className="grid gap-4">
-            {menus.length === 0 ? (
-              <Card className="p-12 text-center border-dashed">
-                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">
-                  Aucun menu créé. Commencez par ajouter un menu.
-                </p>
-              </Card>
-            ) : (
-              menus.map((menu) => (
-                <Card
-                  key={menu.id}
-                  className="p-6 border-2 border-secondary/30 hover:border-secondary/60 transition-colors bg-gradient-to-r from-white to-secondary/5"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-bold text-foreground">
-                          {formatDate(menu.date)}
-                        </h3>
-                        {menu.statut === "Publie" ? (
-                          <Badge className="bg-secondary text-secondary-foreground font-semibold">
-                            Publié
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-secondary/50">
-                            Brouillon
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handlePublish(menu.id, menu.statut)}
-                        disabled={menu.statut === "Publie"}
-                        className={
-                          menu.statut === "Publie"
-                            ? "border-secondary text-secondary font-semibold"
-                            : ""
-                        }
-                      >
-                        {menu.statut === "Publie" ? "Publié" : "Publier"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(menu)}
-                        className="gap-1"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Modifier
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(menu.id, menu.statut)}
-                        className="gap-1 text-destructive hover:bg-destructive/10"
-                        disabled={menu.statut === "Publie"}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg">
-                      <p className="text-xs font-bold text-blue-700 uppercase mb-1">
-                        Entrée
-                      </p>
-                      <p className="font-bold text-blue-900 text-base">
-                        {menu.entree}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-l-4 border-orange-600 rounded-lg">
-                      <p className="text-xs font-bold text-orange-700 uppercase mb-1">
-                        Plat Principal
-                      </p>
-                      <p className="font-bold text-orange-900 text-base">
-                        {menu.plat}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-600 rounded-lg">
-                      <p className="text-xs font-bold text-red-700 uppercase mb-1">
-                        Dessert
-                      </p>
-                      <p className="font-bold text-red-900 text-base">
-                        {menu.dessert}
-                      </p>
-                    </div>
-                  </div>
-
-                  {menu.allergenes.length > 0 && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-xs font-bold text-red-700 uppercase mb-2">
-                        Allergènes détectés
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {menu.allergenes.map((allergen) => (
-                          <Badge
-                            key={allergen}
-                            className="bg-red-600 text-white font-semibold hover:bg-red-700"
-                          >
-                            ⚠️ {allergen}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              ))
-            )}
-          </div>
         </div>
       </div>
     </div>

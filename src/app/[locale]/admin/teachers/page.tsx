@@ -1,353 +1,350 @@
-"use client"
+"use client";
 
-import { use, useEffect, useState } from "react"
-import Link from "next/link"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { SidebarNew } from "@/components/layout/sidebar-new"
-import { apiClient } from "@/lib/api"
-import type { Locale } from "@/lib/i18n/config"
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { SidebarNew } from "@/components/layout/sidebar-new";
+import { apiClient } from "@/lib/api";
+import type { Locale } from "@/lib/i18n/config";
 
 interface TeachersPageProps {
-  params: Promise<{ locale: Locale }>
+  params: Promise<{ locale: Locale }>;
+}
+
+interface ClassAssignment {
+  classeId: string;
+  nom: string;
+  niveau?: string | null;
 }
 
 interface TeacherItem {
-  id: string
-  fullName: string
-  email: string
-  role: string
-  assignedClassId?: string | null
+  userId: string;
+  enseignantId: string | null;
+  fullName: string;
+  email: string;
+  statut: string;
+  assignedClasses: ClassAssignment[];
 }
 
 interface ClassItem {
-  id: string
-  nom: string
+  id: string;
+  nom: string;
+  niveau?: string | null;
+  enseignants?: Array<{
+    enseignant: {
+      id: string;
+      utilisateur?: { id: string } | null;
+    };
+  }>;
 }
 
 export default function TeachersPage({ params }: TeachersPageProps) {
-  const resolvedParams = use(params)
-  const currentLocale = resolvedParams.locale
+  const resolvedParams = use(params);
+  const currentLocale = resolvedParams.locale;
 
-  const [teachers, setTeachers] = useState<TeacherItem[]>([])
-  const [classes, setClasses] = useState<ClassItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
-  const [newTeacher, setNewTeacher] = useState({
-    prenom: "",
-    nom: "",
-    email: "",
-    classeId: "",
-  })
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [newTeacher, setNewTeacher] = useState({ prenom: "", nom: "", email: "" });
+  const [assigningTeacherId, setAssigningTeacherId] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [usersRes, classesRes] = await Promise.all([
+        apiClient.listUsers({ role: "ENSEIGNANT", limit: 200 }),
+        apiClient.listClasses(),
+      ]);
+
+      const usersPayload = usersRes.data;
+      const usersAll: any[] = Array.isArray(usersPayload?.data)
+        ? usersPayload.data
+        : Array.isArray(usersPayload?.items)
+        ? usersPayload.items
+        : Array.isArray(usersPayload)
+        ? usersPayload
+        : [];
+
+      const classesData: ClassItem[] = (() => {
+        const p = classesRes.data;
+        return Array.isArray(p?.data) ? p.data : Array.isArray(p?.items) ? p.items : Array.isArray(p) ? p : [];
+      })();
+
+      // Build teacher list with their assigned classes
+      const teacherItems: TeacherItem[] = usersAll.map((u: any) => {
+        // Find all classes where this teacher is assigned
+        const assignedClasses: ClassAssignment[] = classesData
+          .filter((c) =>
+            Array.isArray(c.enseignants) &&
+            c.enseignants.some(
+              (ec) =>
+                ec.enseignant?.utilisateur?.id === u.id ||
+                (u.enseignantId && ec.enseignant?.id === u.enseignantId),
+            ),
+          )
+          .map((c) => ({ classeId: c.id, nom: c.nom, niveau: c.niveau }));
+
+        return {
+          userId: u.id,
+          enseignantId: u.enseignantId ?? null,
+          fullName: `${u.prenom ?? ""} ${u.nom ?? ""}`.trim() || u.email,
+          email: u.email,
+          statut: u.statut,
+          assignedClasses,
+        };
+      });
+
+      setTeachers(teacherItems);
+      setClasses(classesData);
+    } catch (err) {
+      console.error("[Admin/Teachers] Error loading data", err);
+      setError("Impossible de charger les enseignants.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false
-
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const [usersRes, classesRes] = await Promise.all([
-          apiClient.listUsers(),
-          apiClient.listClasses(),
-        ])
-
-        const usersPayload = usersRes.data
-        const users: any[] = Array.isArray(usersPayload?.data)
-          ? usersPayload.data
-          : Array.isArray(usersPayload?.items)
-          ? usersPayload.items
-          : Array.isArray(usersPayload)
-          ? usersPayload
-          : []
-
-        const classesData: any[] = classesRes.data?.items ?? classesRes.data ?? []
-
-        const teacherItems: TeacherItem[] = users
-          .filter((u: any) => u.role === "TEACHER" || u.role === "ENSEIGNANT")
-          .map((u: any) => {
-            const assignedClass = classesData.find((c: any) =>
-              Array.isArray(c.enseignants)
-                ? c.enseignants.some(
-                    (ec: any) => ec.enseignant?.utilisateur?.id === u.id,
-                  )
-                : false,
-            )
-
-            return {
-              id: u.id,
-              fullName: `${u.prenom ?? ""} ${u.nom ?? ""}`.trim() || u.email,
-              email: u.email,
-              role: u.role,
-              assignedClassId: assignedClass?.id ?? null,
-            }
-          })
-
-        const classItems: ClassItem[] = classesData.map((c: any) => ({
-          id: c.id,
-          nom: c.nom,
-        }))
-
-        if (!cancelled) {
-          setTeachers(teacherItems)
-          setClasses(classItems)
-        }
-      } catch (err) {
-        console.error("[Admin/Teachers] Error loading teachers/classes", err)
-        if (!cancelled) {
-          setError("Impossible de charger les enseignants ou les classes.")
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchData()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const handleAssignClass = async (teacherId: string, classeId: string) => {
-    try {
-      if (!classeId) return
-      await apiClient.assignTeacherToClass(teacherId, classeId)
-      setTeachers((prev) =>
-        prev.map((t) => (t.id === teacherId ? { ...t, assignedClassId: classeId } : t)),
-      )
-    } catch (err: any) {
-      console.error("[Admin/Teachers] Error assigning teacher to class", err)
-      const apiMessage = err?.response?.data?.message
-      if (typeof apiMessage === "string") {
-        alert(apiMessage)
-      } else if (Array.isArray(apiMessage)) {
-        alert(apiMessage.join(" \n"))
-      } else {
-        alert("Erreur lors de l'assignation de l'enseignant à la classe.")
-      }
-    }
-  }
+    fetchData();
+  }, []);
 
   const handleCreateTeacher = async () => {
-    setCreateError(null)
-    if (!newTeacher.email || !newTeacher.classeId) {
-      setCreateError("Email et classe sont obligatoires.")
-      return
+    setCreateError(null);
+    if (!newTeacher.email || !newTeacher.prenom || !newTeacher.nom) {
+      setCreateError("Prénom, nom et email sont obligatoires.");
+      return;
     }
-
     try {
-      setCreating(true)
-      const res = await apiClient.createUser({
-        prenom: newTeacher.prenom || undefined,
-        nom: newTeacher.nom || undefined,
-        email: newTeacher.email,
-        role: "ENSEIGNANT",
-      })
-
-      const created = res.data
-
-      // Récupérer l'id de l'utilisateur créé
-      let teacherId: string | undefined = created?.utilisateurId ?? created?.id
-      if (!teacherId) {
-        // Fallback : recharger les utilisateurs et retrouver par email
-        const usersRes = await apiClient.listUsers()
-        const usersPayload = usersRes.data
-        const usersAll: any[] = Array.isArray(usersPayload?.data)
-          ? usersPayload.data
-          : Array.isArray(usersPayload?.items)
-          ? usersPayload.items
-          : Array.isArray(usersPayload)
-          ? usersPayload
-          : []
-        const found = usersAll.find((u: any) => u.email === newTeacher.email)
-        teacherId = found?.id
-      }
-
-      if (!teacherId) {
-        console.warn(
-          "[Admin/Teachers] Teacher appears created but id could not be resolved immediately. You may need to refresh or assign via the list.",
-        )
-        // On arrête ici sans afficher d'erreur bloquante ;
-        // l'enseignant sera visible via la liste globale.
-        setNewTeacher({ prenom: "", nom: "", email: "", classeId: "" })
-        return
-      }
-
-      // Assigner immédiatement à la classe choisie
-      await apiClient.assignTeacherToClass(teacherId, newTeacher.classeId)
-
-      // Mettre à jour la liste locale
-      setTeachers((prev) => [
-        ...prev,
-        {
-          id: teacherId,
-          fullName: `${created?.prenom ?? newTeacher.prenom ?? ""} ${
-            created?.nom ?? newTeacher.nom ?? ""
-          }`.trim() || created?.email || newTeacher.email,
-          email: created?.email || newTeacher.email,
-          role: created?.role || "ENSEIGNANT",
-          assignedClassId: newTeacher.classeId,
-        },
-      ])
-
-      // Reset du formulaire
-      setNewTeacher({ prenom: "", nom: "", email: "", classeId: "" })
+      setCreating(true);
+      await apiClient.createUser({ ...newTeacher, role: "ENSEIGNANT" });
+      setNewTeacher({ prenom: "", nom: "", email: "" });
+      await fetchData();
     } catch (err: any) {
-      console.error("[Admin/Teachers] Error creating teacher", err)
-      const apiMessage = err?.response?.data?.message
-      if (typeof apiMessage === "string") {
-        setCreateError(apiMessage)
-      } else if (Array.isArray(apiMessage)) {
-        setCreateError(apiMessage.join(" "))
-      } else {
-        setCreateError("Erreur lors de la création de l'enseignant. Veuillez vérifier les informations.")
-      }
+      const msg = err?.response?.data?.message;
+      setCreateError(typeof msg === "string" ? msg : Array.isArray(msg) ? msg.join(" ") : "Erreur lors de la création.");
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
+
+  const handleAssignClass = async (teacherUserId: string) => {
+    if (!selectedClassId) return;
+    try {
+      setAssignLoading(true);
+      await apiClient.assignTeacherToClass(teacherUserId, selectedClassId);
+      setAssigningTeacherId(null);
+      setSelectedClassId("");
+      await fetchData();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      alert(typeof msg === "string" ? msg : Array.isArray(msg) ? msg.join(" ") : "Erreur lors de l'assignation.");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleRemoveClass = async (teacher: TeacherItem, classeId: string) => {
+    if (!teacher.enseignantId) return;
+    if (!confirm("Retirer cet enseignant de cette classe ?")) return;
+    try {
+      await apiClient.removeTeacherFromClass(classeId, teacher.enseignantId);
+      await fetchData();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      alert(typeof msg === "string" ? msg : "Erreur lors de la suppression.");
+    }
+  };
+
+  const statutColor = (s: string) => {
+    if (s === "ACTIVE") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (s === "INVITED") return "bg-amber-100 text-amber-700 border-amber-200";
+    return "bg-gray-100 text-gray-500 border-gray-200";
+  };
+
+  // Classes not yet assigned to this teacher
+  const availableClasses = (teacher: TeacherItem) =>
+    classes.filter((c) => !teacher.assignedClasses.some((a) => a.classeId === c.id));
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <SidebarNew currentLocale={currentLocale} />
 
-      {/* Main Content */}
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-1">Enseignants & classes</h1>
-            <p className="text-sm text-muted-foreground">
-              Gérez les enseignants et assignez-les aux classes.
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Enseignants</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {loading ? "Chargement..." : `${teachers.length} enseignant(s)`}
+              </p>
+            </div>
+            <Link href={`/${currentLocale}/admin`}>
+              <Button variant="outline">← Dashboard</Button>
+            </Link>
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {/* Add teacher form */}
+          <Card className="p-5">
+            <h2 className="text-base font-semibold mb-3">Inviter un enseignant</h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              Un email d'invitation avec identifiants sera envoyé automatiquement.
             </p>
-          </div>
-          <Link href={`/${currentLocale}/admin`}>
-            <Button variant="outline">← Retour au dashboard</Button>
-          </Link>
-        </div>
+            {createError && <p className="text-xs text-destructive mb-2">{createError}</p>}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                placeholder="Prénom *"
+                className="flex-1 border border-border rounded-md px-3 py-2 text-sm bg-background"
+                value={newTeacher.prenom}
+                onChange={(e) => setNewTeacher((p) => ({ ...p, prenom: e.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="Nom *"
+                className="flex-1 border border-border rounded-md px-3 py-2 text-sm bg-background"
+                value={newTeacher.nom}
+                onChange={(e) => setNewTeacher((p) => ({ ...p, nom: e.target.value }))}
+              />
+              <input
+                type="email"
+                placeholder="Email *"
+                className="flex-[2] border border-border rounded-md px-3 py-2 text-sm bg-background"
+                value={newTeacher.email}
+                onChange={(e) => setNewTeacher((p) => ({ ...p, email: e.target.value }))}
+              />
+              <Button onClick={handleCreateTeacher} disabled={creating} className="whitespace-nowrap">
+                {creating ? "Création..." : "Inviter"}
+              </Button>
+            </div>
+          </Card>
 
-        {error && (
-          <p className="mb-4 text-sm text-destructive">{error}</p>
-        )}
-
-        {/* Create Teacher */}
-        <div className="mb-8 p-4 border border-border/60 rounded-lg bg-white shadow-sm space-y-3">
-          <h2 className="text-base md:text-lg font-semibold text-foreground">Ajouter un enseignant</h2>
-          <p className="text-xs md:text-sm text-muted-foreground">
-            Créez un enseignant, assignez-le immédiatement à une classe. Un email d'invitation avec identifiants sera envoyé à l'adresse indiquée.
-          </p>
-          {createError && (
-            <p className="text-xs text-destructive mb-1">{createError}</p>
-          )}
-          <div className="flex flex-col md:flex-row gap-3 md:items-center">
-            <input
-              type="text"
-              placeholder="Prénom"
-              className="flex-1 border border-border rounded-md px-2 py-1 text-sm bg-background"
-              value={newTeacher.prenom}
-              onChange={(e) => setNewTeacher((prev) => ({ ...prev, prenom: e.target.value }))}
-            />
-            <input
-              type="text"
-              placeholder="Nom"
-              className="flex-1 border border-border rounded-md px-2 py-1 text-sm bg-background"
-              value={newTeacher.nom}
-              onChange={(e) => setNewTeacher((prev) => ({ ...prev, nom: e.target.value }))}
-            />
-            <input
-              type="email"
-              placeholder="Email de l'enseignant"
-              className="flex-1 border border-border rounded-md px-2 py-1 text-sm bg-background"
-              value={newTeacher.email}
-              onChange={(e) => setNewTeacher((prev) => ({ ...prev, email: e.target.value }))}
-            />
-            <select
-              className="border border-border rounded-md px-2 py-1 text-sm bg-background min-w-[160px]"
-              value={newTeacher.classeId}
-              onChange={(e) => setNewTeacher((prev) => ({ ...prev, classeId: e.target.value }))}
-            >
-              <option value="">Classe...</option>
-              {classes.map((classe) => (
-                <option key={classe.id} value={classe.id}>
-                  {classe.nom}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              onClick={handleCreateTeacher}
-              disabled={creating}
-              className="whitespace-nowrap"
-            >
-              {creating ? "Création..." : "Ajouter"}
-            </Button>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Chargement des enseignants et des classes…</p>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Teachers list */}
-            <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Enseignants</h2>
-              {teachers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun enseignant trouvé.</p>
-              ) : (
-                <div className="space-y-3">
-                  {teachers.map((teacher) => (
-                    <Card key={teacher.id} className="p-4 border-2 border-border/50 flex items-center justify-between gap-4">
+          {/* Teachers list */}
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Chargement…</p>
+          ) : teachers.length === 0 ? (
+            <Card className="p-10 text-center border-dashed">
+              <p className="text-muted-foreground">Aucun enseignant. Commencez par en inviter un.</p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {teachers.map((teacher) => (
+                <Card key={teacher.userId} className="p-5">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    {/* Identity */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">
+                        {(teacher.fullName[0] ?? "?").toUpperCase()}
+                      </div>
                       <div>
                         <p className="font-semibold text-foreground">{teacher.fullName}</p>
                         <p className="text-xs text-muted-foreground">{teacher.email}</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">Classe :</span>
+                    </div>
+
+                    {/* Statut + link to profile */}
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border uppercase ${statutColor(teacher.statut)}`}>
+                        {teacher.statut}
+                      </span>
+                      <Link href={`/${currentLocale}/admin/utilisateurs/${teacher.userId}`}>
+                        <Button variant="outline" size="sm">Profil</Button>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Assigned classes */}
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      Classes assignées
+                    </p>
+                    <div className="flex flex-wrap gap-2 items-center min-h-[28px]">
+                      {teacher.assignedClasses.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Aucune classe</span>
+                      ) : (
+                        teacher.assignedClasses.map((ac) => (
+                          <span
+                            key={ac.classeId}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-medium text-blue-700"
+                          >
+                            {ac.nom}
+                            {ac.niveau && (
+                              <span className="bg-blue-200 text-blue-800 px-1 py-0.5 rounded text-[10px]">
+                                {ac.niveau}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleRemoveClass(teacher, ac.classeId)}
+                              className="ml-0.5 text-blue-400 hover:text-red-500 transition-colors"
+                              title="Retirer de cette classe"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assign to class */}
+                  <div className="mt-3">
+                    {assigningTeacherId === teacher.userId ? (
+                      <div className="flex gap-2 items-center">
                         <select
-                          className="text-sm border border-border rounded-md px-2 py-1 bg-background"
-                          value={teacher.assignedClassId ?? ""}
-                          onChange={(e) => handleAssignClass(teacher.id, e.target.value)}
+                          className="border border-border rounded-md px-2 py-1 text-sm bg-background flex-1 max-w-xs"
+                          value={selectedClassId}
+                          onChange={(e) => setSelectedClassId(e.target.value)}
                         >
-                          <option value="">Non assigné</option>
-                          {classes.map((classe) => (
-                            <option key={classe.id} value={classe.id}>
-                              {classe.nom}
+                          <option value="">— Choisir une classe —</option>
+                          {availableClasses(teacher).map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nom}{c.niveau ? ` (${c.niveau})` : ""}
                             </option>
                           ))}
                         </select>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAssignClass(teacher.userId)}
+                          disabled={assignLoading || !selectedClassId}
+                        >
+                          Assigner
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setAssigningTeacherId(null); setSelectedClassId(""); }}
+                        >
+                          Annuler
+                        </Button>
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setAssigningTeacherId(teacher.userId); setSelectedClassId(""); }}
+                        disabled={availableClasses(teacher).length === 0}
+                      >
+                        + Assigner à une classe
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              ))}
             </div>
-
-            {/* Classes list */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Classes</h2>
-              {classes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune classe trouvée.</p>
-              ) : (
-                <div className="space-y-2">
-                  {classes.map((classe) => (
-                    <Card key={classe.id} className="p-3 border border-border/60 flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">{classe.nom}</span>
-                      <Badge className="bg-sky-50 text-sky-700 border border-sky-100 text-xs">Classe</Badge>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
-  )
+  );
 }

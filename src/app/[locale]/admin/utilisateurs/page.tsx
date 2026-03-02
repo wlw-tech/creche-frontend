@@ -47,7 +47,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
         setLoading(true);
         setError(null);
 
-        const res = await apiClient.listUsers();
+        const res = await apiClient.listUsers({ limit: 200 });
         const items: UserItem[] = res.data.data ?? [];
 
         if (!cancelled) {
@@ -96,7 +96,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
         telephone: createForm.telephone || undefined,
       };
       await apiClient.createUser(payload);
-      const res = await apiClient.listUsers();
+      const res = await apiClient.listUsers({ limit: 200 });
       const items: UserItem[] = res.data.data ?? [];
       setUsers(items);
       setCreateForm({ email: "", prenom: "", nom: "", role: "ENSEIGNANT", telephone: "" });
@@ -299,7 +299,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                         </td>
                         <td className="px-6 py-3 text-xs">
                           <div className="flex gap-2">
-                            <Link href={`/admin/utilisateurs/${u.id}`}>
+                            <Link href={`/${currentLocale}/admin/utilisateurs/${u.id}`}>
                               <Button variant="outline" size="sm">
                                 Voir profil
                               </Button>

@@ -93,7 +93,7 @@ export default function Home({ params }: { params: Promise<{ locale: Locale }> }
             <div className="w-20 h-20 rounded-full overflow-hidden mb-4 shadow-md bg-white">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={80}
                 height={80}
               />

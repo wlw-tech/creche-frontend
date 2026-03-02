@@ -23,6 +23,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
     birthdate?: string | null
     age?: string
     avatar: string
+    photoUrl?: string | null
     status?: string
     allergies: string[]
   } | null>(null)
@@ -71,6 +72,33 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   const [childDailyResume, setChildDailyResume] = useState<DailyResume | null>(null)
   const [dailyResumeError, setDailyResumeError] = useState<string | null>(null)
 
+  // Navigation par date
+  const todayDate = new Date()
+  todayDate.setHours(0, 0, 0, 0)
+  const [selectedDate, setSelectedDate] = useState<Date>(todayDate)
+  const [dateDataLoading, setDateDataLoading] = useState(false)
+
+  const selectedDateStr = selectedDate.toISOString().split("T")[0]
+  const isToday = selectedDate.getTime() === todayDate.getTime()
+
+  const goToPrevDay = () => {
+    setSelectedDate((d) => {
+      const prev = new Date(d)
+      prev.setDate(prev.getDate() - 1)
+      return prev
+    })
+  }
+  const goToNextDay = () => {
+    if (!isToday) {
+      setSelectedDate((d) => {
+        const next = new Date(d)
+        next.setDate(next.getDate() + 1)
+        return next
+      })
+    }
+  }
+  const goToToday = () => setSelectedDate(todayDate)
+
   useEffect(() => {
     let cancelled = false
 
@@ -81,15 +109,6 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
 
         const profileRes = await apiClient.getParentProfile()
         const profile = profileRes.data
-
-        // Debug: afficher les infos du parent connecté, ses tuteurs et ses enfants
-        console.log("[ParentDashboard] Profil parent connecté:", {
-          email: profile?.email,
-          tuteurId: profile?.tuteurId,
-          familleId: profile?.familleId,
-        })
-        console.log("[ParentDashboard] Tuteurs (personnes autorisées):", profile?.tuteurs)
-        console.log("[ParentDashboard] Enfants:", profile?.enfants)
 
         const enfant = Array.isArray(profile?.enfants) && profile.enfants.length > 0
           ? profile.enfants[0]
@@ -105,30 +124,14 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             name: `${enfant.prenom ?? ""} ${enfant.nom ?? ""}`.trim() || "Enfant",
             class: enfant.classeNom ?? enfant.classeId ?? "",
             birthdate: enfant.dateNaissance ?? null,
-            // TODO: calculer un âge lisible si besoin
             age: undefined,
             avatar: "👧",
+            photoUrl: enfant.photoUrl ?? null,
             status: undefined,
             allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [],
           })
 
-          // Charger le résumé individuel de la journée (ou le dernier disponible)
-          try {
-            setDailyResumeError(null)
-            const resumeRes = await apiClient.getChildResume(enfant.id as string)
-            if (!cancelled) {
-              setChildDailyResume(resumeRes.data)
-            }
-          } catch (err: any) {
-            console.error("[Parent] Error loading child daily resume", err)
-            if (!cancelled) {
-              setChildDailyResume(null)
-              const apiMessage = err?.response?.data?.message
-              if (typeof apiMessage === "string") {
-                setDailyResumeError(apiMessage)
-              }
-            }
-          }
+          // Le résumé sera chargé par le 2e useEffect (dépend de selectedDate)
 
           // Charger le message de la journée collectif de la classe (ClassDailySummary publié le plus récent)
           if (enfant.classeId) {
@@ -300,6 +303,34 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
     }
   }, [])
 
+  // Rechargement des données dépendant de la date sélectionnée
+  useEffect(() => {
+    if (!child?.id) return
+    let cancelled = false
+
+    async function loadDateData() {
+      setDateDataLoading(true)
+      setDailyResumeError(null)
+      setChildDailyResume(null)
+
+      try {
+        const resumeRes = await apiClient.getChildResume(child!.id as string, selectedDateStr)
+        if (!cancelled) setChildDailyResume(resumeRes.data)
+      } catch (err: any) {
+        if (!cancelled) {
+          setChildDailyResume(null)
+          const apiMessage = err?.response?.data?.message
+          setDailyResumeError(typeof apiMessage === "string" ? apiMessage : null)
+        }
+      } finally {
+        if (!cancelled) setDateDataLoading(false)
+      }
+    }
+
+    void loadDateData()
+    return () => { cancelled = true }
+  }, [selectedDateStr, child?.id])
+
   const handlePasswordChange = async () => {
     setPasswordMessage(null)
     setPasswordError(null)
@@ -349,8 +380,12 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
         <CardContent className="pt-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-200 text-4xl shadow-sm">
-                {child?.avatar ?? "👧"}
+              <div className="h-20 w-20 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center">
+                {child?.photoUrl ? (
+                  <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl">{child?.avatar ?? "👧"}</span>
+                )}
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{child?.name ?? ""}</h2>
@@ -432,15 +467,53 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
           {/* Child Daily Resume */}
           <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
             <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-              <CardTitle className="text-base font-bold text-gray-900">{t('overview.dailySummaryTitle')}</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-bold text-gray-900">{t('overview.dailySummaryTitle')}</CardTitle>
+                  {/* Navigation par date */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={goToPrevDay}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 text-sm"
+                      title="Jour précédent"
+                    >
+                      ‹
+                    </button>
+                    <div className="text-center min-w-[100px]">
+                      <p className="text-xs font-semibold text-sky-700">
+                        {isToday
+                          ? "Aujourd'hui"
+                          : selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={goToNextDay}
+                      disabled={isToday}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Jour suivant"
+                    >
+                      ›
+                    </button>
+                    {!isToday && (
+                      <button
+                        type="button"
+                        onClick={goToToday}
+                        className="ml-1 text-xs text-sky-600 hover:underline"
+                      >
+                        Aujourd'hui
+                      </button>
+                    )}
+                  </div>
+                </div>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              {profileLoading && !childDailyResume ? (
-                <p className="text-sm text-gray-500">{t('overview.loadingIndividualSummary')}</p>
+            <CardContent className="pt-4 space-y-4">
+              {dateDataLoading ? (
+                <p className="text-sm text-gray-500 text-center py-4">Chargement…</p>
               ) : childDailyResume ? (
                 <>
                   <p className="text-xs text-gray-500">
-                    Date : {new Date(childDailyResume.date).toLocaleDateString("fr-FR", {
+                    {new Date(childDailyResume.date).toLocaleDateString("fr-FR", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
@@ -501,13 +574,22 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                   )}
                 </>
               ) : (
-                <>
-                  {dailyResumeError ? (
-                    <p className="text-sm text-gray-500">{dailyResumeError}</p>
-                  ) : (
-                    <p className="text-sm text-gray-500">{t('overview.noIndividualSummary')}</p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">
+                    {isToday
+                      ? "Aucun résumé disponible pour aujourd'hui."
+                      : `Aucun résumé disponible pour le ${selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}.`}
+                  </p>
+                  {!isToday && (
+                    <button
+                      type="button"
+                      onClick={goToToday}
+                      className="mt-2 text-xs text-sky-600 hover:underline"
+                    >
+                      Voir aujourd'hui
+                    </button>
                   )}
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -695,8 +777,12 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-200 text-3xl shadow-sm">
-                    {child?.avatar ?? "👧"}
+                  <div className="h-16 w-16 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center flex-shrink-0">
+                    {child?.photoUrl ? (
+                      <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl">{child?.avatar ?? "👧"}</span>
+                    )}
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">{child?.name ?? ""}</p>

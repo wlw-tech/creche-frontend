@@ -57,14 +57,14 @@ export default function TeacherLayout({
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 overflow-hidden">
               <Image
                 src="/Group 13.svg"
-                alt="Logo Petitspas"
+                alt="Logo PetitsPas"
                 width={40}
                 height={40}
               />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">{t("teacher.dashboard.title")}</h1>
-              <p className="text-sm text-gray-500">Crèche Petitspas</p>
+              <p className="text-sm text-gray-500">Crèche PetitsPas</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:gap-4">

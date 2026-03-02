@@ -166,6 +166,10 @@ class ApiClient {
     return this.client.patch(`/admin/users/${id}/status`, { statut });
   }
 
+  updateUserProfile(id: string, data: { prenom?: string; nom?: string; telephone?: string; fonction?: string; specialite?: string }) {
+    return this.client.patch(`/admin/users/${id}`, data);
+  }
+
   deleteUser(id: string) {
     return this.client.delete(`/admin/users/${id}`);
   }
@@ -217,11 +221,14 @@ class ApiClient {
 
   assignTeacherToClass(teacherId: string, classeId: string) {
     // Utilise le contrôleur Users: /admin/users/teachers/:utilisateurId/assign-class
-    // Le backend valide aussi un champ "utilisateurId" dans le corps.
     return this.client.post(`/admin/users/teachers/${teacherId}/assign-class`, {
       utilisateurId: teacherId,
       classeId,
     });
+  }
+
+  removeTeacherFromClass(classeId: string, enseignantId: string) {
+    return this.client.delete(`/admin/classes/${classeId}/enseignants/${enseignantId}`);
   }
 
   // Presences (Teacher)
@@ -405,6 +412,24 @@ class ApiClient {
       },
     });
     return publicClient.post('/public/inscriptions', data);
+  }
+
+  // Règlement Intérieur (Public)
+  getPublicReglement() {
+    const publicClient = axios.create({
+      baseURL: API_BASE_URL,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return publicClient.get('/public/reglement-interieur');
+  }
+
+  // Règlement Intérieur (Admin)
+  getAdminReglement() {
+    return this.client.get('/admin/reglement-interieur');
+  }
+
+  updateAdminReglement(contenu: string) {
+    return this.client.put('/admin/reglement-interieur', { contenu });
   }
 }
 

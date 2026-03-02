@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Petitspas",
+  title: "PetitsPas",
   description: "Plateforme de gestion pour crèches et garderies",
   manifest: "/manifest.json",
   themeColor: "#AEDFF7",
