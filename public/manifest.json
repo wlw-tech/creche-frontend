@@ -1,6 +1,6 @@
 {
-  "name": "Petitspas - Gestion de crèche",
-  "short_name": "Petitspas",
+  "name": "PetitsPas - Gestion de crèche",
+  "short_name": "PetitsPas",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",

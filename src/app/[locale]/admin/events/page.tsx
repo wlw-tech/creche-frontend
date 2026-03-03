@@ -202,19 +202,20 @@ export default function EventsPage({ params }: { params: Promise<{ locale: Local
 
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-5xl mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Événements</h1>
-              <p className="text-muted-foreground mt-1">
-                Planifiez les réunions, sorties et événements pour les parents.
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Événements</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Planifiez les réunions, sorties et événements.
               </p>
             </div>
             <Button
               onClick={() => setShowForm(!showForm)}
-              className="gap-2 bg-primary hover:bg-primary/90"
+              className="gap-2 bg-primary hover:bg-primary/90 flex-shrink-0"
             >
               <Plus className="w-4 h-4" />
-              {showForm ? "Fermer le formulaire" : "Ajouter un événement"}
+              <span className="hidden sm:inline">{showForm ? "Fermer" : "Ajouter un événement"}</span>
+              <span className="sm:hidden">{showForm ? "Fermer" : "Ajouter"}</span>
             </Button>
           </div>
 

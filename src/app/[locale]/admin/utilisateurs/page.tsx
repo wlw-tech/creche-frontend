@@ -138,16 +138,15 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Tous les utilisateurs</h1>
-              <p className="text-muted-foreground mt-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Tous les utilisateurs</h1>
+              <p className="text-sm text-muted-foreground mt-1">
                 {loading ? "Chargement..." : `${users.length} utilisateur(s)`}
               </p>
             </div>
-
-            <Button onClick={() => setShowForm((prev) => !prev)} className="bg-primary">
-              {showForm ? "Fermer" : "Nouvel utilisateur"}
+            <Button onClick={() => setShowForm((prev) => !prev)} className="bg-primary flex-shrink-0">
+              {showForm ? "Fermer" : "+ Nouvel utilisateur"}
             </Button>
           </div>
 
@@ -258,67 +257,111 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                 Aucun utilisateur trouvé.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Nom</th>
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Email</th>
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Rôle</th>
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Statut</th>
-                      <th className="px-6 py-3 text-left font-semibold text-foreground">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="border-b border-border hover:bg-muted/40">
-                        <td className="px-6 py-3 font-medium">
-                          {u.prenom} {u.nom}
-                        </td>
-                        <td className="px-6 py-3 text-muted-foreground">{u.email}</td>
-                        <td className="px-6 py-3">
-                          <Badge variant="outline" className="uppercase">
+              <>
+                {/* Mobile card list */}
+                <div className="md:hidden space-y-3">
+                  {filteredUsers.map((u) => {
+                    const roleColors: Record<string, string> = {
+                      ADMIN: "bg-red-50 text-red-700 border-red-200",
+                      ENSEIGNANT: "bg-blue-50 text-blue-700 border-blue-200",
+                      PARENT: "bg-green-50 text-green-700 border-green-200",
+                    };
+                    return (
+                      <div key={u.id} className="rounded-lg border bg-white p-4">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div>
+                            <p className="font-semibold text-foreground">{u.prenom} {u.nom}</p>
+                            <p className="text-xs text-muted-foreground break-all">{u.email}</p>
+                          </div>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${roleColors[u.role] ?? "bg-gray-50 text-gray-700 border-gray-200"}`}>
                             {u.role}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-3">
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
                           <select
                             value={u.statut}
-                            onChange={(e) =>
-                              handleChangeStatus(
-                                u.id,
-                                e.target.value as "INVITED" | "ACTIVE" | "DISABLED",
-                              )
-                            }
-                            className="border rounded-md px-2 py-1 text-xs"
+                            onChange={(e) => handleChangeStatus(u.id, e.target.value as "INVITED" | "ACTIVE" | "DISABLED")}
+                            className="border rounded-md px-2 py-1 text-xs flex-1 min-w-[110px]"
                           >
                             <option value="INVITED">INVITED</option>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="DISABLED">DISABLED</option>
                           </select>
-                        </td>
-                        <td className="px-6 py-3 text-xs">
-                          <div className="flex gap-2">
-                            <Link href={`/${currentLocale}/admin/utilisateurs/${u.id}`}>
-                              <Button variant="outline" size="sm">
-                                Voir profil
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 border-red-500 hover:bg-red-50"
-                              onClick={() => handleDelete(u.id)}
-                            >
-                              Supprimer
-                            </Button>
-                          </div>
-                        </td>
+                          <Link href={`/${currentLocale}/admin/utilisateurs/${u.id}`}>
+                            <Button variant="outline" size="sm" className="text-xs h-7">Profil</Button>
+                          </Link>
+                          <Button variant="outline" size="sm" className="text-xs h-7 text-red-600 border-red-500 hover:bg-red-50" onClick={() => handleDelete(u.id)}>
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="px-6 py-3 text-left font-semibold text-foreground">Nom</th>
+                        <th className="px-6 py-3 text-left font-semibold text-foreground">Email</th>
+                        <th className="px-6 py-3 text-left font-semibold text-foreground">Rôle</th>
+                        <th className="px-6 py-3 text-left font-semibold text-foreground">Statut</th>
+                        <th className="px-6 py-3 text-left font-semibold text-foreground">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((u) => (
+                        <tr key={u.id} className="border-b border-border hover:bg-muted/40">
+                          <td className="px-6 py-3 font-medium">
+                            {u.prenom} {u.nom}
+                          </td>
+                          <td className="px-6 py-3 text-muted-foreground">{u.email}</td>
+                          <td className="px-6 py-3">
+                            <Badge variant="outline" className="uppercase">
+                              {u.role}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-3">
+                            <select
+                              value={u.statut}
+                              onChange={(e) =>
+                                handleChangeStatus(
+                                  u.id,
+                                  e.target.value as "INVITED" | "ACTIVE" | "DISABLED",
+                                )
+                              }
+                              className="border rounded-md px-2 py-1 text-xs"
+                            >
+                              <option value="INVITED">INVITED</option>
+                              <option value="ACTIVE">ACTIVE</option>
+                              <option value="DISABLED">DISABLED</option>
+                            </select>
+                          </td>
+                          <td className="px-6 py-3 text-xs">
+                            <div className="flex gap-2">
+                              <Link href={`/${currentLocale}/admin/utilisateurs/${u.id}`}>
+                                <Button variant="outline" size="sm">
+                                  Voir profil
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-500 hover:bg-red-50"
+                                onClick={() => handleDelete(u.id)}
+                              >
+                                Supprimer
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
         </div>

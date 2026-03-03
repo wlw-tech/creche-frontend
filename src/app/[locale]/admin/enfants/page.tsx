@@ -427,41 +427,34 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
       {/* Main Content */}
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{t('title')}</h1>
-              <p className="text-muted-foreground">
-                {loading
-                  ? 'Chargement…'
-                  : `${children.length} enfant${children.length > 1 ? 's' : ''}`}
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('title')}</h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                {loading ? 'Chargement…' : `${children.length} enfant${children.length > 1 ? 's' : ''}`} · {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">
-                Aujourd'hui: {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </span>
-              <Button
-                onClick={async () => {
-                  try {
-                    const res = await apiClient.listChildFamilies();
-                    setFamilies(res.data ?? []);
-                    setModalOpen(true);
-                  } catch (err) {
-                    console.error('[Admin/Enfants] Error loading families', err);
-                    alert('Impossible de charger les familles.');
-                  }
-                }}
-              >
-                Ajouter un enfant
-              </Button>
-            </div>
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await apiClient.listChildFamilies();
+                  setFamilies(res.data ?? []);
+                  setModalOpen(true);
+                } catch (err) {
+                  console.error('[Admin/Enfants] Error loading families', err);
+                  alert('Impossible de charger les familles.');
+                }
+              }}
+            >
+              + Ajouter
+            </Button>
           </div>
 
           <Card className="p-6">
             {error && (
               <p className="mb-4 text-sm text-destructive">{error}</p>
             )}
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -471,11 +464,11 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="border border-input rounded-md px-2 py-2 text-xs bg-background min-w-[140px]"
+                  className="border border-input rounded-md px-2 py-2 text-xs bg-background flex-1 min-w-[130px]"
                 >
                   <option value="">Toutes les classes</option>
                   {classes.map((cl) => (
@@ -487,7 +480,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                 <select
                   value={selectedTeacherId}
                   onChange={(e) => setSelectedTeacherId(e.target.value)}
-                  className="border border-input rounded-md px-2 py-2 text-xs bg-background min-w-[160px]"
+                  className="border border-input rounded-md px-2 py-2 text-xs bg-background flex-1 min-w-[130px]"
                 >
                   <option value="">Tous les enseignants</option>
                   {teachers.map((tch) => (
@@ -499,113 +492,164 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('name')}</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('group')}</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('parent')}</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">Présence aujourd'hui</th>
-                    <th className="px-6 py-3 text-left font-semibold text-foreground">{t('actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
-                        Chargement des enfants…
-                      </td>
+            {/* Mobile card list */}
+            <div className="md:hidden space-y-3">
+              {loading ? (
+                <p className="text-center text-muted-foreground py-8 text-sm">Chargement…</p>
+              ) : filtered.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8 text-sm">Aucun enfant ne correspond.</p>
+              ) : (
+                filtered.map((child) => (
+                  <div key={child.id} className="rounded-lg border bg-white p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{child.name}</p>
+                        <p className="text-xs text-muted-foreground">{child.parent}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href={`/${currentLocale}/admin/enfants/${child.id}`} className="inline-flex items-center gap-1 px-2 py-1 border rounded text-xs hover:bg-muted">
+                          <Eye className="w-3 h-3" /> Voir
+                        </Link>
+                        <Button size="icon" variant="outline" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(child.id)} aria-label="Supprimer">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <select value={child.classId ?? ""} onChange={(e) => handleChangeClass(child.id, e.target.value)} className="border border-input rounded-md px-2 py-1 text-xs bg-background flex-1 min-w-[110px]">
+                        <option value="">— Classe —</option>
+                        {classes.map((cl) => (<option key={cl.id} value={cl.id}>{cl.nom}</option>))}
+                      </select>
+                      <select value={child.todayStatusCode ?? ""} onChange={(e) => handleChangeStatus(child.id, e.target.value)} className="border border-input rounded-md px-2 py-1 text-xs bg-background flex-1 min-w-[110px]">
+                        <option value="">Présence…</option>
+                        <option value="Present">Présent</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Justifie">Justifié</option>
+                      </select>
+                    </div>
+                    {child.todayStatusCode && (
+                      <Badge className={
+                        child.todayStatus === "Présent" ? "bg-green-100 text-green-700" :
+                        child.todayStatus === "Absent" ? "bg-red-100 text-red-700" :
+                        child.todayStatus === "Justifié" ? "bg-blue-100 text-blue-700" :
+                        "bg-gray-100 text-gray-700"
+                      }>{child.todayStatus}</Badge>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">{t('name')}</th>
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">{t('group')}</th>
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">{t('parent')}</th>
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">Présence aujourd'hui</th>
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">{t('actions')}</th>
                     </tr>
-                  ) : filtered.length > 0 ? (
-                    filtered.map((child) => (
-                      <tr
-                        key={child.id}
-                        className="border-b border-border hover:bg-muted/50"
-                      >
-                        <td className="px-6 py-3 font-medium">{child.name}</td>
-                        <td className="px-6 py-3 text-muted-foreground">
-                          <select
-                            value={child.classId ?? ""}
-                            onChange={(e) => handleChangeClass(child.id, e.target.value)}
-                            className="border border-input rounded-md px-2 py-1 text-xs bg-background"
-                          >
-                            <option value="">—</option>
-                            {classes.map((cl) => (
-                              <option key={cl.id} value={cl.id}>
-                                {cl.nom}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-3 text-muted-foreground text-xs">{child.parent}</td>
-                        <td className="px-6 py-3">
-                          <select
-                            value={child.todayStatusCode ?? ""}
-                            onChange={(e) => handleChangeStatus(child.id, e.target.value)}
-                            className="border border-input rounded-md px-2 py-1 text-xs bg-background mb-1"
-                          >
-                            <option value="">Sélectionner</option>
-                            <option value="Present">Présent</option>
-                            <option value="Absent">Absent</option>
-                            <option value="Justifie">Justifié</option>
-                          </select>
-                          <Badge
-                            className={
-                              child.todayStatus === "Présent"
-                                ? "bg-green-100 text-green-700"
-                                : child.todayStatus === "Absent"
-                                ? "bg-red-100 text-red-700"
-                                : child.todayStatus === "Justifié"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-gray-100 text-gray-700"
-                            }
-                          >
-                            {child.todayStatus}
-                          </Badge>
-                          {child.presences && child.presences.length > 0 && (
-                            <div className="mt-1 text-xs text-gray-500">
-                              Historique: {child.presences.slice(-3).map(p => {
-                                try {
-                                  const dateObj = new Date(p.date);
-                                  if (isNaN(dateObj.getTime())) return null;
-                                  return `${dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}: ${p.statut === 'Present' ? '✓' : p.statut === 'Absent' ? '✗' : '~'}`;
-                                } catch (e) {
-                                  return null;
-                                }
-                              }).filter((s: any) => s !== null).join(', ')}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-3 flex gap-2 justify-end">
-                          <Link
-                            href={`/${currentLocale}/admin/enfants/${child.id}`}
-                            className="inline-flex items-center gap-2 px-3 py-1 border rounded text-xs hover:bg-muted"
-                          >
-                            <Eye className="w-4 h-4" />
-                            {t('viewProfile')}
-                          </Link>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(child.id)}
-                            aria-label={t('delete')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
+                          Chargement des enfants…
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
-                        Aucun enfant ne correspond à votre recherche.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    ) : filtered.length > 0 ? (
+                      filtered.map((child) => (
+                        <tr
+                          key={child.id}
+                          className="border-b border-border hover:bg-muted/50"
+                        >
+                          <td className="px-6 py-3 font-medium">{child.name}</td>
+                          <td className="px-6 py-3 text-muted-foreground">
+                            <select
+                              value={child.classId ?? ""}
+                              onChange={(e) => handleChangeClass(child.id, e.target.value)}
+                              className="border border-input rounded-md px-2 py-1 text-xs bg-background"
+                            >
+                              <option value="">—</option>
+                              {classes.map((cl) => (
+                                <option key={cl.id} value={cl.id}>
+                                  {cl.nom}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-6 py-3 text-muted-foreground text-xs">{child.parent}</td>
+                          <td className="px-6 py-3">
+                            <select
+                              value={child.todayStatusCode ?? ""}
+                              onChange={(e) => handleChangeStatus(child.id, e.target.value)}
+                              className="border border-input rounded-md px-2 py-1 text-xs bg-background mb-1"
+                            >
+                              <option value="">Sélectionner</option>
+                              <option value="Present">Présent</option>
+                              <option value="Absent">Absent</option>
+                              <option value="Justifie">Justifié</option>
+                            </select>
+                            <Badge
+                              className={
+                                child.todayStatus === "Présent"
+                                  ? "bg-green-100 text-green-700"
+                                  : child.todayStatus === "Absent"
+                                  ? "bg-red-100 text-red-700"
+                                  : child.todayStatus === "Justifié"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }
+                            >
+                              {child.todayStatus}
+                            </Badge>
+                            {child.presences && child.presences.length > 0 && (
+                              <div className="mt-1 text-xs text-gray-500">
+                                Historique: {child.presences.slice(-3).map(p => {
+                                  try {
+                                    const dateObj = new Date(p.date);
+                                    if (isNaN(dateObj.getTime())) return null;
+                                    return `${dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}: ${p.statut === 'Present' ? '✓' : p.statut === 'Absent' ? '✗' : '~'}`;
+                                  } catch (e) {
+                                    return null;
+                                  }
+                                }).filter((s: any) => s !== null).join(', ')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-3 flex gap-2 justify-end">
+                            <Link
+                              href={`/${currentLocale}/admin/enfants/${child.id}`}
+                              className="inline-flex items-center gap-2 px-3 py-1 border rounded text-xs hover:bg-muted"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t('viewProfile')}
+                            </Link>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDelete(child.id)}
+                              aria-label={t('delete')}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-6 text-center text-muted-foreground">
+                          Aucun enfant ne correspond à votre recherche.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </Card>
         </div>

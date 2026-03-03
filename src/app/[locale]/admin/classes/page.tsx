@@ -209,17 +209,18 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="space-y-6 max-w-5xl mx-auto">
           {/* HEADER */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold">Gestion des classes</h1>
-              <p className="text-muted-foreground">Organisez vos groupes d'enfants</p>
+              <h1 className="text-2xl md:text-3xl font-bold">Gestion des classes</h1>
+              <p className="text-sm text-muted-foreground">Organisez vos groupes d'enfants</p>
             </div>
             <Button
               onClick={() => setShowForm(!showForm)}
-              className="gap-2 bg-primary hover:bg-primary/90"
+              className="gap-2 bg-primary hover:bg-primary/90 flex-shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Ajouter une classe
+              <span className="hidden sm:inline">Ajouter une classe</span>
+              <span className="sm:hidden">Ajouter</span>
             </Button>
           </div>
 
@@ -239,13 +240,19 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Nom de la classe *</label>
-                    <Input
+                    <select
                       name="nom"
-                      placeholder="Ex : Groupe Soleil"
                       value={formData.nom}
                       onChange={handleInputChange}
+                      className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
                       required
-                    />
+                    >
+                      <option value="">— Choisir —</option>
+                      <option value="TPS">TPS — Toute Petite Section</option>
+                      <option value="PS">PS — Petite Section</option>
+                      <option value="MS">MS — Moyenne Section</option>
+                      <option value="GS">GS — Grande Section</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Niveau</label>
@@ -331,33 +338,21 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
                     className="p-6 border-2 border-primary/20 hover:border-primary/40 transition-colors"
                   >
                     {/* Class header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold">{classe.nom}</h3>
-                          {classe.active ? (
-                            <Badge className="bg-secondary text-secondary-foreground">Active</Badge>
-                          ) : (
-                            <Badge variant="secondary">Inactive</Badge>
-                          )}
-                        </div>
+                    <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">{classe.nom}</h3>
+                        {classe.active ? (
+                          <Badge className="bg-secondary text-secondary-foreground">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1"
-                          onClick={() => handleEdit(classe)}
-                        >
-                          <Edit2 className="w-4 h-4" /> Modifier
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => handleEdit(classe)}>
+                          <Edit2 className="w-4 h-4" /><span className="hidden sm:inline">Modifier</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(classe.id)}
-                        >
-                          <Trash2 className="w-4 h-4" /> Supprimer
+                        <Button size="sm" variant="outline" className="gap-1 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(classe.id)}>
+                          <Trash2 className="w-4 h-4" /><span className="hidden sm:inline">Supprimer</span>
                         </Button>
                       </div>
                     </div>
