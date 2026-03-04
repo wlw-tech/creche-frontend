@@ -378,30 +378,30 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       {/* Child Header Card */}
       <Card className="border-0 bg-gradient-to-r from-sky-100 to-sky-50 shadow-md rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
         <CardContent className="pt-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center flex-shrink-0">
                 {child?.photoUrl ? (
                   <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-4xl">{child?.avatar ?? "👧"}</span>
+                  <span className="text-3xl sm:text-4xl">{child?.avatar ?? "👧"}</span>
                 )}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{child?.name ?? ""}</h2>
-                <p className="text-sm text-gray-600">
-                  {child?.class}
-                </p>
-                <div className="mt-3">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-sm font-semibold text-white">
-                    <span>✓</span> {child?.status ?? ""}
-                  </span>
-                </div>
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{child?.name ?? ""}</h2>
+                <p className="text-sm text-gray-600">{child?.class}</p>
+                {child?.status && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-xs sm:text-sm font-semibold text-white">
+                      <span>✓</span> {child.status}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="rounded-lg bg-white p-4 shadow-sm">
-                          <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.classLabel')}</p>
-              <p className="text-lg font-bold text-gray-900">{child?.class}</p>
+            <div className="hidden sm:block rounded-lg bg-white p-3 sm:p-4 shadow-sm flex-shrink-0">
+              <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.classLabel')}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900">{child?.class}</p>
             </div>
           </div>
         </CardContent>

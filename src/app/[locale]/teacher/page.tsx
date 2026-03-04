@@ -733,16 +733,16 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Navigation & Progress */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+      <div className="flex items-center justify-between pt-6 border-t border-gray-200 gap-2">
         <Button
           onClick={handlePrevious}
           disabled={currentChildIndex === 0}
-          className="text-gray-700 border border-gray-300 rounded-lg px-5 py-2 font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-gray-700 border border-gray-300 rounded-lg px-3 sm:px-5 py-2 font-medium text-xs sm:text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
         >
-          ← {t("prev")}
+          ← <span className="hidden sm:inline">{t("prev")}</span>
         </Button>
 
-        <div className="flex-1 mx-8 flex items-center gap-5 ">
+        <div className="flex-1 mx-2 sm:mx-8 flex items-center gap-3">
           <div className="flex-1">
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -751,24 +751,24 @@ export default function TeacherDashboard() {
               ></div>
             </div>
           </div>
-          <span className="text-xs font-semibold text-gray-600 whitespace-nowrap ">
+          <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">
             {currentChildIndex + 1} / {children.length}
           </span>
         </div>
 
         {canNavigateToSummary ? (
           <Link href="/teacher/summary">
-            <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-9 py-3 mx-2-semibold text-sm">
-              {t("summaryCta")} →
+            <Button className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-4 sm:px-9 py-2 sm:py-3 font-semibold text-xs sm:text-sm flex-shrink-0">
+              <span className="hidden sm:inline">{t("summaryCta")} </span>→
             </Button>
           </Link>
         ) : (
           <Button
             onClick={handleNext}
             disabled={!hasPresenceForCurrent && !isAttendanceCompletedForToday}
-            className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-7 py-2 mx-5 emibold text-sm"
+            className="bg-sky-500 hover:bg-sky-600 text-white rounded-lg px-4 sm:px-7 py-2 font-semibold text-xs sm:text-sm flex-shrink-0"
           >
-            {t("next")} →
+            <span className="hidden sm:inline">{t("next")} </span>→
           </Button>
         )}
       </div>

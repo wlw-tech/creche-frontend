@@ -8,9 +8,19 @@ interface Step5Props {
   updateFormData: (data: any) => void
 }
 
-function renderMarkdown(text: string): string {
-  // Simple markdown rendering for ##, **bold**, and line breaks
+function escapeHtml(text: string): string {
   return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function renderMarkdown(text: string): string {
+  // Escape raw HTML first to prevent XSS, then apply safe markdown transforms
+  const safe = escapeHtml(text)
+  return safe
     .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-foreground mt-4 mb-2">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n\n/g, '</p><p class="text-muted-foreground leading-relaxed mb-2">')

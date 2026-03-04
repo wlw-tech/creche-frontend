@@ -62,8 +62,18 @@ export default function ReglementInterieurAdminPage({
     }
   }
 
-  function renderMarkdown(text: string) {
+  function escapeHtml(text: string): string {
     return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+
+  function renderMarkdown(text: string) {
+    const safe = escapeHtml(text)
+    return safe
       .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-foreground mt-4 mb-2 text-base">$1</h3>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n\n/g, '</p><p class="text-muted-foreground leading-relaxed mb-2">')

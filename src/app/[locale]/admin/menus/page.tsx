@@ -1,12 +1,10 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect, use } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Edit2, Trash2, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Trash2, CheckCircle2, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { Locale } from "@/lib/i18n/config";
@@ -20,32 +18,35 @@ interface DayMenu {
   statut?: "Brouillon" | "Publie";
 }
 
-// ISO YYYY-MM-DD → DayMenu
 type WeekData = Record<string, DayMenu>;
+
+interface DayModalState {
+  date: string;
+  collationMatin: string;
+  repas: string;
+  gouter: string;
+}
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"] as const;
-type Jour = (typeof JOURS)[number];
 
-const ROWS: { key: keyof DayMenu; label: string; color: string }[] = [
-  { key: "collationMatin", label: "🍎 Collation du matin", color: "bg-orange-50 text-orange-800 border-orange-200" },
-  { key: "repas",          label: "🍽️ Repas (déjeuner)",   color: "bg-green-50 text-green-800 border-green-200" },
-  { key: "gouter",         label: "🧃 Goûter",             color: "bg-purple-50 text-purple-800 border-purple-200" },
+const MEAL_ROWS = [
+  { key: "collationMatin" as const, label: "🍎 Collation du matin",  placeholder: "Ex : Yaourt, fruits frais" },
+  { key: "repas"          as const, label: "🍽️ Repas (déjeuner)",    placeholder: "Ex : Poulet rôti, riz"     },
+  { key: "gouter"         as const, label: "🧃 Goûter",              placeholder: "Ex : Compote, lait"        },
 ];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const toISO = (d: Date) => d.toISOString().slice(0, 10);
+const toISO    = (d: Date) => d.toISOString().slice(0, 10);
 
-/** Returns the Monday ISO date of the week that contains `date` */
 const getMondayOf = (date: Date): Date => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
-  const day = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+  const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
   return d;
 };
 
-/** Returns array of 5 ISO dates Mon-Fri for the week starting at `monday` */
 const getWeekDates = (monday: Date): string[] =>
   Array.from({ length: 5 }, (_, i) => {
     const d = new Date(monday);
@@ -59,23 +60,19 @@ const formatWeekLabel = (monday: Date) => {
   return `${monday.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} – ${friday.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`;
 };
 
-const empty = (): DayMenu => ({ collationMatin: "", repas: "", gouter: "" });
-
 // ─── component ────────────────────────────────────────────────────────────────
 export default function MenusPage({ params }: { params: Promise<{ locale: Locale }> }) {
-  const resolvedParams = use(params);
-  const currentLocale = resolvedParams.locale;
+  const { locale: currentLocale } = use(params);
 
-  // current week (monday)
-  const [monday, setMonday] = useState<Date>(() => getMondayOf(new Date()));
-  // all menus from API, keyed by ISO date
+  const [monday,   setMonday]   = useState<Date>(() => getMondayOf(new Date()));
   const [allMenus, setAllMenus] = useState<WeekData>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // editing state: per-cell inline editing
-  const [editing, setEditing] = useState<{ date: string; field: keyof DayMenu } | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
+
+  // Day-level modal (edit all 3 fields at once)
+  const [dayModal, setDayModal]   = useState<DayModalState | null>(null);
+  const [saving,   setSaving]     = useState(false);
+  const [modalErr, setModalErr]   = useState<string | null>(null);
 
   // ── fetch ──────────────────────────────────────────────────────────────────
   const fetchMenus = async () => {
@@ -84,23 +81,13 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       setError(null);
       const response = await apiClient.listMenus(1, 200);
       const rawItems: any[] = response.data?.data ?? response.data?.items ?? [];
-
       const mapped: WeekData = {};
-      rawItems.forEach((menu: any) => {
-        const iso = menu.date?.slice(0, 10);
-        if (iso) {
-          mapped[iso] = {
-            id: menu.id,
-            collationMatin: menu.collationMatin ?? "",
-            repas: menu.repas ?? "",
-            gouter: menu.gouter ?? "",
-            statut: menu.statut,
-          };
-        }
+      rawItems.forEach((m: any) => {
+        const iso = m.date?.slice(0, 10);
+        if (iso) mapped[iso] = { id: m.id, collationMatin: m.collationMatin ?? "", repas: m.repas ?? "", gouter: m.gouter ?? "", statut: m.statut };
       });
       setAllMenus(mapped);
-    } catch (err) {
-      console.error("[Menus] fetch error", err);
+    } catch {
       setError("Erreur lors du chargement des menus.");
     } finally {
       setLoading(false);
@@ -109,90 +96,66 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
   useEffect(() => { fetchMenus(); }, []);
 
-  // ── navigation ─────────────────────────────────────────────────────────────
-  const prevWeek = () => {
-    const d = new Date(monday);
-    d.setDate(d.getDate() - 7);
-    setMonday(d);
-  };
-  const nextWeek = () => {
-    const d = new Date(monday);
-    d.setDate(d.getDate() + 7);
-    setMonday(d);
-  };
-  const goToday = () => setMonday(getMondayOf(new Date()));
+  // ── week navigation ────────────────────────────────────────────────────────
+  const prevWeek = () => { const d = new Date(monday); d.setDate(d.getDate() - 7); setMonday(d); };
+  const nextWeek = () => { const d = new Date(monday); d.setDate(d.getDate() + 7); setMonday(d); };
+  const goToday  = () => setMonday(getMondayOf(new Date()));
 
-  // ── editing ────────────────────────────────────────────────────────────────
-  const startEdit = (date: string, field: keyof DayMenu) => {
+  // ── modal ──────────────────────────────────────────────────────────────────
+  const openModal = (date: string) => {
     if (allMenus[date]?.statut === "Publie") return;
-    setEditing({ date, field });
-    setEditValue((allMenus[date]?.[field] as string) ?? "");
+    const m = allMenus[date];
+    setDayModal({ date, collationMatin: m?.collationMatin ?? "", repas: m?.repas ?? "", gouter: m?.gouter ?? "" });
+    setModalErr(null);
   };
 
-  const cancelEdit = () => setEditing(null);
+  const closeModal = () => { setDayModal(null); setModalErr(null); };
 
-  const clearCell = async (date: string, field: keyof DayMenu) => {
-    const existing = allMenus[date];
-    if (!existing?.id) return;
-    try {
-      await apiClient.updateMenu(existing.id, { [field]: null } as any);
-      setAllMenus((prev) => ({
-        ...prev,
-        [date]: { ...prev[date], [field]: "" },
-      }));
-    } catch {
-      alert("Erreur lors de la suppression du champ.");
+  const saveModal = async () => {
+    if (!dayModal) return;
+    const { date, collationMatin, repas, gouter } = dayModal;
+    if (!collationMatin.trim() && !repas.trim() && !gouter.trim()) {
+      setModalErr("Veuillez renseigner au moins un champ.");
+      return;
     }
-  };
-
-  const saveEdit = async () => {
-    if (!editing) return;
-    const { date, field } = editing;
-    const existing = allMenus[date];
-
     setSaving(true);
+    setModalErr(null);
     try {
-      const payload = { [field === "collationMatin" ? "collationMatin" : field === "repas" ? "repas" : "gouter"]: editValue || undefined };
+      const existing = allMenus[date];
       let saved: any;
       if (existing?.id) {
-        const res = await apiClient.updateMenu(existing.id, payload as any);
+        const res = await apiClient.updateMenu(existing.id, { collationMatin, repas, gouter } as any);
         saved = res.data;
       } else {
-        const createPayload: any = { date, collationMatin: undefined, repas: undefined, gouter: undefined };
-        createPayload[field] = editValue || undefined;
-        const res = await apiClient.createMenu(createPayload);
+        const res = await apiClient.createMenu({ date, collationMatin, repas, gouter } as any);
         saved = res.data;
       }
-
-      setAllMenus((prev) => ({
+      setAllMenus(prev => ({
         ...prev,
         [date]: {
-          id: saved?.id ?? existing?.id,
-          collationMatin: saved?.collationMatin ?? existing?.collationMatin ?? "",
-          repas: saved?.repas ?? existing?.repas ?? "",
-          gouter: saved?.gouter ?? existing?.gouter ?? "",
-          statut: saved?.statut ?? existing?.statut,
+          id:            saved?.id            ?? existing?.id,
+          collationMatin: saved?.collationMatin ?? collationMatin,
+          repas:          saved?.repas          ?? repas,
+          gouter:         saved?.gouter         ?? gouter,
+          statut:         saved?.statut         ?? existing?.statut ?? "Brouillon",
         },
       }));
-      setEditing(null);
-    } catch (err) {
-      console.error("[Menus] save error", err);
-      alert("Erreur lors de la sauvegarde.");
+      closeModal();
+    } catch {
+      setModalErr("Erreur lors de la sauvegarde. Veuillez réessayer.");
     } finally {
       setSaving(false);
     }
   };
 
+  // ── publish / delete ───────────────────────────────────────────────────────
   const handlePublish = async (date: string) => {
     const menu = allMenus[date];
     if (!menu?.id || menu.statut === "Publie") return;
     try {
       await apiClient.publishMenu(menu.id);
-      setAllMenus((prev) => ({
-        ...prev,
-        [date]: { ...prev[date], statut: "Publie" },
-      }));
-    } catch (err) {
+      setAllMenus(prev => ({ ...prev, [date]: { ...prev[date], statut: "Publie" } }));
+    } catch {
       alert("Erreur lors de la publication.");
     }
   };
@@ -204,210 +167,232 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     if (!confirm("Supprimer le menu de ce jour ?")) return;
     try {
       await apiClient.deleteMenu(menu.id);
-      setAllMenus((prev) => {
-        const next = { ...prev };
-        delete next[date];
-        return next;
-      });
-    } catch (err) {
+      setAllMenus(prev => { const n = { ...prev }; delete n[date]; return n; });
+    } catch {
       alert("Erreur lors de la suppression.");
     }
   };
 
-  // ── weekly data ────────────────────────────────────────────────────────────
-  const weekDates = getWeekDates(monday);
-
   // ── render ─────────────────────────────────────────────────────────────────
+  const weekDates = getWeekDates(monday);
+  const todayISO  = toISO(new Date());
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={currentLocale} />
 
       <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        <div className="space-y-6 max-w-6xl mx-auto">
-          {/* Header */}
+        <div className="space-y-6 max-w-5xl mx-auto">
+
+          {/* ── Header ── */}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menus de la semaine</h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Cliquez sur une cellule pour modifier son contenu.
-              </p>
+              <p className="text-muted-foreground mt-1 text-sm">Cliquez sur ✏️ d'un jour pour saisir les 3 repas en une fois.</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={prevWeek}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
-                {formatWeekLabel(monday)}
-              </span>
-              <Button variant="outline" size="sm" onClick={nextWeek}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToday}>
-                Aujourd'hui
-              </Button>
+              <Button variant="outline" size="sm" onClick={prevWeek}><ChevronLeft className="w-4 h-4" /></Button>
+              <span className="text-sm font-medium text-foreground min-w-[200px] text-center hidden sm:inline">{formatWeekLabel(monday)}</span>
+              <Button variant="outline" size="sm" onClick={nextWeek}><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
             </div>
           </div>
 
+          {/* Week label on mobile */}
+          <p className="sm:hidden text-sm text-center font-medium text-muted-foreground -mt-2">{formatWeekLabel(monday)}</p>
+
           {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
-              {error}
-            </div>
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">{error}</div>
           )}
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Chargement des menus...</p>
+            <p className="text-sm text-muted-foreground">Chargement des menus…</p>
           ) : (
-            <Card className="p-0 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-muted/60 border-b border-border">
-                      {/* Category column header */}
-                      <th className="px-4 py-3 text-left font-semibold text-foreground w-44 border-r border-border">
-                        Catégorie
-                      </th>
-                      {weekDates.map((iso, idx) => {
-                        const d = new Date(iso);
-                        const isToday = toISO(new Date()) === iso;
-                        const menu = allMenus[iso];
-                        return (
-                          <th key={iso} className={`px-3 py-3 text-center font-semibold min-w-[140px] border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
-                            <div className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
-                              {JOURS[idx]}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-normal">
-                              {d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                            </div>
-                            {/* Publish/Delete actions */}
-                            {menu?.id && (
-                              <div className="flex justify-center gap-1 mt-1">
-                                {menu.statut === "Publie" ? (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">
-                                    Publié
-                                  </span>
+            <>
+              {/* ── Mobile: day cards ─────────────────────────────── */}
+              <div className="md:hidden space-y-3">
+                {weekDates.map((iso, idx) => {
+                  const d          = new Date(iso);
+                  const isToday    = iso === todayISO;
+                  const menu       = allMenus[iso];
+                  const isPublished = menu?.statut === "Publie";
+                  return (
+                    <div key={iso} className={`rounded-xl border bg-white overflow-hidden shadow-sm ${isToday ? "border-primary" : "border-border"}`}>
+                      {/* Day header */}
+                      <div className={`flex items-center justify-between px-4 py-3 ${isToday ? "bg-primary/5" : "bg-muted/30"}`}>
+                        <div>
+                          <p className={`font-bold text-sm ${isToday ? "text-primary" : "text-foreground"}`}>{JOURS[idx]}</p>
+                          <p className="text-xs text-muted-foreground">{d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isPublished ? (
+                            <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
+                          ) : (
+                            <>
+                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70">
+                                <Pencil className="w-3 h-3" /> Modifier
+                              </button>
+                              {menu?.id && (
+                                <>
+                                  <button onClick={() => handlePublish(iso)} className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 active:opacity-70">Publier</button>
+                                  <button onClick={() => handleDelete(iso)} className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 active:opacity-70">✕</button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Meal rows */}
+                      <div className="divide-y divide-border px-4">
+                        {MEAL_ROWS.map(row => (
+                          <div key={row.key} className="py-2.5 flex items-start gap-2">
+                            <span className="text-xs font-semibold text-muted-foreground w-32 flex-shrink-0 pt-0.5">{row.label}</span>
+                            <span className="text-sm text-foreground">{menu?.[row.key] || <span className="text-muted-foreground/40 italic text-xs">—</span>}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Desktop: weekly table ──────────────────────────── */}
+              <Card className="hidden md:block p-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-muted/50 border-b border-border">
+                        <th className="px-4 py-3 text-left font-semibold text-foreground w-44 border-r border-border">Repas</th>
+                        {weekDates.map((iso, idx) => {
+                          const isToday    = iso === todayISO;
+                          const menu       = allMenus[iso];
+                          const isPublished = menu?.statut === "Publie";
+                          return (
+                            <th key={iso} className={`px-3 py-3 text-center font-semibold min-w-[155px] border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
+                              <div className={`text-sm font-bold ${isToday ? "text-primary" : "text-foreground"}`}>{JOURS[idx]}</div>
+                              <div className="text-xs text-muted-foreground font-normal mb-1">
+                                {new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                              </div>
+                              {/* Actions */}
+                              <div className="flex justify-center items-center gap-1 mt-1">
+                                {isPublished ? (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
                                 ) : (
                                   <>
                                     <button
-                                      onClick={() => handlePublish(iso)}
-                                      className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200 hover:bg-amber-200 transition-colors"
+                                      onClick={() => openModal(iso)}
+                                      className="text-[10px] inline-flex items-center gap-0.5 bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full border border-sky-200 hover:bg-sky-200 transition-colors"
+                                      title="Modifier ce jour"
                                     >
-                                      Publier
+                                      <Pencil className="w-2.5 h-2.5" /> Modifier
                                     </button>
-                                    <button
-                                      onClick={() => handleDelete(iso)}
-                                      className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors"
-                                    >
-                                      ✕
-                                    </button>
+                                    {menu?.id && (
+                                      <>
+                                        <button onClick={() => handlePublish(iso)} className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200 hover:bg-amber-200 transition-colors">Publier</button>
+                                        <button onClick={() => handleDelete(iso)}  className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors">✕</button>
+                                      </>
+                                    )}
                                   </>
                                 )}
                               </div>
-                            )}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ROWS.map((row, rowIdx) => (
-                      <tr key={row.key} className={`border-b border-border last:border-b-0 ${rowIdx % 2 === 0 ? "bg-white" : "bg-muted/20"}`}>
-                        {/* Category label */}
-                        <td className={`px-4 py-3 font-semibold text-sm border-r border-border ${row.color}`}>
-                          {row.label}
-                        </td>
-                        {/* Day cells */}
-                        {weekDates.map((iso) => {
-                          const menu = allMenus[iso];
-                          const value = (menu?.[row.key] as string) || "";
-                          const isEditing = editing?.date === iso && editing?.field === row.key;
-                          const isPublished = menu?.statut === "Publie";
-
-                          return (
-                            <td
-                              key={iso}
-                              className={`px-3 py-3 border-r border-border last:border-r-0 align-top min-w-[140px] ${
-                                isPublished ? "bg-emerald-50/30" : ""
-                              }`}
-                            >
-                              {isEditing ? (
-                                <div className="space-y-1">
-                                  <Input
-                                    autoFocus
-                                    className="h-8 text-xs"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveEdit();
-                                      if (e.key === "Escape") cancelEdit();
-                                    }}
-                                    placeholder="Saisir..."
-                                  />
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={saveEdit}
-                                      disabled={saving}
-                                      className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded hover:opacity-90"
-                                    >
-                                      {saving ? "..." : "✓"}
-                                    </button>
-                                    <button
-                                      onClick={cancelEdit}
-                                      className="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded hover:bg-gray-300"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="group relative min-h-[32px]">
-                                  <button
-                                    className={`w-full text-left text-xs rounded-md p-1.5 min-h-[32px] transition-colors pr-6 ${
-                                      isPublished
-                                        ? "cursor-default text-foreground/80"
-                                        : "hover:bg-primary/8 cursor-pointer"
-                                    }`}
-                                    onClick={() => !isPublished && startEdit(iso, row.key)}
-                                    disabled={isPublished}
-                                    title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier"}
-                                  >
-                                    {value ? (
-                                      <span>{value}</span>
-                                    ) : (
-                                      <span className={`text-muted-foreground/40 ${!isPublished ? "group-hover:text-muted-foreground/70" : ""}`}>
-                                        —
-                                      </span>
-                                    )}
-                                  </button>
-                                  {value && !isPublished && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); clearCell(iso, row.key); }}
-                                      className="absolute top-1 right-1 text-[10px] text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title="Effacer ce champ"
-                                    >
-                                      ×
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </td>
+                            </th>
                           );
                         })}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Legend */}
-              <div className="px-4 py-3 bg-muted/30 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-4">
-                <span>💡 Cliquez sur une cellule vide ou remplie pour modifier le contenu.</span>
-                <span>• Entrée = valider | Echap = annuler</span>
-                <span>• Publiez un jour une fois le menu finalisé (visible par les parents).</span>
-              </div>
-            </Card>
+                    </thead>
+                    <tbody>
+                      {MEAL_ROWS.map((row, rowIdx) => (
+                        <tr key={row.key} className={`border-b border-border last:border-b-0 ${rowIdx % 2 === 0 ? "bg-white" : "bg-muted/10"}`}>
+                          <td className="px-4 py-3 font-semibold text-sm text-foreground border-r border-border">
+                            {row.label}
+                          </td>
+                          {weekDates.map(iso => {
+                            const menu       = allMenus[iso];
+                            const value      = menu?.[row.key] ?? "";
+                            const isPublished = menu?.statut === "Publie";
+                            return (
+                              <td
+                                key={iso}
+                                onClick={() => !isPublished && openModal(iso)}
+                                title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier le menu du jour"}
+                                className={`px-3 py-3 border-r border-border last:border-r-0 text-xs align-middle min-w-[155px] ${
+                                  isPublished ? "bg-emerald-50/30 cursor-default" : "cursor-pointer hover:bg-sky-50/60 transition-colors"
+                                }`}
+                              >
+                                {value ? (
+                                  <span className="text-foreground">{value}</span>
+                                ) : (
+                                  <span className="text-muted-foreground/30">
+                                    {isPublished ? "—" : "Cliquer pour saisir"}
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-3 bg-muted/20 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-4">
+                  <span>💡 Cliquez sur une cellule ou sur <strong>Modifier</strong> pour saisir les 3 repas en une seule fois.</span>
+                  <span>• Publiez un jour une fois le menu finalisé (visible par les parents).</span>
+                </div>
+              </Card>
+            </>
           )}
         </div>
       </div>
+
+      {/* ── Day Edit Modal ────────────────────────────────────────────────────── */}
+      {dayModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+              <div>
+                <h2 className="font-bold text-base text-foreground">
+                  {JOURS[weekDates.indexOf(dayModal.date)]} —{" "}
+                  {new Date(dayModal.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Saisissez les 3 repas puis cliquez sur Enregistrer.</p>
+              </div>
+              <button onClick={closeModal} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 space-y-4">
+              {MEAL_ROWS.map(row => (
+                <div key={row.key}>
+                  <label className="block text-xs font-semibold text-foreground mb-1">{row.label}</label>
+                  <Input
+                    value={dayModal[row.key]}
+                    onChange={e => setDayModal(prev => prev ? { ...prev, [row.key]: e.target.value } : prev)}
+                    placeholder={row.placeholder}
+                    className="h-10 text-sm"
+                    onKeyDown={e => { if (e.key === "Enter") saveModal(); }}
+                  />
+                </div>
+              ))}
+
+              {modalErr && (
+                <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">{modalErr}</p>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/20">
+              <Button variant="outline" onClick={closeModal} disabled={saving}>Annuler</Button>
+              <Button onClick={saveModal} disabled={saving} className="bg-primary text-primary-foreground">
+                {saving ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
