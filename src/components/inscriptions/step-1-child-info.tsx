@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 interface Step1Props {
   formData: any
   updateFormData: (data: any) => void
-  classes?: { id: string; nom: string }[]
+  classes?: { id: string; nom: string; complet?: boolean; nbEnfants?: number; capacite?: number }[]
 }
 
 export default function Step1ChildInfo({ formData, updateFormData, classes }: Step1Props) {
@@ -182,8 +182,8 @@ export default function Step1ChildInfo({ formData, updateFormData, classes }: St
           </option>
           {classes && classes.length > 0 ? (
             classes.map((classe) => (
-              <option key={classe.id} value={classe.id}>
-                {classe.nom}
+              <option key={classe.id} value={classe.id} disabled={classe.complet}>
+                {classe.nom}{classe.complet ? " — Complet" : classe.capacite ? ` (${classe.nbEnfants ?? 0}/${classe.capacite})` : ""}
               </option>
             ))
           ) : (

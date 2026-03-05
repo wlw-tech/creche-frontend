@@ -18,7 +18,7 @@ export default function InscriptionsPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const pathname = usePathname()
-  const [classes, setClasses] = useState<{ id: string; nom: string }[]>([])
+  const [classes, setClasses] = useState<{ id: string; nom: string; complet?: boolean; nbEnfants?: number; capacite?: number }[]>([])
   const [classesError, setClassesError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
@@ -88,7 +88,7 @@ export default function InscriptionsPage() {
           ? res.data
           : []
         if (!cancelled) {
-          setClasses(data.map((c: any) => ({ id: c.id, nom: c.nom })))
+          setClasses(data.map((c: any) => ({ id: c.id, nom: c.nom, complet: c.complet, nbEnfants: c.nbEnfants, capacite: c.capacite })))
         }
       } catch (err) {
         console.error("[Inscriptions] Error loading classes", err)

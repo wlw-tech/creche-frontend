@@ -215,8 +215,18 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             }
           }
 
-          // Charger les personnes autorisées (tuteurs de la famille)
-          if (Array.isArray(profile?.tuteurs)) {
+          // Charger les personnes autorisées : délégations de l'enfant en priorité, sinon tuteurs
+          const delegations = Array.isArray(enfant.delegations) ? enfant.delegations : []
+          if (delegations.length > 0) {
+            setAuthorizedPersons(
+              delegations.map((d: any) => ({
+                id: d.id,
+                name: d.nom,
+                role: d.relation ?? null,
+                phone: d.telephone ?? null,
+              })),
+            )
+          } else if (Array.isArray(profile?.tuteurs)) {
             setAuthorizedPersons(
               profile.tuteurs.map((t: any) => ({
                 id: t.id,

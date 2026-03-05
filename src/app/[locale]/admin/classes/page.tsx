@@ -29,6 +29,7 @@ interface Classe {
   trancheAge?: string;
   active: boolean;
   enseignants?: EnseignantInClasse[];
+  _count?: { enfants: number };
 }
 
 interface TeacherUser {
@@ -370,10 +371,25 @@ export default function ClassesPage({ params }: { params: Promise<{ locale: Loca
                           <span className="font-semibold">{classe.trancheAge}</span>
                         </div>
                       )}
-                      {classe.capacite && (
+                      {classe.capacite != null && (
+                        <div className={`p-2 px-3 rounded-lg text-sm ${
+                          classe._count && classe._count.enfants >= classe.capacite
+                            ? "bg-red-50 border border-red-200"
+                            : "bg-secondary/10"
+                        }`}>
+                          <span className="text-xs text-muted-foreground">Enfants : </span>
+                          <span className="font-semibold">
+                            {classe._count?.enfants ?? 0} / {classe.capacite}
+                          </span>
+                          {classe._count && classe._count.enfants >= classe.capacite && (
+                            <span className="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full border border-red-200 font-semibold">Complet</span>
+                          )}
+                        </div>
+                      )}
+                      {classe.capacite == null && classe._count != null && (
                         <div className="p-2 px-3 bg-secondary/10 rounded-lg text-sm">
-                          <span className="text-xs text-muted-foreground">Capacité : </span>
-                          <span className="font-semibold">{classe.capacite} enfants</span>
+                          <span className="text-xs text-muted-foreground">Enfants : </span>
+                          <span className="font-semibold">{classe._count.enfants}</span>
                         </div>
                       )}
                     </div>

@@ -160,6 +160,18 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     }
   };
 
+  const handleUnpublish = async (date: string) => {
+    const menu = allMenus[date];
+    if (!menu?.id) return;
+    if (!confirm("Dépublier ce menu ? Il repassera en Brouillon.")) return;
+    try {
+      await apiClient.unpublishMenu(menu.id);
+      setAllMenus(prev => ({ ...prev, [date]: { ...prev[date], statut: "Brouillon" } }));
+    } catch {
+      alert("Erreur lors de la dépublication.");
+    }
+  };
+
   const handleDelete = async (date: string) => {
     const menu = allMenus[date];
     if (!menu?.id) return;
@@ -226,7 +238,12 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                         </div>
                         <div className="flex items-center gap-2">
                           {isPublished ? (
-                            <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
+                              {menu?.id && (
+                                <button onClick={() => handleUnpublish(iso)} className="text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full border border-orange-200 active:opacity-70">Dépublier</button>
+                              )}
+                            </div>
                           ) : (
                             <>
                               <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70">
@@ -276,7 +293,12 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                               {/* Actions */}
                               <div className="flex justify-center items-center gap-1 mt-1">
                                 {isPublished ? (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
+                                  <div className="flex justify-center items-center gap-1">
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
+                                    {menu?.id && (
+                                      <button onClick={() => handleUnpublish(iso)} className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full border border-orange-200 hover:bg-orange-200 transition-colors">Dépublier</button>
+                                    )}
+                                  </div>
                                 ) : (
                                   <>
                                     <button

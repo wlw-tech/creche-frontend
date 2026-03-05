@@ -136,8 +136,25 @@ class ApiClient {
     return this.client.post(`/menus/${id}/publish`, {});
   }
 
+  unpublishMenu(id: string) {
+    return this.client.post(`/menus/${id}/unpublish`, {});
+  }
+
   deleteMenu(id: string) {
     return this.client.delete(`/menus/${id}`);
+  }
+
+  // ---- DELEGATIONS (Admin) ----
+  addDelegation(enfantId: string, data: { nom: string; telephone: string; cin: string; relation: string }) {
+    return this.client.post(`/admin/enfants/${enfantId}/delegations`, data);
+  }
+
+  updateDelegation(enfantId: string, delegationId: string, data: Partial<{ nom: string; telephone: string; cin: string; relation: string }>) {
+    return this.client.patch(`/admin/enfants/${enfantId}/delegations/${delegationId}`, data);
+  }
+
+  deleteDelegation(enfantId: string, delegationId: string) {
+    return this.client.delete(`/admin/enfants/${enfantId}/delegations/${delegationId}`);
   }
 
   // Auth
