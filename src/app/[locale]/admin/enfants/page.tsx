@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, Trash2 } from "lucide-react";
+import { Search, Eye, Trash2, Edit2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Locale } from "@/lib/i18n/config";
 import { SidebarNew } from "@/components/layout/sidebar-new";
@@ -59,6 +59,10 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [families, setFamilies] = useState<{ id: string; emailPrincipal: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EnfantItem | null>(null);
+  const [editForm, setEditForm] = useState({ prenom: "", nom: "", genre: "", classeId: "", remarques: "" });
+  const [editSaving, setEditSaving] = useState(false);
   const [formData, setFormData] = useState({
     prenom: "",
     nom: "",
@@ -124,9 +128,13 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
 
           return {
             id: enfant.id,
+            prenom: enfant.prenom ?? "",
+            nom: enfant.nom ?? "",
             name: fullName,
             group,
             classId: enfant.classe?.id,
+            genre: enfant.genre ?? undefined,
+            remarques: enfant.remarques ?? undefined,
             teacher: "—",
             parent: parentName,
             todayStatus,
@@ -380,6 +388,40 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
     }
   };
 
+
+  const handleEditOpen = (child: EnfantItem) => {
+    setEditTarget(child);
+    setEditForm({ prenom: child.prenom, nom: child.nom, genre: child.genre ?? "", classeId: child.classId ?? "", remarques: child.remarques ?? "" });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget) return;
+    try {
+      setEditSaving(true);
+      await apiClient.updateChild(editTarget.id, {
+        prenom: editForm.prenom,
+        nom: editForm.nom,
+        genre: editForm.genre || undefined,
+        classeId: editForm.classeId || undefined,
+        remarques: editForm.remarques || undefined,
+      });
+      setChildren((prev) =>
+        prev.map((c) =>
+          c.id === editTarget.id
+            ? { ...c, prenom: editForm.prenom, nom: editForm.nom, name: editForm.prenom + " " + editForm.nom, genre: editForm.genre, classeId: editForm.classeId, remarques: editForm.remarques, group: classes.find((cl) => cl.id === editForm.classeId)?.nom ?? c.group }
+            : c
+        )
+      );
+      setEditModalOpen(false);
+      setEditTarget(null);
+    } catch (err) {
+      console.error("[Admin/Enfants] Error editing child", err);
+      alert("Erreur lors de la modification.");
+    } finally {
+      setEditSaving(false);
+    }
+  };
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer cet enfant ?")) return;
 
@@ -507,6 +549,9 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                         <p className="text-xs text-muted-foreground">{child.parent}</p>
                       </div>
                       <div className="flex gap-2">
+                        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleEditOpen(child)} aria-label="Modifier">
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
                         <Link href={`/${currentLocale}/admin/enfants/${child.id}`} className="inline-flex items-center gap-1 px-2 py-1 border rounded text-xs hover:bg-muted">
                           <Eye className="w-3 h-3" /> Voir
                         </Link>
@@ -621,6 +666,15 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                             )}
                           </td>
                           <td className="px-6 py-3 flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditOpen(child)}
+                              className="gap-1 text-xs"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              Modifier
+                            </Button>
                             <Link
                               href={`/${currentLocale}/admin/enfants/${child.id}`}
                               className="inline-flex items-center gap-2 px-3 py-1 border rounded text-xs hover:bg-muted"
@@ -728,6 +782,58 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
           </div>
         </div>
       )}
+      {editModalOpen && editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold">Modifier {editTarget.name}</h2>
+              <button onClick={() => setEditModalOpen(false)} className="p-1 rounded hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Prenom</label>
+                  <Input value={editForm.prenom} onChange={(e) => setEditForm((prev) => ({ ...prev, prenom: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nom</label>
+                  <Input value={editForm.nom} onChange={(e) => setEditForm((prev) => ({ ...prev, nom: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Genre</label>
+                  <select value={editForm.genre} onChange={(e) => setEditForm((prev) => ({ ...prev, genre: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm bg-background">
+                    <option value="">— Non specifie —</option>
+                    <option value="M">Garcon</option>
+                    <option value="F">Fille</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Classe</label>
+                  <select value={editForm.classeId} onChange={(e) => setEditForm((prev) => ({ ...prev, classeId: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm bg-background">
+                    <option value="">— Aucune classe —</option>
+                    {classes.map((cl) => (<option key={cl.id} value={cl.id}>{cl.nom}</option>))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Remarques</label>
+                <textarea value={editForm.remarques} onChange={(e) => setEditForm((prev) => ({ ...prev, remarques: e.target.value }))} placeholder="Notes..." rows={3} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={handleEditSave} disabled={editSaving} className="flex-1">
+                  {editSaving ? "Enregistrement..." : "Enregistrer"}
+                </Button>
+                <Button variant="outline" onClick={() => setEditModalOpen(false)} disabled={editSaving}>Annuler</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
