@@ -37,7 +37,19 @@ const MEAL_ROWS = [
 ];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const toISO    = (d: Date) => d.toISOString().slice(0, 10);
+// Use local date components to avoid UTC offset shifting the date (e.g. UTC+1 midnight → prev day in UTC)
+const toISO = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+// Parse an ISO date string (YYYY-MM-DD) as local midnight (not UTC midnight)
+const parseLocalDate = (iso: string): Date => {
+  const [y, mo, d] = iso.split("-").map(Number);
+  return new Date(y, mo - 1, d);
+};
 
 const getMondayOf = (date: Date): Date => {
   const d = new Date(date);
@@ -224,7 +236,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               {/* ── Mobile: day cards ─────────────────────────────── */}
               <div className="md:hidden space-y-3">
                 {weekDates.map((iso, idx) => {
-                  const d          = new Date(iso);
+                  const d          = parseLocalDate(iso);
                   const isToday    = iso === todayISO;
                   const menu       = allMenus[iso];
                   const isPublished = menu?.statut === "Publie";
@@ -288,7 +300,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                             <th key={iso} className={`px-3 py-3 text-center font-semibold min-w-[155px] border-r border-border last:border-r-0 ${isToday ? "bg-primary/5" : ""}`}>
                               <div className={`text-sm font-bold ${isToday ? "text-primary" : "text-foreground"}`}>{JOURS[idx]}</div>
                               <div className="text-xs text-muted-foreground font-normal mb-1">
-                                {new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                                {parseLocalDate(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                               </div>
                               {/* Actions */}
                               <div className="flex justify-center items-center gap-1 mt-1">
@@ -378,7 +390,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               <div>
                 <h2 className="font-bold text-base text-foreground">
                   {JOURS[weekDates.indexOf(dayModal.date)]} —{" "}
-                  {new Date(dayModal.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                  {parseLocalDate(dayModal.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Saisissez les 3 repas puis cliquez sur Enregistrer.</p>
               </div>

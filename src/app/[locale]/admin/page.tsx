@@ -232,17 +232,17 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
         <header className="bg-white/90 backdrop-blur border-b border-border/70 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Baby className="h-8 w-8 text-primary mr-3" />
-                <h1 className="text-xl font-semibold text-gray-900">{t("title")}</h1>
+              <div className="flex items-center min-w-0">
+                <Baby className="h-7 w-7 text-primary mr-2 flex-shrink-0" />
+                <h1 className="text-base sm:text-xl font-semibold text-gray-900 truncate">{t("title")}</h1>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <LanguageSwitcher currentLocale={currentLocale} />
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex">
                   <Settings className="h-4 w-4 mr-2" />
                   Paramètres
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
+                <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:inline-flex">
                   <LogOut className="h-4 w-4 mr-2" />
                   Déconnexion
                 </Button>
@@ -252,7 +252,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
         </header>
 
     {/* Dashboard Content */}
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 bg-white">
+    <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
       {/* Today presence status */}
       <div className="mb-6">
         <Card className="p-4 border border-gray-200 bg-white rounded-xl shadow-sm">
@@ -301,7 +301,7 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
       </div>
 
       {/* Charts section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Presence chart */}
         <Card className="border border-gray-200 shadow-sm bg-white rounded-2xl px-5 py-4">
           <div className="mb-3">

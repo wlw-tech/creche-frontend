@@ -13,12 +13,18 @@ import { apiClient } from "@/lib/api";
 interface MenuItem {
   id: string;
   date: string;
-  entree: string | null;
-  plat: string | null;
-  dessert: string | null;
+  collationMatin: string | null;
+  repas: string | null;
+  gouter: string | null;
   allergenes: string[];
   statut: "Brouillon" | "Publie";
 }
+
+// Parse ISO date string as local midnight (avoids UTC offset shifting the date)
+const parseLocalDate = (iso: string): Date => {
+  const [y, mo, d] = iso.split("-").map(Number);
+  return new Date(y, mo - 1, d);
+};
 
 export default function MenusPage() {
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -28,13 +34,12 @@ export default function MenusPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     date: "",
-    entree: "",
-    plat: "",
-    dessert: "",
+    collationMatin: "",
+    repas: "",
+    gouter: "",
     allergenes: "",
   });
 
-  // Charger les menus au mount
   useEffect(() => {
     void fetchMenus();
   }, []);
@@ -43,9 +48,7 @@ export default function MenusPage() {
     try {
       setLoading(true);
       setError(null);
-
       const response = await apiClient.listMenus(1, 50);
-      // backend = { data: MenuResponseDto[], total, ... }
       const items = response.data?.data ?? response.data?.items ?? [];
       setMenus(items);
     } catch (err) {
@@ -73,29 +76,21 @@ export default function MenusPage() {
 
     const payload = {
       date: formData.date,
-      entree: formData.entree,
-      plat: formData.plat,
-      dessert: formData.dessert,
+      collationMatin: formData.collationMatin,
+      repas: formData.repas,
+      gouter: formData.gouter,
       allergenes: allergenesArray,
     };
 
     try {
       setError(null);
-
       if (editingId) {
         await apiClient.updateMenu(editingId, payload);
       } else {
         await apiClient.createMenu(payload);
       }
-
       await fetchMenus();
-      setFormData({
-        date: "",
-        entree: "",
-        plat: "",
-        dessert: "",
-        allergenes: "",
-      });
+      setFormData({ date: "", collationMatin: "", repas: "", gouter: "", allergenes: "" });
       setEditingId(null);
       setShowForm(false);
     } catch (err) {
@@ -107,9 +102,9 @@ export default function MenusPage() {
   const handleEdit = (menu: MenuItem) => {
     setFormData({
       date: menu.date,
-      entree: menu.entree ?? "",
-      plat: menu.plat ?? "",
-      dessert: menu.dessert ?? "",
+      collationMatin: menu.collationMatin ?? "",
+      repas: menu.repas ?? "",
+      gouter: menu.gouter ?? "",
       allergenes: menu.allergenes.join(", "),
     });
     setEditingId(menu.id);
@@ -118,12 +113,10 @@ export default function MenusPage() {
 
   const handleDelete = async (id: string, statut: string) => {
     if (statut === "Publie") {
-      setError("Impossible de supprimer un menu publié.");
+      setError("Impossible de supprimer un menu publié. Dépubliez-le d'abord.");
       return;
     }
-
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce menu ?")) return;
-
     try {
       setError(null);
       await apiClient.deleteMenu(id);
@@ -135,8 +128,7 @@ export default function MenusPage() {
   };
 
   const handlePublish = async (id: string, statut: string) => {
-    if (statut === "Publie") return; // backend renverra 400 sinon
-
+    if (statut === "Publie") return;
     try {
       setError(null);
       await apiClient.publishMenu(id);
@@ -147,9 +139,20 @@ export default function MenusPage() {
     }
   };
 
+  const handleUnpublish = async (id: string) => {
+    if (!confirm("Dépublier ce menu ? Il repassera en Brouillon.")) return;
+    try {
+      setError(null);
+      await apiClient.unpublishMenu(id);
+      await fetchMenus();
+    } catch (err) {
+      console.error("[Menus] Error unpublishing menu:", err);
+      setError("Erreur lors de la dépublication.");
+    }
+  };
+
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
+    return parseLocalDate(dateStr).toLocaleDateString("fr-FR", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -213,15 +216,14 @@ export default function MenusPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Entrée
+                  🍎 Collation du matin
                 </label>
                 <Input
                   type="text"
-                  name="entree"
-                  placeholder="Ex: Salade"
-                  value={formData.entree}
+                  name="collationMatin"
+                  placeholder="Ex: Yaourt, fruits frais"
+                  value={formData.collationMatin}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
             </div>
@@ -229,28 +231,26 @@ export default function MenusPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Plat principal
+                  🍽️ Repas (déjeuner)
                 </label>
                 <Input
                   type="text"
-                  name="plat"
-                  placeholder="Ex: Poulet riz"
-                  value={formData.plat}
+                  name="repas"
+                  placeholder="Ex: Poulet rôti, riz"
+                  value={formData.repas}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Dessert
+                  🧃 Goûter
                 </label>
                 <Input
                   type="text"
-                  name="dessert"
-                  placeholder="Ex: Fruit"
-                  value={formData.dessert}
+                  name="gouter"
+                  placeholder="Ex: Compote, lait"
+                  value={formData.gouter}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
             </div>
@@ -281,13 +281,7 @@ export default function MenusPage() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
-                  setFormData({
-                    date: "",
-                    entree: "",
-                    plat: "",
-                    dessert: "",
-                    allergenes: "",
-                  });
+                  setFormData({ date: "", collationMatin: "", repas: "", gouter: "", allergenes: "" });
                 }}
               >
                 Annuler
@@ -329,25 +323,31 @@ export default function MenusPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handlePublish(menu.id, menu.statut)}
-                    disabled={menu.statut === "Publie"}
-                    className={
-                      menu.statut === "Publie"
-                        ? "border-secondary text-secondary font-semibold"
-                        : ""
-                    }
-                  >
-                    {menu.statut === "Publie" ? "Publié" : "Publier"}
-                  </Button>
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {menu.statut === "Publie" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUnpublish(menu.id)}
+                      className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                    >
+                      Dépublier
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePublish(menu.id, menu.statut)}
+                    >
+                      Publier
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEdit(menu)}
                     className="gap-1"
+                    disabled={menu.statut === "Publie"}
                   >
                     <Edit2 className="w-4 h-4" />
                     Modifier
@@ -367,26 +367,26 @@ export default function MenusPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg">
                   <p className="text-xs font-bold text-blue-700 uppercase mb-1">
-                    Entrée
+                    🍎 Collation matin
                   </p>
                   <p className="font-bold text-blue-900 text-base">
-                    {menu.entree}
+                    {menu.collationMatin || <span className="text-blue-400 italic font-normal text-sm">—</span>}
                   </p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-l-4 border-orange-600 rounded-lg">
                   <p className="text-xs font-bold text-orange-700 uppercase mb-1">
-                    Plat Principal
+                    🍽️ Repas
                   </p>
                   <p className="font-bold text-orange-900 text-base">
-                    {menu.plat}
+                    {menu.repas || <span className="text-orange-400 italic font-normal text-sm">—</span>}
                   </p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-600 rounded-lg">
                   <p className="text-xs font-bold text-red-700 uppercase mb-1">
-                    Dessert
+                    🧃 Goûter
                   </p>
                   <p className="font-bold text-red-900 text-base">
-                    {menu.dessert}
+                    {menu.gouter || <span className="text-red-400 italic font-normal text-sm">—</span>}
                   </p>
                 </div>
               </div>
