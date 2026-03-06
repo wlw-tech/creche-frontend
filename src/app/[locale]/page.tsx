@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import { useTranslations } from "next-intl"
 import { Locale } from "@/lib/i18n/config"
+import { Mail, Lock, LogIn } from "lucide-react"
 import { apiClient } from "@/lib/api"
 
 export default function Home({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -112,30 +113,36 @@ export default function Home({ params }: { params: Promise<{ locale: Locale }> }
                 <label htmlFor="email" className="text-sm font-medium text-foreground">
                   Email
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
-                  placeholder="exemple@thepetitspas.com"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    placeholder="exemple@thepetitspas.com"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 text-left">
                 <label htmlFor="password" className="text-sm font-medium text-foreground">
                   Mot de passe
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
 
               <Button
@@ -143,7 +150,7 @@ export default function Home({ params }: { params: Promise<{ locale: Locale }> }
                 className="w-full mt-2 bg-[#FF6F61] hover:bg-[#e45f54] text-white font-semibold rounded-xl py-2.5"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Connexion…" : "Se connecter"}
+                <><LogIn className="w-4 h-4 mr-2" />{isSubmitting ? "Connexion…" : "Se connecter"}</>
               </Button>
             </form>
 

@@ -158,7 +158,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           </Link>
         </div>
 
-        <nav className="space-y-1 px-3 pb-28">
+        <nav className="space-y-1 px-3 pb-40">
           {sidebarItems.map((item) => {
             const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
             const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));
@@ -283,7 +283,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           </button>
         </div>
 
-        <nav className="space-y-1 px-3 pb-28">
+        <nav className="space-y-1 px-3 pb-40">
           {sidebarItems.map((item) => {
             const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
             const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));

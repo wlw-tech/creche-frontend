@@ -502,7 +502,7 @@ export default function TeacherDashboard() {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           {teacherName && (
-            <p className="text-sm text-sky-600 font-medium mb-0.5">👋 Bonjour, {teacherName} !</p>
+            <p className="text-base font-bold text-gray-900 mb-0.5">👋 Bonjour, {teacherName} !</p>
           )}
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{teacherClass.nom}</h1>
           <p className="text-xs md:text-sm text-gray-600 mt-1">

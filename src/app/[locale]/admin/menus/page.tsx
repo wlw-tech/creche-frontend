@@ -115,7 +115,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
   // ── modal ──────────────────────────────────────────────────────────────────
   const openModal = (date: string) => {
-    if (allMenus[date]?.statut === "Publie") return;
+    // published menus can be re-edited
     const m = allMenus[date];
     setDayModal({ date, collationMatin: m?.collationMatin ?? "", repas: m?.repas ?? "", gouter: m?.gouter ?? "" });
     setModalErr(null);
@@ -172,23 +172,10 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     }
   };
 
-  const handleUnpublish = async (date: string) => {
-    const menu = allMenus[date];
-    if (!menu?.id) return;
-    if (!confirm("Dépublier ce menu ? Il repassera en Brouillon.")) return;
-    try {
-      await apiClient.unpublishMenu(menu.id);
-      setAllMenus(prev => ({ ...prev, [date]: { ...prev[date], statut: "Brouillon" } }));
-    } catch {
-      alert("Erreur lors de la dépublication.");
-    }
-  };
 
   const handleDelete = async (date: string) => {
     const menu = allMenus[date];
     if (!menu?.id) return;
-    if (menu.statut === "Publie") { alert("Impossible de supprimer un menu publié."); return; }
-    if (!confirm("Supprimer le menu de ce jour ?")) return;
     try {
       await apiClient.deleteMenu(menu.id);
       setAllMenus(prev => { const n = { ...prev }; delete n[date]; return n; });
@@ -251,9 +238,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                           {isPublished ? (
                             <div className="flex items-center gap-1.5">
                               <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
-                              {menu?.id && (
-                                <button onClick={() => handleUnpublish(iso)} className="text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full border border-orange-200 active:opacity-70">Dépublier</button>
-                              )}
+                              <button onClick={() => handleDelete(iso)} className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 active:opacity-70">✕</button>
                             </div>
                           ) : (
                             <>
@@ -306,9 +291,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                                 {isPublished ? (
                                   <div className="flex justify-center items-center gap-1">
                                     <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
-                                    {menu?.id && (
-                                      <button onClick={() => handleUnpublish(iso)} className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full border border-orange-200 hover:bg-orange-200 transition-colors">Dépublier</button>
-                                    )}
+                                    <button onClick={() => handleDelete(iso)} className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors">✕</button>
                                   </div>
                                 ) : (
                                   <>
