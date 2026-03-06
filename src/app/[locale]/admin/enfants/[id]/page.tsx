@@ -222,10 +222,25 @@ export default function EnfantDetailPage({
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Photo (URL ou base64)</label>
-                    <Input value={editForm.photoUrl} onChange={e => setEditForm(p => ({ ...p, photoUrl: e.target.value }))} placeholder="https://..." />
+                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Photo</label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) { alert("Image trop grande (max 5 Mo)"); return; }
+                        const reader = new FileReader();
+                        reader.onload = () => setEditForm(p => ({ ...p, photoUrl: reader.result as string }));
+                        reader.readAsDataURL(file);
+                      }}
+                      className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    />
                     {editForm.photoUrl && (
-                      <img src={editForm.photoUrl} alt="preview" className="mt-2 w-16 h-16 rounded-xl object-cover border" />
+                      <div className="mt-2 flex items-center gap-2">
+                        <img src={editForm.photoUrl} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
+                        <button type="button" onClick={() => setEditForm(p => ({ ...p, photoUrl: "" }))} className="text-xs text-destructive hover:underline">Supprimer la photo</button>
+                      </div>
                     )}
                   </div>
                   <div>

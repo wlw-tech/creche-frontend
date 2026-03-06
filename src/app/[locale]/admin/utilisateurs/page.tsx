@@ -31,6 +31,9 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
   const [submitting, setSubmitting] = useState(false);
   const [creatingError, setCreatingError] = useState<string | null>(null);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [createForm, setCreateForm] = useState({
     email: "",
     prenom: "",
@@ -73,9 +76,19 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
   }, []);
 
   const filteredUsers = users.filter((u) => {
-    if (!selectedRoleFilter) return true;
-    return u.role === selectedRoleFilter;
+    if (selectedRoleFilter && u.role !== selectedRoleFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        u.prenom?.toLowerCase().includes(q) ||
+        u.nom?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+      );
+    }
+    return true;
   });
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+  const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleCreateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -235,11 +248,20 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
           <Card className="p-6">
             {error && <p className="text-sm text-destructive mb-4">{error}</p>}
 
-            <div className="flex justify-end mb-4 gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <div className="relative flex-1">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <Input
+                  placeholder="Rechercher par nom ou email..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  className="pl-9 text-sm"
+                />
+              </div>
               <select
                 value={selectedRoleFilter}
-                onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                className="border rounded-md px-2 py-1 text-xs bg-background"
+                onChange={(e) => { setSelectedRoleFilter(e.target.value); setPage(1); }}
+                className="border rounded-md px-2 py-2 text-xs bg-background min-w-[130px]"
               >
                 <option value="">Tous les rôles</option>
                 <option value="ADMIN">ADMIN</option>
@@ -260,7 +282,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
               <>
                 {/* Mobile card list */}
                 <div className="md:hidden space-y-3">
-                  {filteredUsers.map((u) => {
+                  {paginatedUsers.map((u) => {
                     const roleColors: Record<string, string> = {
                       ADMIN: "bg-red-50 text-red-700 border-red-200",
                       ENSEIGNANT: "bg-blue-50 text-blue-700 border-blue-200",
@@ -312,7 +334,7 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUsers.map((u) => (
+                      {paginatedUsers.map((u) => (
                         <tr key={u.id} className="border-b border-border hover:bg-muted/40">
                           <td className="px-6 py-3 font-medium">
                             {u.prenom} {u.nom}
@@ -362,6 +384,21 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                   </table>
                 </div>
               </>
+            )}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredUsers.length)} sur {filteredUsers.length} utilisateurs
+                </p>
+                <div className="flex gap-1">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs border rounded disabled:opacity-40 hover:bg-muted">←</button>
+                  {Array.from({length: totalPages}, (_, i) => i + 1).map(n => (
+                    <button key={n} onClick={() => setPage(n)} className={"px-3 py-1 text-xs border rounded " + (n === page ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>{n}</button>
+                  ))}
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs border rounded disabled:opacity-40 hover:bg-muted">→</button>
+                </div>
+              </div>
             )}
           </Card>
         </div>

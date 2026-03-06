@@ -178,15 +178,6 @@ export default function MenusPage() {
     }
   };
 
-  const handleUnpublish = async (id: string) => {
-    if (!confirm("Depublier ce menu ? Il repassera en Brouillon.")) return;
-    try {
-      await apiClient.unpublishMenu(id);
-      await fetchMenus();
-    } catch {
-      setError("Erreur lors de la depublication.");
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Supprimer ce menu ?")) return;
@@ -320,7 +311,7 @@ export default function MenusPage() {
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(menu)} title="Modifier" disabled={menu.statut === "Publie"}>
                         <Edit2 className="w-3 h-3" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(menu.id)} title="Supprimer" disabled={menu.statut === "Publie"}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(menu.id)} title="Supprimer">
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </>
@@ -364,20 +355,14 @@ export default function MenusPage() {
                       {selectedMenu.statut === "Publie" ? "Publie" : "Brouillon"}
                     </Badge>
                     <div className="flex gap-2">
-                      {selectedMenu.statut === "Publie" ? (
-                        <Button size="sm" variant="outline" onClick={() => handleUnpublish(selectedMenu.id)} className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs">
-                          Depublier
-                        </Button>
-                      ) : (
+                      {selectedMenu.statut !== "Publie" && (
                         <Button size="sm" variant="outline" onClick={() => handlePublish(selectedMenu.id)} className="text-green-600 border-green-300 hover:bg-green-50 text-xs">
                           Publier
                         </Button>
                       )}
-                      {selectedMenu.statut !== "Publie" && (
-                        <Button size="sm" variant="outline" onClick={() => openEdit(selectedMenu)} className="gap-1 text-xs">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(selectedMenu)} className="gap-1 text-xs">
                           <Edit2 className="w-3 h-3" /> Modifier
                         </Button>
-                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
@@ -406,8 +391,7 @@ export default function MenusPage() {
                       </div>
                     </div>
                   )}
-                  {selectedMenu.statut !== "Publie" && (
-                    <Button
+                  <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(selectedMenu.id)}
@@ -415,7 +399,6 @@ export default function MenusPage() {
                     >
                       <Trash2 className="w-3 h-3" /> Supprimer ce menu
                     </Button>
-                  )}
                 </>
               )}
 

@@ -217,15 +217,6 @@ export default function EnfantsAdminPage() {
                           <Eye className="w-3 h-3" />
                           Voir profil
                         </a>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEdit(child)}
-                          className="gap-1"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          Modifier
-                        </Button>
                       </div>
                     </td>
                   </tr>

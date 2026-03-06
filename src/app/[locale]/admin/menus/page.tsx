@@ -212,7 +212,6 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menus de la semaine</h1>
-              <p className="text-muted-foreground mt-1 text-sm">Cliquez sur ✏️ d'un jour pour saisir les 3 repas en une fois.</p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={prevWeek}><ChevronLeft className="w-4 h-4" /></Button>
@@ -367,10 +366,6 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                       ))}
                     </tbody>
                   </table>
-                </div>
-                <div className="px-4 py-3 bg-muted/20 border-t border-border text-xs text-muted-foreground flex flex-wrap gap-4">
-                  <span>💡 Cliquez sur une cellule ou sur <strong>Modifier</strong> pour saisir les 3 repas en une seule fois.</span>
-                  <span>• Publiez un jour une fois le menu finalisé (visible par les parents).</span>
                 </div>
               </Card>
             </>

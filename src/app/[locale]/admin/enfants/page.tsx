@@ -59,6 +59,8 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [families, setFamilies] = useState<{ id: string; emailPrincipal: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EnfantItem | null>(null);
   const [editForm, setEditForm] = useState({ prenom: "", nom: "", genre: "", classeId: "", remarques: "" });
@@ -460,6 +462,8 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
 
     return true;
   });
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -541,7 +545,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
               ) : filtered.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">Aucun enfant ne correspond.</p>
               ) : (
-                filtered.map((child) => (
+                paginated.map((child) => (
                   <div key={child.id} className="rounded-lg border bg-white p-4 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
@@ -606,7 +610,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                         </td>
                       </tr>
                     ) : filtered.length > 0 ? (
-                      filtered.map((child) => (
+                      paginated.map((child) => (
                         <tr
                           key={child.id}
                           className="border-b border-border hover:bg-muted/50"
@@ -705,6 +709,21 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
                 </table>
               </div>
             </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} sur {filtered.length} enfants
+                </p>
+                <div className="flex gap-1">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs border rounded disabled:opacity-40 hover:bg-muted">←</button>
+                  {Array.from({length: totalPages}, (_, i) => i + 1).map(n => (
+                    <button key={n} onClick={() => setPage(n)} className={"px-3 py-1 text-xs border rounded " + (n === page ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>{n}</button>
+                  ))}
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs border rounded disabled:opacity-40 hover:bg-muted">→</button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </div>
