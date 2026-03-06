@@ -60,7 +60,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
   const [families, setFamilies] = useState<{ id: string; emailPrincipal: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EnfantItem | null>(null);
   const [editForm, setEditForm] = useState({ prenom: "", nom: "", genre: "", classeId: "", remarques: "" });

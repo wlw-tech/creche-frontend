@@ -161,6 +161,25 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
   };
 
   // ── publish / delete ───────────────────────────────────────────────────────
+  const handleDeleteWeek = async () => {
+    const daysWithMenus = weekDates.filter(d => allMenus[d]?.id);
+    if (!daysWithMenus.length) return;
+    try {
+      for (const date of daysWithMenus) {
+        const menu = allMenus[date];
+        if (!menu?.id) continue;
+        if (menu.statut === "Publie") await apiClient.unpublishMenu(menu.id);
+        await apiClient.deleteMenu(menu.id);
+      }
+      setAllMenus(prev => {
+        const n = { ...prev };
+        daysWithMenus.forEach(d => delete n[d]);
+        return n;
+      });
+    } catch {
+      alert("Erreur lors de la suppression de la semaine.");
+    }
+  };
   const handlePublish = async (date: string) => {
     const menu = allMenus[date];
     if (!menu?.id || menu.statut === "Publie") return;
@@ -173,19 +192,6 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
   };
 
 
-  const handleDelete = async (date: string) => {
-    const menu = allMenus[date];
-    if (!menu?.id) return;
-    try {
-      if (menu.statut === "Publie") {
-        await apiClient.unpublishMenu(menu.id);
-      }
-      await apiClient.deleteMenu(menu.id);
-      setAllMenus(prev => { const n = { ...prev }; delete n[date]; return n; });
-    } catch {
-      alert("Erreur lors de la suppression.");
-    }
-  };
 
   // ── render ─────────────────────────────────────────────────────────────────
   const weekDates = getWeekDates(monday);
@@ -208,6 +214,17 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               <span className="text-sm font-medium text-foreground min-w-[200px] text-center hidden sm:inline">{formatWeekLabel(monday)}</span>
               <Button variant="outline" size="sm" onClick={nextWeek}><ChevronRight className="w-4 h-4" /></Button>
               <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteWeek}
+                disabled={weekDates.every(d => !allMenus[d]?.id)}
+                className="text-destructive border-destructive/40 hover:bg-destructive/10 disabled:opacity-40"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                <span className="hidden sm:inline">Supprimer la semaine</span>
+                <span className="sm:hidden">Sup. semaine</span>
+              </Button>
             </div>
           </div>
 
@@ -242,8 +259,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                             <div className="flex items-center gap-1.5">
                               <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
                               <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70"><Pencil className="w-3 h-3" /> Modifier</button>
-                              <button onClick={() => handleDelete(iso)} className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 active:opacity-70">✕</button>
-                            </div>
+                              </div>
                           ) : (
                             <>
                               <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70">
@@ -252,8 +268,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                               {menu?.id && (
                                 <>
                                   <button onClick={() => handlePublish(iso)} className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 active:opacity-70">Publier</button>
-                                  <button onClick={() => handleDelete(iso)} className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 active:opacity-70">✕</button>
-                                </>
+                                  </>
                               )}
                             </>
                           )}
@@ -296,8 +311,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                                   <div className="flex justify-center items-center gap-1">
                                     <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
                                     <button onClick={() => openModal(iso)} className="text-[10px] inline-flex items-center gap-0.5 bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full border border-sky-200 hover:bg-sky-200 transition-colors"><Pencil className="w-2.5 h-2.5" /> Mod.</button>
-                                    <button onClick={() => handleDelete(iso)} className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors">✕</button>
-                                  </div>
+                                    </div>
                                 ) : (
                                   <>
                                     <button
@@ -310,8 +324,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                                     {menu?.id && (
                                       <>
                                         <button onClick={() => handlePublish(iso)} className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200 hover:bg-amber-200 transition-colors">Publier</button>
-                                        <button onClick={() => handleDelete(iso)}  className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors">✕</button>
-                                      </>
+                                        </>
                                     )}
                                   </>
                                 )}

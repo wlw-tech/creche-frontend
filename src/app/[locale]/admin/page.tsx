@@ -239,6 +239,12 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <LanguageSwitcher currentLocale={currentLocale} />
+                <Link href={`/${currentLocale}/admin/profile`} className="hidden sm:inline-flex">
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Mot de passe
+                  </Button>
+                </Link>
                 <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:inline-flex">
                   <LogOut className="h-4 w-4 mr-2" />
                   Déconnexion

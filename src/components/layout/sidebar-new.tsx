@@ -137,11 +137,11 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
 
       <aside
         className={cn(
-          "w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-6 z-50",
+          "w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-hidden fixed left-0 top-0 pt-6 z-50",
           "hidden md:block",
         )}
       >
-        <div className="px-6 mb-8">
+        <div className="px-6 mb-4">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
               <Image
@@ -158,7 +158,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           </Link>
         </div>
 
-        <nav className="space-y-1 px-3 pb-40">
+        <nav className="space-y-1 px-3 pb-32">
           {sidebarItems.map((item) => {
             const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
             const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));
@@ -171,7 +171,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                   key={item.labelKey}
                   href={item.href}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/30",
@@ -189,7 +189,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                   type="button"
                   onClick={() => toggleMenu(item.labelKey)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/30",
@@ -249,7 +249,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
 
       <aside
         className={cn(
-          "md:hidden w-[85vw] max-w-[20rem] bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto fixed left-0 top-0 pt-[calc(env(safe-area-inset-top)+1.5rem)] z-[60] transition-transform duration-200 ease-in-out",
+          "md:hidden w-[85vw] max-w-[20rem] bg-sidebar border-r border-sidebar-border h-screen overflow-hidden fixed left-0 top-0 pt-[calc(env(safe-area-inset-top)+1.5rem)] z-[60] transition-transform duration-200 ease-in-out",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
         )}
       >
@@ -283,7 +283,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           </button>
         </div>
 
-        <nav className="space-y-1 px-3 pb-40">
+        <nav className="space-y-1 px-3 pb-32">
           {sidebarItems.map((item) => {
             const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
             const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));
@@ -297,7 +297,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/30",
@@ -315,7 +315,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                   type="button"
                   onClick={() => toggleMenu(item.labelKey)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                    "w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/30",
