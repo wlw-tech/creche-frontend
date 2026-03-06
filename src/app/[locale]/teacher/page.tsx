@@ -26,6 +26,7 @@ export default function TeacherDashboard() {
   const t = useTranslations("teacher.dashboard")
 
   const [teacherClass, setTeacherClass] = useState<Classe | null>(null)
+  const [teacherName, setTeacherName] = useState<string>("")
   const [children, setChildren] = useState<Enfant[]>([])
   const [currentChildIndex, setCurrentChildIndex] = useState(0)
   const [attendanceData, setAttendanceData] = useState<Record<string, "Present" | "Absent">>({})
@@ -83,7 +84,15 @@ export default function TeacherDashboard() {
         }
 
         const cls: Classe = classes[0]
-        if (!cancelled) setTeacherClass({ id: cls.id, nom: cls.nom })
+        if (!cancelled) {
+          setTeacherClass({ id: cls.id, nom: cls.nom })
+          // Extract teacher name from class enseignants
+          const enseignants = (cls as any).enseignants ?? []
+          if (enseignants.length > 0) {
+            const u = enseignants[0]?.enseignant?.utilisateur
+            if (u) setTeacherName(u.prenom ?? u.nom ?? u.email ?? "")
+          }
+        }
 
         const enfantsRes = await apiClient.getClassWithChildren(cls.id)
         const enfants = enfantsRes.data?.enfants ?? []
@@ -491,6 +500,9 @@ export default function TeacherDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between border-b pb-4">
         <div>
+          {teacherName && (
+            <p className="text-sm text-sky-600 font-medium mb-0.5">👋 Bonjour, {teacherName} !</p>
+          )}
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{teacherClass.nom}</h1>
           <p className="text-xs md:text-sm text-gray-600 mt-1">
             {children.length} {children.length > 1 ? "élèves" : "élève"}

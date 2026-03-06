@@ -203,9 +203,15 @@ export default function TeacherSummary() {
 
       setInfoMessage(t("success.messageSentToParents"))
       setTimeout(() => setInfoMessage(null), 4000)
-    } catch (e) {
-      console.error("[TeacherSummary] handleSendToAll error", e)
-      setInfoMessage(t("errors.sendMessageError"))
+    } catch (e: any) {
+      const msg = e?.response?.data?.message ?? ""
+      if (msg.includes("déjà publié") || msg.includes("already")) {
+        setPublished(true)
+        setInfoMessage(t("success.messageSentToParents"))
+      } else {
+        console.error("[TeacherSummary] handleSendToAll error", e)
+        setInfoMessage(t("errors.sendMessageError"))
+      }
     } finally {
       setSending(false)
     }
@@ -286,6 +292,31 @@ export default function TeacherSummary() {
 
       {/* Statistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Attendance Breakdown */}
+        <Card className="border border-gray-200 shadow-sm md:col-span-2">
+          <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-transparent pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
+              <span>📊</span> Présences du jour
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-3 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-700">{summaryData.presentsCount}</p>
+                <p className="text-xs text-green-600 mt-1">Présents</p>
+              </div>
+              <div className="p-3 bg-red-50 rounded-lg">
+                <p className="text-2xl font-bold text-red-700">{summaryData.absentsCount}</p>
+                <p className="text-xs text-red-600 mt-1">Absents</p>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-700">{summaryData.justifiesCount}</p>
+                <p className="text-xs text-blue-600 mt-1">Justifiés</p>
+              </div>
+            </div>
+            <p className="text-xs text-center text-gray-400 mt-3">{summaryData.resumesCount} fiche(s) de résumé complétée(s)</p>
+          </CardContent>
+        </Card>
         {/* Appetite */}
         <Card className="border border-gray-200 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-transparent pb-4">

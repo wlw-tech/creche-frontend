@@ -8,6 +8,52 @@
     "dashboard": {
       "title": "Dashboard Parent",
       "subtitle": "Bienvenue sur PetitsPas"
+    },
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "menu": "Menu du jour",
+      "profile": "Profil"
+    },
+    "overview": {
+      "dailySummaryTitle": "Résumé de journée",
+      "upcomingEventsTitle": "Événements à venir",
+      "loadingIndividualSummary": "Chargement du résumé individuel…",
+      "moodLabel": "Humeur",
+      "napLabel": "Sieste",
+      "participationLabel": "Participation",
+      "observationsLabel": "Observations",
+      "noIndividualSummary": "Aucun résumé individuel n'a encore été saisi pour cette période.",
+      "loadingDailySummary": "Chargement du résumé de la journée…",
+      "noDailyMessage": "Aucun message de la journée n'a encore été partagé pour aujourd'hui.",
+      "noUpcomingEvents": "Aucun événement à venir n'est planifié pour le moment. Vous serez informé ici des prochaines réunions, fêtes ou sorties."
+    },
+    "menu": {
+      "title": "Menu du jour"
+    },
+    "profile": {
+      "childInfoTitle": "Informations de l'enfant",
+      "classLabel": "Classe",
+      "birthdateLabel": "Date de naissance",
+      "allergiesLabel": "Allergies",
+      "noAllergies": "Aucune",
+      "phoneLabel": "Téléphone",
+      "authorizedPersonsTitle": "Personnes autorisées",
+      "securityTitle": "Sécurité",
+      "changePasswordCta": "Changer le mot de passe",
+      "passwordChanged": "Mot de passe modifié avec succès !",
+      "passwordMismatch": "Les mots de passe ne correspondent pas !",
+      "currentPasswordLabel": "Mot de passe actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
+      "newPasswordLabel": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Entrez un nouveau mot de passe",
+      "confirmPasswordLabel": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
+      "saveButton": "Enregistrer",
+      "cancelButton": "Annuler"
+    },
+    "events": {
+      "parentMeeting": "Réunion parents-enseignants",
+      "parkOuting": "Sortie au parc"
     }
   },
   "home": {
@@ -157,96 +203,7 @@
     "logout": "Déconnexion",
     "roleAdmin": "Admin"
   },
-
-  "parent": {
-    "dashboard": {
-      "title": "Dashboard Parent",
-      "subtitle": "Bienvenue sur PetitsPas"
-    },
-    "tabs": {
-      "overview": "Vue d'ensemble",
-      "menu": "Menu du jour",
-      "profile": "Profil"
-    },
-    "overview": {
-      "dailySummaryTitle": "Résumé de journée",
-      "upcomingEventsTitle": "Événements à venir",
-      "loadingIndividualSummary": "Chargement du résumé individuel…",
-      "moodLabel": "Humeur",
-      "napLabel": "Sieste",
-      "participationLabel": "Participation",
-      "observationsLabel": "Observations",
-      "noIndividualSummary": "Aucun résumé individuel n'a encore été saisi pour cette période.",
-      "loadingDailySummary": "Chargement du résumé de la journée…",
-      "noDailyMessage": "Aucun message de la journée n'a encore été partagé pour aujourd'hui.",
-      "noUpcomingEvents": "Aucun événement à venir n'est planifié pour le moment. Vous serez informé ici des prochaines réunions, fêtes ou sorties."
-    },
-    "menu": {
-      "title": "Menu du jour"
-    },
-    "profile": {
-      "childInfoTitle": "Informations de l'enfant",
-      "classLabel": "Classe",
-      "birthdateLabel": "Date de naissance",
-      "allergiesLabel": "Allergies",
-      "noAllergies": "Aucune",
-      "phoneLabel": "Téléphone",
-      "authorizedPersonsTitle": "Personnes autorisées",
-      "securityTitle": "Sécurité",
-      "changePasswordCta": "Changer le mot de passe",
-      "passwordChanged": "Mot de passe modifié avec succès !",
-      "passwordMismatch": "Les mots de passe ne correspondent pas !",
-      "currentPasswordLabel": "Mot de passe actuel",
-      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
-      "newPasswordLabel": "Nouveau mot de passe",
-      "newPasswordPlaceholder": "Entrez un nouveau mot de passe",
-      "confirmPasswordLabel": "Confirmer le mot de passe",
-      "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
-      "saveButton": "Enregistrer",
-      "cancelButton": "Annuler"
-    },
-    "events": {
-      "parentMeeting": "Réunion parents-enseignants",
-      "parkOuting": "Sortie au parc"
-    }
-  },
   "teacher": {
-    "summary": {
-      "errors": {
-        "noClass": "Aucune classe disponible",
-        "loadSummaryError": "Impossible de charger le résumé de classe",
-        "summaryUnavailable": "Résumé indisponible",
-        "saveMessageError": "Erreur lors de l'enregistrement du message",
-        "sendMessageError": "Erreur lors de l'envoi du message"
-      },
-      "success": {
-        "dailyMessageSaved": "Message de la journée enregistré",
-        "messageSentToParents": "Message envoyé à tous les parents pour aujourd'hui"
-      },
-      "loading": "Chargement du résumé de journée..."
-    },
-    "dashboard": {
-      "title": "Tableau de bord Enseignant",
-      "subtitle": "Salle Bleue • Présence du jour",
-      "langToggle": "FR / AR",
-      "presenceTime": "Présence du 29/09 — 08:35",
-      "presentButton": "Présent",
-      "absentButton": "Absent",
-      "daySummaryTitle": "Résumé de journée",
-      "cards": {
-        "appetiteLabel": "Appétit",
-        "appetiteValue": "Bien",
-        "moodLabel": "Humeur",
-        "moodValue": "Bonne",
-        "napLabel": "Sieste",
-        "napValue": "1h",
-        "participationLabel": "Participation",
-        "participationValue": "Bonne"
-      },
-      "prev": "Précédent",
-      "next": "Suivant",
-      "summaryCta": "Résumé jour"
-    },
     "summary": {
       "title": "Résumé de la journée",
       "back": "Retour",
@@ -280,7 +237,41 @@
         "saveButton": "Enregistrer",
         "sendAllButton": "Envoyer à tous",
         "finishDayButton": "Terminer la journée"
+      },
+      "loading": "Chargement du résumé de journée...",
+      "errors": {
+        "noClass": "Aucune classe disponible",
+        "loadSummaryError": "Impossible de charger le résumé de classe",
+        "summaryUnavailable": "Résumé indisponible",
+        "saveMessageError": "Erreur lors de l enregistrement du message",
+        "sendMessageError": "Erreur lors de l envoi du message"
+      },
+      "success": {
+        "dailyMessageSaved": "Message enregistré",
+        "messageSentToParents": "Message envoyé aux parents"
       }
+    },
+    "dashboard": {
+      "title": "Tableau de bord Enseignant",
+      "subtitle": "Salle Bleue • Présence du jour",
+      "langToggle": "FR / AR",
+      "presenceTime": "Présence du 29/09 — 08:35",
+      "presentButton": "Présent",
+      "absentButton": "Absent",
+      "daySummaryTitle": "Résumé de journée",
+      "cards": {
+        "appetiteLabel": "Appétit",
+        "appetiteValue": "Bien",
+        "moodLabel": "Humeur",
+        "moodValue": "Bonne",
+        "napLabel": "Sieste",
+        "napValue": "1h",
+        "participationLabel": "Participation",
+        "participationValue": "Bonne"
+      },
+      "prev": "Précédent",
+      "next": "Suivant",
+      "summaryCta": "Résumé jour"
     }
   }
 }

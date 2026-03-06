@@ -8,6 +8,52 @@
     "dashboard": {
       "title": "لوحة تحكم ولي الأمر",
       "subtitle": "مرحباً بك في PetitsPas"
+    },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "menu": "قائمة اليوم",
+      "profile": "الملف الشخصي"
+    },
+    "overview": {
+      "dailySummaryTitle": "ملخص اليوم",
+      "upcomingEventsTitle": "الأحداث القادمة",
+      "loadingIndividualSummary": "جاري تحميل الملخص الفردي…",
+      "moodLabel": "المزاج",
+      "napLabel": "القيلولة",
+      "participationLabel": "المشاركة",
+      "observationsLabel": "ملاحظات",
+      "noIndividualSummary": "لم يتم إدخال أي ملخص فردي لهذه الفترة بعد.",
+      "loadingDailySummary": "جاري تحميل ملخص اليوم…",
+      "noDailyMessage": "لم تتم مشاركة أي رسالة ليوم اليوم بعد.",
+      "noUpcomingEvents": "لا توجد أحداث قادمة مخطط حالياً. سيتم إعلامك هنا بالاجتماعات أو الاحتفالات أو الرحلات القادمة."
+    },
+    "menu": {
+      "title": "قائمة اليوم"
+    },
+    "profile": {
+      "childInfoTitle": "معلومات الطفل",
+      "classLabel": "الفصل",
+      "birthdateLabel": "تاريخ الميلاد",
+      "allergiesLabel": "الحساسية",
+      "noAllergies": "لا توجد",
+      "phoneLabel": "الهاتف",
+      "authorizedPersonsTitle": "الأشخاص المصرح لهم",
+      "securityTitle": "الأمان",
+      "changePasswordCta": "تغيير كلمة المرور",
+      "passwordChanged": "تم تغيير كلمة المرور بنجاح!",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين!",
+      "currentPasswordLabel": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة مرور جديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "saveButton": "حفظ",
+      "cancelButton": "إلغاء"
+    },
+    "events": {
+      "parentMeeting": "اجتماع أولياء الأمور والمعلمين",
+      "parkOuting": "خرجة إلى الحديقة"
     }
   },
   "home": {
@@ -157,129 +203,75 @@
     "logout": "تسجيل الخروج",
     "roleAdmin": "إدارة"
   },
-  "parent": {
-    "dashboard": {
-      "title": "لوحة تحكم ولي الأمر",
-      "subtitle": "مرحباً بك في PetitsPas"
-    },
-    "tabs": {
-      "overview": "نظرة عامة",
-      "menu": "قائمة اليوم",
-      "profile": "الملف الشخصي"
-    },
-    "overview": {
-      "dailySummaryTitle": "ملخص اليوم",
-      "upcomingEventsTitle": "الأحداث القادمة",
-      "loadingIndividualSummary": "جاري تحميل الملخص الفردي…",
-      "moodLabel": "المزاج",
-      "napLabel": "القيلولة",
-      "participationLabel": "المشاركة",
-      "observationsLabel": "ملاحظات",
-      "noIndividualSummary": "لم يتم إدخال أي ملخص فردي لهذه الفترة بعد.",
-      "loadingDailySummary": "جاري تحميل ملخص اليوم…",
-      "noDailyMessage": "لم تتم مشاركة أي رسالة ليوم اليوم بعد.",
-      "noUpcomingEvents": "لا توجد أحداث قادمة مخطط حالياً. سيتم إعلامك هنا بالاجتماعات أو الاحتفالات أو الرحلات القادمة."
-    },
-    "menu": {
-      "title": "قائمة اليوم"
-    },
-    "profile": {
-      "childInfoTitle": "معلومات الطفل",
-      "classLabel": "الفصل",
-      "birthdateLabel": "تاريخ الميلاد",
-      "allergiesLabel": "الحساسية",
-      "noAllergies": "لا توجد",
-      "phoneLabel": "الهاتف",
-      "authorizedPersonsTitle": "الأشخاص المصرح لهم",
-      "securityTitle": "الأمان",
-      "changePasswordCta": "تغيير كلمة المرور",
-      "passwordChanged": "تم تغيير كلمة المرور بنجاح!",
-      "passwordMismatch": "كلمتا المرور غير متطابقتين!",
-      "currentPasswordLabel": "كلمة المرور الحالية",
-      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
-      "newPasswordLabel": "كلمة المرور الجديدة",
-      "newPasswordPlaceholder": "أدخل كلمة مرور جديدة",
-      "confirmPasswordLabel": "تأكيد كلمة المرور",
-      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
-      "saveButton": "حفظ",
-      "cancelButton": "إلغاء"
-    },
-    "events": {
-      "parentMeeting": "اجتماع أولياء الأمور والمعلمين",
-      "parkOuting": "خرجة إلى الحديقة"
-    }
-  },
   "teacher": {
     "summary": {
+      "title": "ملخص اليوم",
+      "back": "رجوع",
+      "kpis": {
+        "presentLabel": "الحاضرون",
+        "attendanceRateLabel": "نسبة الحضور",
+        "avgNapLabel": "متوسط القيلولة"
+      },
+      "sections": {
+        "appetiteTitle": "الشهية",
+        "appetite": {
+          "little": "قليل",
+          "good": "جيد",
+          "all": "كله"
+        },
+        "moodTitle": "المزاج",
+        "mood": {
+          "bad": "سيئ",
+          "good": "جيد",
+          "excellent": "ممتاز"
+        },
+        "participationTitle": "المشاركة",
+        "participation": {
+          "low": "ضعيفة",
+          "good": "جيدة",
+          "excellent": "ممتازة"
+        },
+        "dailyMessageTitle": "رسالة اليوم",
+        "dailyMessagePlaceholder": "لخص اليوم لأولياء الأمور...",
+        "dailyMessageDefault": "اليوم عمل الأطفال على المهارات الحركية والرياضيات. مشاركة ممتازة وجو جميل!",
+        "saveButton": "حفظ",
+        "sendAllButton": "إرسال للجميع",
+        "finishDayButton": "إنهاء اليوم"
+      },
+      "loading": "جارٍ تحميل ملخص اليوم...",
       "errors": {
         "noClass": "لا توجد فصول متاحة",
-        "loadSummaryError": "غير قادر على تحميل ملخص الفصل",
+        "loadSummaryError": "تعذر تحميل ملخص الفصل",
         "summaryUnavailable": "الملخص غير متاح",
-        "saveMessageError": "خطأ في حفظ الرسالة",
-        "sendMessageError": "خطأ في إرسال الرسالة"
+        "saveMessageError": "خطأ عند حفظ الرسالة",
+        "sendMessageError": "خطأ عند إرسال الرسالة"
       },
       "success": {
-        "dailyMessageSaved": "تم حفظ رسالة اليوم",
-        "messageSentToParents": "تم إرسال رسالة إلى جميع أولياء الأمور ليوم اليوم"
-      },
-      "loading": "جاري تحميل ملخص اليوم..."
+        "dailyMessageSaved": "تم حفظ الرسالة",
+        "messageSentToParents": "تم إرسال الرسالة للأولياء"
+      }
     },
     "dashboard": {
       "title": "لوحة تحكم المعلم",
       "subtitle": "قاعة الزرقاء • حضور اليوم",
-    "langToggle": "FR / AR",
-    "presenceTime": "حضور 29/09 — 08:35",
-    "presentButton": "حاضر",
-    "absentButton": "غائب",
-    "daySummaryTitle": "ملخص اليوم",
-    "cards": {
-      "appetiteLabel": "الشهية",
-      "appetiteValue": "جيدة",
-      "moodLabel": "المزاج",
-      "moodValue": "جيد",
-      "napLabel": "القيلولة",
-      "napValue": "1 ساعة",
-      "participationLabel": "المشاركة",
-      "participationValue": "جيدة"
-    },
-    "prev": "السابق",
-    "next": "التالي",
-    "summaryCta": "ملخص اليوم"
-  },
-  "summary": {
-    "title": "ملخص اليوم",
-    "back": "رجوع",
-    "kpis": {
-      "presentLabel": "الحاضرون",
-      "attendanceRateLabel": "نسبة الحضور",
-      "avgNapLabel": "متوسط القيلولة"
-    },
-    "sections": {
-      "appetiteTitle": "الشهية",
-      "appetite": {
-        "little": "قليل",
-        "good": "جيد",
-        "all": "كله"
+      "langToggle": "FR / AR",
+      "presenceTime": "حضور 29/09 — 08:35",
+      "presentButton": "حاضر",
+      "absentButton": "غائب",
+      "daySummaryTitle": "ملخص اليوم",
+      "cards": {
+        "appetiteLabel": "الشهية",
+        "appetiteValue": "جيدة",
+        "moodLabel": "المزاج",
+        "moodValue": "جيد",
+        "napLabel": "القيلولة",
+        "napValue": "1 ساعة",
+        "participationLabel": "المشاركة",
+        "participationValue": "جيدة"
       },
-      "moodTitle": "المزاج",
-      "mood": {
-        "bad": "سيئ",
-        "good": "جيد",
-        "excellent": "ممتاز"
-      },
-      "participationTitle": "المشاركة",
-      "participation": {
-        "low": "ضعيفة",
-        "good": "جيدة",
-        "excellent": "ممتازة"
-      },
-      "dailyMessageTitle": "رسالة اليوم",
-      "dailyMessagePlaceholder": "لخص اليوم لأولياء الأمور...",
-      "dailyMessageDefault": "اليوم عمل الأطفال على المهارات الحركية والرياضيات. مشاركة ممتازة وجو جميل!",
-      "saveButton": "حفظ",
-      "sendAllButton": "إرسال للجميع",
-      "finishDayButton": "إنهاء اليوم"
+      "prev": "السابق",
+      "next": "التالي",
+      "summaryCta": "ملخص اليوم"
     }
   }
-}
 }
