@@ -4,66 +4,32 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTranslations } from "next-intl"
 import { use } from "react"
 import { Locale } from "@/lib/i18n/config"
 import { apiClient } from "@/lib/api"
 import { DailyResume } from "@/types/domain"
+import { Home, CheckCircle2, Baby, Utensils, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
+
+type Tab = "home" | "presence" | "child" | "menu" | "events"
 
 export default function ParentDashboard({ params }: { params: Promise<{ locale: Locale }> }) {
   const resolvedParams = use(params)
   const t = useTranslations("parent")
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState<Tab>("home")
+
   const [child, setChild] = useState<{
-    id: string | number
-    classeId?: string | null
-    name: string
-    class: string
-    birthdate?: string | null
-    age?: string
-    avatar: string
-    photoUrl?: string | null
-    status?: string
-    allergies: string[]
+    id: string | number; classeId?: string | null; name: string; class: string
+    birthdate?: string | null; age?: string; avatar: string; photoUrl?: string | null
+    status?: string; allergies: string[]
   } | null>(null)
 
   const [showPasswordForm, setShowPasswordForm] = useState(false)
-  const [passwords, setPasswords] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  })
-
-  const [todayMenu, setTodayMenu] = useState<{
-    date: string
-    entree?: string | null
-    plat?: string | null
-    dessert?: string | null
-  } | null>(null)
-  const [weekMenus, setWeekMenus] = useState<
-    Record<
-      string,
-      {
-        date: string
-        entree?: string | null
-        plat?: string | null
-        dessert?: string | null
-      }
-    >
-  >({})
-  const [upcomingEvents, setUpcomingEvents] = useState<{
-    id: string
-    date: string
-    title: string
-    time?: string | null
-    description?: string | null
-  }[]>([])
-
-  const [authorizedPersons, setAuthorizedPersons] = useState<
-    { id: string; name: string; role?: string | null; phone?: string | null }[]
-  >([])
-
+  const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" })
+  const [todayMenu, setTodayMenu] = useState<{ date: string; entree?: string | null; plat?: string | null; dessert?: string | null } | null>(null)
+  const [weekMenus, setWeekMenus] = useState<Record<string, { date: string; entree?: string | null; plat?: string | null; dessert?: string | null }>>({})
+  const [upcomingEvents, setUpcomingEvents] = useState<{ id: string; date: string; title: string; time?: string | null; description?: string | null }[]>([])
+  const [authorizedPersons, setAuthorizedPersons] = useState<{ id: string; name: string; role?: string | null; phone?: string | null }[]>([])
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [dailyMessage, setDailyMessage] = useState<string | null>(null)
@@ -71,8 +37,8 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [childDailyResume, setChildDailyResume] = useState<DailyResume | null>(null)
   const [dailyResumeError, setDailyResumeError] = useState<string | null>(null)
+  const [presences, setPresences] = useState<any[]>([])
 
-  // Navigation par date
   const todayDate = new Date()
   todayDate.setHours(0, 0, 0, 0)
   const [selectedDate, setSelectedDate] = useState<Date>(todayDate)
@@ -81,845 +47,508 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   const selectedDateStr = selectedDate.toISOString().split("T")[0]
   const isToday = selectedDate.getTime() === todayDate.getTime()
 
-  const goToPrevDay = () => {
-    setSelectedDate((d) => {
-      const prev = new Date(d)
-      prev.setDate(prev.getDate() - 1)
-      return prev
-    })
-  }
-  const goToNextDay = () => {
-    if (!isToday) {
-      setSelectedDate((d) => {
-        const next = new Date(d)
-        next.setDate(next.getDate() + 1)
-        return next
-      })
-    }
-  }
+  const goToPrevDay = () => setSelectedDate(d => { const p = new Date(d); p.setDate(p.getDate() - 1); return p })
+  const goToNextDay = () => { if (!isToday) setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n }) }
   const goToToday = () => setSelectedDate(todayDate)
 
   useEffect(() => {
     let cancelled = false
-
     async function loadProfileAndResume() {
       try {
-        setProfileLoading(true)
-        setProfileError(null)
-
+        setProfileLoading(true); setProfileError(null)
         const profileRes = await apiClient.getParentProfile()
         const profile = profileRes.data
-
-        const enfant = Array.isArray(profile?.enfants) && profile.enfants.length > 0
-          ? profile.enfants[0]
-          : null
-        if (!enfant) {
-          if (!cancelled) {
-            setProfileError("Aucun enfant associé au compte parent.")
-          }
-        } else if (!cancelled) {
-          setChild({
-            id: enfant.id,
-            classeId: enfant.classeId ?? null,
-            name: `${enfant.prenom ?? ""} ${enfant.nom ?? ""}`.trim() || "Enfant",
-            class: enfant.classeNom ?? enfant.classeId ?? "",
-            birthdate: enfant.dateNaissance ?? null,
-            age: undefined,
-            avatar: "👧",
-            photoUrl: enfant.photoUrl ?? null,
-            status: undefined,
-            allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [],
-          })
-
-          // Le résumé sera chargé par le 2e useEffect (dépend de selectedDate)
-
-          // Charger le message de la journée collectif de la classe (ClassDailySummary publié le plus récent)
+        const enfant = Array.isArray(profile?.enfants) && profile.enfants.length > 0 ? profile.enfants[0] : null
+        if (!enfant) { if (!cancelled) setProfileError("Aucun enfant associé au compte parent.") }
+        else if (!cancelled) {
+          setChild({ id: enfant.id, classeId: enfant.classeId ?? null, name: `${enfant.prenom ?? ""} ${enfant.nom ?? ""}`.trim() || "Enfant",
+            class: enfant.classeNom ?? enfant.classeId ?? "", birthdate: enfant.dateNaissance ?? null, age: undefined,
+            avatar: "👧", photoUrl: enfant.photoUrl ?? null, status: undefined,
+            allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [] })
           if (enfant.classeId) {
             try {
               const journalRes = await apiClient.getClassJournal(enfant.classeId as string)
               const journal = journalRes.data
-
               if (!cancelled && journal) {
-                // On privilégie le champ observations si présent, sinon on concatène activités/apprentissages
-                const fromObservations = typeof journal.observations === "string" ? journal.observations : ""
-                const combined = [journal.activites, journal.apprentissages]
-                  .filter((p: any) => typeof p === "string" && p.trim().length > 0)
-                  .join(". ")
-
-                const message = fromObservations || combined || null
-                setDailyMessage(message)
+                const fromObs = typeof journal.observations === "string" ? journal.observations : ""
+                const combined = [journal.activites, journal.apprentissages].filter((p: any) => typeof p === "string" && p.trim().length > 0).join(". ")
+                setDailyMessage(fromObs || combined || null)
               }
-            } catch (err) {
-              console.error("[Parent] Error loading class daily message", err)
-            }
+            } catch {}
           }
-
-          // Charger le menu du jour + menus de la semaine pour la classe de l'enfant
           if (enfant.classeId) {
             try {
               const today = new Date()
-              const day = (today.getDay() + 6) % 7 // 0 = lundi
-              const monday = new Date(today)
-              monday.setDate(today.getDate() - day)
-              monday.setHours(0, 0, 0, 0)
-
-              const menusByDate: Record<string, { date: string; entree?: string | null; plat?: string | null; dessert?: string | null }> = {}
-
+              const day = (today.getDay() + 6) % 7
+              const monday = new Date(today); monday.setDate(today.getDate() - day); monday.setHours(0,0,0,0)
+              const menusByDate: Record<string, any> = {}
               for (let i = 0; i < 7; i++) {
-                const d = new Date(monday)
-                d.setDate(monday.getDate() + i)
+                const d = new Date(monday); d.setDate(monday.getDate() + i)
                 const dateStr = d.toISOString().slice(0, 10)
                 try {
                   const res = await apiClient.getClassMenu(enfant.classeId as string, dateStr)
                   const menu = res.data
-                  if (menu) {
-                    menusByDate[dateStr] = {
-                      date: menu.date,
-                      entree: menu.entree ?? null,
-                      plat: menu.plat ?? null,
-                      dessert: menu.dessert ?? null,
-                    }
-                  }
-                } catch (err) {
-                  // Pas de menu pour ce jour, on ignore
-                }
+                  if (menu) menusByDate[dateStr] = { date: menu.date, entree: menu.entree ?? null, plat: menu.plat ?? null, dessert: menu.dessert ?? null }
+                } catch {}
               }
-
               if (!cancelled) {
                 setWeekMenus(menusByDate)
-
                 const todayKey = today.toISOString().slice(0, 10)
                 const todayTime = new Date(todayKey).getTime()
-
-                // 1) Si un menu existe exactement pour aujourd'hui, on l'affiche
-                if (menusByDate[todayKey]) {
-                  setTodayMenu(menusByDate[todayKey])
-                } else {
-                  // 2) Sinon, on cherche le menu dont la date est la plus proche d'aujourd'hui
+                if (menusByDate[todayKey]) { setTodayMenu(menusByDate[todayKey]) }
+                else {
                   const entries = Object.values(menusByDate)
                   if (entries.length > 0) {
-                    const closest = entries.reduce((best, current) => {
-                      const currentTime = new Date(current.date).getTime()
-                      const bestTime = new Date(best.date).getTime()
-                      const currentDiff = Math.abs(currentTime - todayTime)
-                      const bestDiff = Math.abs(bestTime - todayTime)
-                      return currentDiff < bestDiff ? current : best
-                    })
-
+                    const closest = entries.reduce((best: any, cur: any) => Math.abs(new Date(cur.date).getTime() - todayTime) < Math.abs(new Date(best.date).getTime() - todayTime) ? cur : best)
                     setTodayMenu(closest)
                   }
                 }
               }
-            } catch (err) {
-              console.error("[Parent] Error loading class menus week", err)
-            }
+            } catch {}
           }
-
-          // Charger les personnes autorisées : délégations de l'enfant en priorité, sinon tuteurs
           const delegations = Array.isArray(enfant.delegations) ? enfant.delegations : []
-          if (delegations.length > 0) {
-            setAuthorizedPersons(
-              delegations.map((d: any) => ({
-                id: d.id,
-                name: d.nom,
-                role: d.relation ?? null,
-                phone: d.telephone ?? null,
-              })),
-            )
-          } else if (Array.isArray(profile?.tuteurs)) {
-            setAuthorizedPersons(
-              profile.tuteurs.map((t: any) => ({
-                id: t.id,
-                name: `${t.prenom ?? ""} ${t.nom ?? ""}`.trim() || t.email || "",
-                role: t.lien ?? null,
-                phone: t.telephone ?? null,
-              })),
-            )
-          }
-
-          // Charger les événements liés aux classes de l'enfant
+          if (delegations.length > 0) setAuthorizedPersons(delegations.map((d: any) => ({ id: d.id, name: d.nom, role: d.relation ?? null, phone: d.telephone ?? null })))
+          else if (Array.isArray(profile?.tuteurs)) setAuthorizedPersons(profile.tuteurs.map((tt: any) => ({ id: tt.id, name: `${tt.prenom ?? ""} ${tt.nom ?? ""}`.trim() || tt.email || "", role: tt.lien ?? null, phone: tt.telephone ?? null })))
           try {
-            const eventsRes = await apiClient.listParentEvents({
-              page: 1,
-              pageSize: 10,
-            })
-
+            const eventsRes = await apiClient.listParentEvents({ page: 1, pageSize: 10 })
             const payload = eventsRes.data
-            const rawEvents: any[] = Array.isArray(payload?.data)
-              ? payload.data
-              : Array.isArray(payload?.items)
-              ? payload.items
-              : Array.isArray(payload)
-              ? payload
-              : []
-
-            if (!cancelled) {
-              setUpcomingEvents(
-                rawEvents.map((ev: any) => {
-                  const start = ev.startAt ? new Date(ev.startAt) : null
-                  const end = ev.endAt ? new Date(ev.endAt) : null
-
-                  let timeLabel: string | null = null
-                  if (start) {
-                    const startTime = start.toLocaleTimeString("fr-FR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                    if (end) {
-                      const endTime = end.toLocaleTimeString("fr-FR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                      timeLabel = `${startTime} – ${endTime}`
-                    } else {
-                      timeLabel = startTime
-                    }
-                  }
-
-                  const dateLabel = start
-                    ? start
-                        .toLocaleDateString("fr-FR", {
-                          day: "2-digit",
-                          month: "short",
-                        })
-                        .toUpperCase()
-                    : ""
-
-                  return {
-                    id: ev.id ?? String(Math.random()),
-                    date: dateLabel,
-                    title: ev.titre ?? ev.title ?? "",
-                    time: timeLabel,
-                    description: ev.description ?? null,
-                  }
-                }),
-              )
-            }
-          } catch (err) {
-            console.error("[Parent] Error loading events", err)
-          }
+            const rawEvents: any[] = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : []
+            if (!cancelled) setUpcomingEvents(rawEvents.map((ev: any) => {
+              const start = ev.startAt ? new Date(ev.startAt) : null; const end = ev.endAt ? new Date(ev.endAt) : null
+              let timeLabel: string | null = null
+              if (start) { const st = start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); timeLabel = end ? `${st} – ${end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : st }
+              return { id: ev.id ?? String(Math.random()), date: start ? start.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }).toUpperCase() : "", title: ev.titre ?? ev.title ?? "", time: timeLabel, description: ev.description ?? null }
+            }))
+          } catch {}
         }
-      } finally {
-        if (!cancelled) {
-          setProfileLoading(false)
-        }
-      }
+      } finally { if (!cancelled) setProfileLoading(false) }
     }
-
     loadProfileAndResume()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  // Rechargement des données dépendant de la date sélectionnée
   useEffect(() => {
     if (!child?.id) return
     let cancelled = false
-
     async function loadDateData() {
-      setDateDataLoading(true)
-      setDailyResumeError(null)
-      setChildDailyResume(null)
-
+      setDateDataLoading(true); setDailyResumeError(null); setChildDailyResume(null)
       try {
         const resumeRes = await apiClient.getChildResume(child!.id as string, selectedDateStr)
         if (!cancelled) setChildDailyResume(resumeRes.data)
       } catch (err: any) {
-        if (!cancelled) {
-          setChildDailyResume(null)
-          const apiMessage = err?.response?.data?.message
-          setDailyResumeError(typeof apiMessage === "string" ? apiMessage : null)
-        }
-      } finally {
-        if (!cancelled) setDateDataLoading(false)
-      }
+        if (!cancelled) { setChildDailyResume(null); const msg = err?.response?.data?.message; setDailyResumeError(typeof msg === "string" ? msg : null) }
+      } finally { if (!cancelled) setDateDataLoading(false) }
     }
-
     void loadDateData()
     return () => { cancelled = true }
   }, [selectedDateStr, child?.id])
 
+  useEffect(() => {
+    if (!child?.id) return
+    apiClient.getChildPresences(child.id as string, 1, 20).then(res => {
+      const items = res.data?.data ?? res.data?.items ?? res.data ?? []
+      setPresences(Array.isArray(items) ? items : [])
+    }).catch(() => {})
+  }, [child?.id])
+
   const handlePasswordChange = async () => {
-    setPasswordMessage(null)
-    setPasswordError(null)
-
-    if (passwords.new !== passwords.confirm) {
-      setPasswordError(t("profile.passwordMismatch"))
-      return
-    }
-
+    setPasswordMessage(null); setPasswordError(null)
+    if (passwords.new !== passwords.confirm) { setPasswordError(t("profile.passwordMismatch")); return }
     try {
       await apiClient.changePassword(passwords.current, passwords.new)
-      setPasswords({ current: "", new: "", confirm: "" })
-      setShowPasswordForm(false)
-      setPasswordMessage(t("profile.passwordChanged"))
+      setPasswords({ current: "", new: "", confirm: "" }); setShowPasswordForm(false); setPasswordMessage(t("profile.passwordChanged"))
     } catch (err: any) {
-      console.error("[Parent] Error changing password", err)
-      const apiMessage = err?.response?.data?.message
-      if (typeof apiMessage === "string") {
-        setPasswordError(apiMessage)
-      } else if (Array.isArray(apiMessage)) {
-        setPasswordError(apiMessage.join(" "))
-      } else {
-        setPasswordError("Une erreur est survenue lors du changement de mot de passe.")
-      }
+      const msg = err?.response?.data?.message
+      setPasswordError(typeof msg === "string" ? msg : Array.isArray(msg) ? msg.join(" ") : "Erreur lors du changement de mot de passe.")
     }
   }
 
-  const renderLevelPill = (current: string | undefined | null, value: string) => {
-    const isActive = current === value
-    return (
-      <span
-        className={`px-3 py-1 text-xs md:text-sm rounded-full border ${
-          isActive
-            ? "bg-emerald-500 text-white border-emerald-500"
-            : "bg-white text-gray-600 border-gray-200"
-        }`}
-      >
-        {value}
-      </span>
-    )
-  }
+  if (profileLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center mx-auto animate-pulse"><span className="text-2xl">👶</span></div>
+        <p className="text-sm text-gray-500">Chargement…</p>
+      </div>
+    </div>
+  )
+  if (profileError) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-sm text-center p-6"><p className="text-red-600 text-sm">{profileError}</p></Card>
+    </div>
+  )
 
-  return (
-    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto px-3 md:px-4 lg:px-0 pb-6 md:pb-10">
-      {/* Child Header Card */}
-      <Card className="border-0 bg-gradient-to-r from-sky-100 to-sky-50 shadow-md rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-        <CardContent className="pt-6">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center flex-shrink-0">
-                {child?.photoUrl ? (
-                  <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-3xl sm:text-4xl">{child?.avatar ?? "👧"}</span>
-                )}
+  // ─── Nav items ────────────────────────────────────────────────────────────
+  const navItems: { id: Tab; icon: React.ReactNode; label: string }[] = [
+    { id: "home",     icon: <Home className="w-5 h-5" />,          label: "Accueil" },
+    { id: "presence", icon: <CheckCircle2 className="w-5 h-5" />,  label: "Présence" },
+    { id: "child",    icon: <Baby className="w-5 h-5" />,          label: "Enfant" },
+    { id: "menu",     icon: <Utensils className="w-5 h-5" />,      label: "Menu" },
+    { id: "events",   icon: <CalendarDays className="w-5 h-5" />,  label: "Événements" },
+  ]
+
+  // ─── Date nav helper ──────────────────────────────────────────────────────
+  const DateNav = () => (
+    <div className="flex items-center gap-1">
+      <button type="button" onClick={goToPrevDay} className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600">
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <div className="text-center min-w-[110px]">
+        <p className="text-xs font-semibold text-sky-700">
+          {isToday ? "Aujourd'hui" : selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" })}
+        </p>
+      </div>
+      <button type="button" onClick={goToNextDay} disabled={isToday} className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed">
+        <ChevronRight className="w-4 h-4" />
+      </button>
+      {!isToday && <button type="button" onClick={goToToday} className="ml-1 text-xs text-sky-600 hover:underline">Aujourd'hui</button>}
+    </div>
+  )
+
+  // ─── Daily Resume Cards ───────────────────────────────────────────────────
+  const DailyResumeContent = () => (
+    <div>
+      {dateDataLoading ? (
+        <p className="text-sm text-gray-400 text-center py-6 animate-pulse">Chargement…</p>
+      ) : childDailyResume ? (
+        <div className="space-y-3">
+          <p className="text-xs text-gray-400">{new Date(childDailyResume.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { emoji: "🙂", label: "Humeur",        value: childDailyResume.humeur,         color: "text-sky-600" },
+              { emoji: "😴", label: "Sieste",         value: childDailyResume.sieste,         color: "text-indigo-600" },
+              { emoji: "🍽️", label: "Appétit",        value: childDailyResume.appetit,        color: "text-orange-600" },
+              { emoji: "✨", label: "Participation",  value: childDailyResume.participation,  color: "text-emerald-600" },
+            ].map(item => (
+              <div key={item.label} className="bg-white rounded-xl border border-gray-100 p-3 flex flex-col gap-1">
+                <span className="text-xl">{item.emoji}</span>
+                <p className="text-xs text-gray-500">{item.label}</p>
+                <p className={`text-sm font-bold ${item.color}`}>{item.value ?? "—"}</p>
               </div>
-              <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{child?.name ?? ""}</h2>
-                <p className="text-sm text-gray-600">{child?.class}</p>
-                {child?.status && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500 px-3 py-1 text-xs sm:text-sm font-semibold text-white">
-                      <span>✓</span> {child.status}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="hidden sm:block rounded-lg bg-white p-3 sm:p-4 shadow-sm flex-shrink-0">
-              <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.classLabel')}</p>
-              <p className="text-base sm:text-lg font-bold text-gray-900">{child?.class}</p>
-            </div>
+            ))}
           </div>
+          {childDailyResume.observations && childDailyResume.observations.length > 0 && (
+            <div className="bg-sky-50 rounded-xl p-3 border border-sky-100">
+              <p className="text-xs font-medium text-sky-700 mb-1">💬 Observations</p>
+              <ul className="text-sm text-gray-600 space-y-0.5">
+                {childDailyResume.observations.map((obs, i) => <li key={i}>• {obs}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-400">{isToday ? "Aucun résumé disponible pour aujourd'hui." : `Aucun résumé pour le ${selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}.`}</p>
+          {!isToday && <button type="button" onClick={goToToday} className="mt-2 text-xs text-sky-600 hover:underline">Voir aujourd'hui</button>}
+        </div>
+      )}
+    </div>
+  )
+
+  // ─── Tab: Home ────────────────────────────────────────────────────────────
+  const HomeTab = () => (
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      {/* Child hero card */}
+      <div className="bg-gradient-to-r from-sky-500 to-sky-400 rounded-2xl p-4 text-white shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 border-2 border-white/40">
+            {child?.photoUrl ? <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" /> : <span className="text-3xl">{child?.avatar ?? "👧"}</span>}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold truncate">{child?.name ?? ""}</h2>
+            <p className="text-sky-100 text-sm">{child?.class}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily resume */}
+      <Card className="border border-sky-100 shadow-sm rounded-2xl">
+        <CardHeader className="pb-3 border-b border-sky-50">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-bold text-gray-900">Résumé du jour</CardTitle>
+            <DateNav />
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4"><DailyResumeContent /></CardContent>
+      </Card>
+
+      {/* Class message */}
+      <Card className="border border-sky-100 shadow-sm rounded-2xl">
+        <CardHeader className="pb-3 border-b border-sky-50">
+          <CardTitle className="text-sm font-bold text-gray-900">💬 Message de la classe</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {dailyMessage ? <p className="text-sm text-gray-700 leading-relaxed">{dailyMessage}</p> : <p className="text-sm text-gray-400">Aucun message pour aujourd'hui.</p>}
         </CardContent>
       </Card>
 
-      {/* Tabs Navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Barre d’onglets */}
-        <div className="mt-4 flex justify-center">
-          <TabsList
-            className="
-              inline-flex items-center gap-1 
-              bg-sky-50 border border-sky-100 
-              rounded-full px-2 py-1 shadow-sm
-            "
-          >
-            <TabsTrigger
-              value="overview"
-              className="
-                inline-flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold
-                rounded-full
-                text-sky-700/70
-                data-[state=active]:bg-white data-[state=active]:text-sky-700
-                hover:bg-white/70 hover:text-sky-700
-              "
-            >
-              <span>👁️</span>
-              <span>{t('tabs.overview')}</span>
-            </TabsTrigger>
+      {/* Events preview */}
+      {upcomingEvents.length > 0 && (
+        <Card className="border border-green-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 border-b border-green-50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-gray-900">📅 Événements à venir</CardTitle>
+              <button type="button" onClick={() => setActiveTab("events")} className="text-xs text-sky-600 hover:underline">Voir tout</button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            {upcomingEvents.slice(0, 2).map(ev => (
+              <div key={ev.id} className="flex items-center gap-3 p-2 rounded-xl bg-green-50 border border-green-100">
+                <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{ev.date}</div>
+                <div><p className="text-sm font-semibold text-gray-900">{ev.title}</p>{ev.time && <p className="text-xs text-gray-500">{ev.time}</p>}</div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
 
-            <TabsTrigger
-              value="menu"
-              className="
-                inline-flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold
-                rounded-full
-                text-sky-700/70
-                data-[state=active]:bg-white data-[state=active]:text-sky-700
-                hover:bg-white/70 hover:text-sky-700
-              "
-            >
-              <span>🍽️</span>
-              <span>{t('tabs.menu')}</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="profile"
-              className="
-                inline-flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold
-                rounded-full
-                text-sky-700/70
-                data-[state=active]:bg-white data-[state=active]:text-sky-700
-                hover:bg-white/70 hover:text-sky-700
-              "
-            >
-              <span>👤</span>
-              <span>{t('tabs.profile')}</span>
-            </TabsTrigger>
-          </TabsList>
+  // ─── Tab: Presence ────────────────────────────────────────────────────────
+  const PresenceTab = () => {
+    const todayStr = new Date().toISOString().split("T")[0]
+    const todayPresence = presences.find((p: any) => (p.date ?? "").slice(0, 10) === todayStr)
+    const statut = todayPresence?.statut
+    return (
+      <div className="px-4 pt-4 pb-4 space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Présences</h2>
+        {/* Today status */}
+        <div className={`rounded-2xl p-4 border-2 ${statut === "Present" ? "bg-emerald-50 border-emerald-300" : statut === "Absent" ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-200"}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{statut === "Present" ? "✅" : statut === "Absent" ? "❌" : "❓"}</span>
+            <div>
+              <p className="font-bold text-gray-900">{statut === "Present" ? "Présent(e) aujourd'hui" : statut === "Absent" ? "Absent(e) aujourd'hui" : "Statut du jour inconnu"}</p>
+              <p className="text-xs text-gray-500">{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Vue d'ensemble Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Child Daily Resume */}
-          <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-            <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-              <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base font-bold text-gray-900">{t('overview.dailySummaryTitle')}</CardTitle>
-                  {/* Navigation par date */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={goToPrevDay}
-                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 text-sm"
-                      title="Jour précédent"
-                    >
-                      ‹
-                    </button>
-                    <div className="text-center min-w-[100px]">
-                      <p className="text-xs font-semibold text-sky-700">
-                        {isToday
-                          ? "Aujourd'hui"
-                          : selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" })}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={goToNextDay}
-                      disabled={isToday}
-                      className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Jour suivant"
-                    >
-                      ›
-                    </button>
-                    {!isToday && (
-                      <button
-                        type="button"
-                        onClick={goToToday}
-                        className="ml-1 text-xs text-sky-600 hover:underline"
-                      >
-                        Aujourd'hui
-                      </button>
-                    )}
-                  </div>
-                </div>
+        {/* Resume du jour */}
+        <Card className="border border-sky-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 border-b border-sky-50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-bold text-gray-900">Résumé du jour</CardTitle>
+              <DateNav />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4"><DailyResumeContent /></CardContent>
+        </Card>
+
+        {/* Attendance history */}
+        {presences.length > 0 && (
+          <Card className="border border-gray-100 shadow-sm rounded-2xl">
+            <CardHeader className="pb-3 border-b border-gray-50">
+              <CardTitle className="text-sm font-bold text-gray-900">Historique des présences</CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              {dateDataLoading ? (
-                <p className="text-sm text-gray-500 text-center py-4">Chargement…</p>
-              ) : childDailyResume ? (
-                <>
-                  <p className="text-xs text-gray-500">
-                    {new Date(childDailyResume.date).toLocaleDateString("fr-FR", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-
-                  <div className="grid gap-3 mt-3">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
-                      <div className="text-3xl">🙂</div>
-                      <div>
-                      <p className="text-sm text-gray-500">{t('overview.moodLabel')}</p>
-                        <p className="text-lg font-bold text-sky-600">{childDailyResume.humeur ?? "-"}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {renderLevelPill(childDailyResume.humeur, "Bien")}
-                        {renderLevelPill(childDailyResume.humeur, "Moyenne")}
-                        {renderLevelPill(childDailyResume.humeur, "Difficile")}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
-                      <div className="text-3xl">😴</div>
-                      <div>
-                      <p className="text-sm text-gray-500">{t('overview.napLabel')}</p>
-                        <p className="text-lg font-bold text-sky-700">{childDailyResume.sieste ?? "-"}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {renderLevelPill(childDailyResume.sieste, "Courte")}
-                        {renderLevelPill(childDailyResume.sieste, "Moyenne")}
-                        {renderLevelPill(childDailyResume.sieste, "Longue")}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col gap-3">
-                      <div className="text-3xl">✨</div>
-                      <div>
-                      <p className="text-sm text-gray-500">{t('overview.participationLabel')}</p>
-                        <p className="text-lg font-bold text-emerald-600">{childDailyResume.participation ?? "-"}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {renderLevelPill(childDailyResume.participation, "Faible")}
-                        {renderLevelPill(childDailyResume.participation, "Moyenne")}
-                        {renderLevelPill(childDailyResume.participation, "Forte")}
-                      </div>
-                    </div>
+            <CardContent className="pt-3 space-y-1.5">
+              {presences.slice(0, 15).map((p: any, i: number) => {
+                const d = (p.date ?? "").slice(0, 10)
+                const label = d ? new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) : "—"
+                return (
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                    <p className="text-sm text-gray-700 capitalize">{label}</p>
+                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.statut === "Present" ? "bg-emerald-100 text-emerald-700" : p.statut === "Absent" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>{p.statut ?? "—"}</span>
                   </div>
-
-                  {childDailyResume.observations && childDailyResume.observations.length > 0 && (
-                    <div className="pt-2 border-t border-gray-100 mt-2">
-                      <p className="text-xs font-medium text-gray-500 mb-1">{t('overview.observationsLabel')}</p>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                        {childDailyResume.observations.map((obs, idx) => (
-                          <li key={idx}>{obs}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500">
-                    {isToday
-                      ? "Aucun résumé disponible pour aujourd'hui."
-                      : `Aucun résumé disponible pour le ${selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}.`}
-                  </p>
-                  {!isToday && (
-                    <button
-                      type="button"
-                      onClick={goToToday}
-                      className="mt-2 text-xs text-sky-600 hover:underline"
-                    >
-                      Voir aujourd'hui
-                    </button>
-                  )}
-                </div>
-              )}
+                )
+              })}
             </CardContent>
           </Card>
+        )}
+      </div>
+    )
+  }
 
-          {/* Daily Summary */}
-          <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-            <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-              <CardTitle className="text-base font-bold text-gray-900">{t('overview.dailySummaryTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {profileLoading ? (
-                <p className="text-sm text-gray-500">{t('overview.loadingDailySummary')}</p>
-              ) : dailyMessage ? (
-                <p className="text-sm leading-relaxed text-gray-600">{dailyMessage}</p>
-              ) : (
-                <p className="text-sm text-gray-500">{t('overview.noDailyMessage')}</p>
-              )}
-            </CardContent>
-          </Card>
+  // ─── Tab: Child ───────────────────────────────────────────────────────────
+  const ChildTab = () => (
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      <h2 className="text-xl font-bold text-gray-900">Profil de l'enfant</h2>
 
-          {/* Upcoming Events */}
-          <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-            <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-              <CardTitle className="text-base font-bold text-gray-900">{t('overview.upcomingEventsTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-6">
-              {upcomingEvents.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('overview.noUpcomingEvents')}</p>
-              ) : (
-                upcomingEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center gap-4 rounded-lg bg-green-50 p-4 border border-green-100"
-                  >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-green-500 font-bold text-white text-sm flex-shrink-0">
-                      {event.date}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{event.title}</p>
-                      {event.description && (
-                        <p className="text-sm text-gray-600 mt-1">{event.description}</p>
-                      )}
-                      <p className="text-sm text-gray-500">{event.time}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Menu du jour + semaine Tab */}
-        <TabsContent value="menu" className="space-y-6">
-          {/* Menu du jour (ou le plus proche) */}
-          <Card className="border-2 border-sky-300 shadow-md rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-            <CardHeader className="border-b border-sky-300 bg-gradient-to-r from-sky-100 to-sky-50 pb-4">
-              <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-                <span>🍽️</span> {t('menu.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {todayMenu ? (
-                <>
-                  <p className="text-sm font-semibold text-sky-700 mt-1">
-                    {new Date(todayMenu.date).toLocaleDateString("fr-FR", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                  <div className="space-y-4">
-                    {todayMenu.entree && (
-                      <div className="flex gap-3">
-                        <span className="text-xl flex-shrink-0">🥛</span>
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase">Petit-déjeuner</p>
-                          <p className="text-sm font-semibold text-gray-900">{todayMenu.entree}</p>
-                        </div>
-                      </div>
-                    )}
-                    {todayMenu.plat && (
-                      <div className="flex gap-3 border-t pt-4">
-                        <span className="text-xl flex-shrink-0">🍗</span>
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase">Déjeuner</p>
-                          <p className="text-sm font-semibold text-gray-900">{todayMenu.plat}</p>
-                        </div>
-                      </div>
-                    )}
-                    {todayMenu.dessert && (
-                      <div className="flex gap-3 border-t pt-4">
-                        <span className="text-xl flex-shrink-0">🍎</span>
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase">Goûter</p>
-                          <p className="text-sm font-semibold text-gray-900">{todayMenu.dessert}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  Aucun menu publié pour cette semaine n'est disponible pour la classe de votre enfant.
+      {/* Child info */}
+      <Card className="border border-sky-100 shadow-sm rounded-2xl">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-sky-200 flex items-center justify-center flex-shrink-0 border-2 border-sky-300">
+              {child?.photoUrl ? <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" /> : <span className="text-3xl">{child?.avatar ?? "👧"}</span>}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-gray-900 text-lg">{child?.name ?? ""}</p>
+              <p className="text-sm text-sky-600">{child?.class}</p>
+              {child?.birthdate && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Né(e) le {new Date(child.birthdate).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
                 </p>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Menus de la semaine (liste complète) */}
-          {Object.keys(weekMenus).length > 0 && (
-            <Card className="border border-sky-200 shadow-sm rounded-2xl">
-              <CardHeader className="border-b border-sky-100 bg-sky-50 pb-4">
-                <CardTitle className="text-base font-bold text-gray-900">
-                  Menus de la semaine
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-xs font-semibold text-gray-600">
-                        <th className="px-3 py-2">Jour</th>
-                        <th className="px-3 py-2">🥛 Petit-déjeuner</th>
-                        <th className="px-3 py-2">🍗 Déjeuner</th>
-                        <th className="px-3 py-2">🍎 Goûter</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.values(weekMenus)
-                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                        .map((menu) => (
-                          <tr key={menu.date} className="border-t border-sky-100 align-top">
-                            <td className="px-3 py-3 whitespace-nowrap">
-                              <div className="text-xs font-semibold text-gray-800">
-                                {new Date(menu.date)
-                                  .toLocaleDateString("fr-FR", {
-                                    weekday: "long",
-                                    day: "2-digit",
-                                    month: "short",
-                                  })
-                                  .toUpperCase()}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-gray-700">
-                              {menu.entree ? (
-                                <span className="font-semibold">{menu.entree}</span>
-                              ) : (
-                                <span className="text-gray-400">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3 text-gray-700">
-                              {menu.plat ? (
-                                <span className="font-semibold">{menu.plat}</span>
-                              ) : (
-                                <span className="text-gray-400">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3 text-gray-700">
-                              {menu.dessert ? (
-                                <span className="font-semibold">{menu.dessert}</span>
-                              ) : (
-                                <span className="text-gray-400">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Profil Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Child Information */}
-            <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-              <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-                <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-                  <span>ℹ️</span> {t('profile.childInfoTitle')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full overflow-hidden bg-sky-200 shadow-sm flex items-center justify-center flex-shrink-0">
-                    {child?.photoUrl ? (
-                      <img src={child.photoUrl} alt={child.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">{child?.avatar ?? "👧"}</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{child?.name ?? ""}</p>
-                    <p className="text-sm text-gray-600">
-                      {child?.class}
-                    </p>
-                  </div>
-                </div>
-                <div className="border-t pt-4">
-                  <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.birthdateLabel')}</p>
-                  <p className="font-semibold text-gray-900">
-                    {child?.birthdate
-                      ? new Date(child.birthdate).toLocaleDateString("fr-FR", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : "-"}
-                  </p>
-                </div>
-                {child?.allergies && child.allergies.length > 0 && (
-                  <div className="border-t pt-4">
-                    <p className="text-xs font-medium text-gray-500 uppercase">{t('profile.allergiesLabel')}</p>
-                    <p className="text-sm font-semibold text-gray-700 mt-1">
-                      {child.allergies.join(", ") ?? t('profile.noAllergies')}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Authorized Persons */}
-            <Card className="border border-sky-100 shadow-sm rounded-2xl transition-transform duration-200 hover:-translate-y-0.5">
-              <CardHeader className="border-b border-sky-100 bg-gradient-to-r from-sky-50 to-transparent pb-4">
-                <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-                  <span>👥</span> {t('profile.authorizedPersonsTitle')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-6">
-                {authorizedPersons.map((person) => (
-                  <div key={person.id} className="rounded-lg bg-sky-50 p-3 border border-sky-100">
-                    <p className="font-semibold text-gray-900">{person.name}</p>
-                    {person.role && (
-                      <p className="text-xs text-gray-600">{person.role}</p>
-                    )}
-                    {person.phone && (
-                      <p className="text-sm font-medium text-gray-500 uppercase">{t('profile.phoneLabel')}</p>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Change Password */}
-            <Card className="border border-sky-100 shadow-sm rounded-2xl transform duration-200 hover:-translate-y-0.5">
-              <CardHeader className="border-b border-sky-100 bg-sky-100">
-                <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-                  <span>🔐</span> {t('profile.securityTitle')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {passwordMessage && (
-                  <p className="mb-3 text-xs text-green bg-green-300 boder-green-300 rounded-md px-3 py-2">
-                    {passwordMessage}
-                  </p>
-                )}
-                {passwordError && (
-                  <p className="mb-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                    {passwordError}
-                  </p>
-                )}
-              
-                {!showPasswordForm ? (
-                  <Button
-                    onClick={() => setShowPasswordForm(true)}
-                    className="  bg-gray-100 hover:text-black  transition-transform duration-150 hover:-translate-y-0.5"
-                  >
-                    {t('profile.changePasswordCta')}
-                  </Button>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                          <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.currentPasswordLabel')}</p>
-                      <Input
-                        type="password"
-                        placeholder={t('profile.currentPasswordPlaceholder')}
-                        value={passwords.current}
-                        onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                        className="mt-1 border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.newPasswordLabel')}</p>
-                      <Input
-                        type="password"
-                        placeholder={t('profile.newPasswordPlaceholder')}
-                        value={passwords.new}
-                        onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                        className="mt-1 border-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 uppercase">{t('profile.confirmPasswordLabel')}</p>
-                      <Input
-                        type="password"
-                        placeholder={t('profile.confirmPasswordPlaceholder')}
-                        value={passwords.confirm}
-                        onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                        className="mt-1 border-gray-300"
-                      />
-                    </div>
-                    <div className="flex gap-3 pt-2">
-                      <Button onClick={handlePasswordChange} className="bg-green-600 hover:bg-green-700 text-white">
-                        {t('profile.saveButton')}
-                      </Button>
-                      <Button onClick={() => setShowPasswordForm(false)} variant="outline" className="border-gray-300">
-                        {t('profile.cancelButton')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            </div>
           </div>
-        </TabsContent>
-       
-      </Tabs>
+          {child?.allergies && child.allergies.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-xs font-medium text-red-600 uppercase mb-1">⚠️ Allergies</p>
+              <p className="text-sm text-gray-700">{child.allergies.join(", ")}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Authorized persons */}
+      {authorizedPersons.length > 0 && (
+        <Card className="border border-sky-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 border-b border-sky-50">
+            <CardTitle className="text-sm font-bold text-gray-900">👥 Personnes autorisées</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            {authorizedPersons.map(person => (
+              <div key={person.id} className="rounded-xl bg-sky-50 border border-sky-100 p-3">
+                <p className="font-semibold text-sm text-gray-900">{person.name}</p>
+                {person.role && <p className="text-xs text-gray-600 mt-0.5">{person.role}</p>}
+                {person.phone && <p className="text-xs text-sky-600 mt-0.5">📞 {person.phone}</p>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Password change */}
+      <Card className="border border-gray-100 shadow-sm rounded-2xl">
+        <CardHeader className="pb-3 border-b border-gray-50">
+          <CardTitle className="text-sm font-bold text-gray-900">🔐 Sécurité</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {passwordMessage && <div className="mb-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{passwordMessage}</div>}
+          {passwordError && <div className="mb-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{passwordError}</div>}
+          {!showPasswordForm ? (
+            <Button onClick={() => setShowPasswordForm(true)} variant="outline" size="sm" className="w-full border-gray-200">Changer le mot de passe</Button>
+          ) : (
+            <div className="space-y-3">
+              {[
+                { key: "current" as const, label: "Mot de passe actuel", ph: "••••••••" },
+                { key: "new" as const,     label: "Nouveau mot de passe", ph: "••••••••" },
+                { key: "confirm" as const, label: "Confirmer",           ph: "••••••••" },
+              ].map(field => (
+                <div key={field.key}>
+                  <p className="text-xs font-medium text-gray-600 mb-1">{field.label}</p>
+                  <Input type="password" placeholder={field.ph} value={passwords[field.key]} onChange={e => setPasswords(p => ({ ...p, [field.key]: e.target.value }))} className="h-10" />
+                </div>
+              ))}
+              <div className="flex gap-2 pt-1">
+                <Button onClick={handlePasswordChange} size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">Enregistrer</Button>
+                <Button onClick={() => setShowPasswordForm(false)} variant="outline" size="sm" className="flex-1">Annuler</Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  // ─── Tab: Menu ────────────────────────────────────────────────────────────
+  const MenuTab = () => (
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+
+      {/* Today's menu */}
+      <Card className="border-2 border-sky-300 shadow-md rounded-2xl bg-gradient-to-b from-sky-50 to-white">
+        <CardHeader className="pb-3 border-b border-sky-200">
+          <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2"><span>🍽️</span> Menu du jour</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {todayMenu ? (
+            <div className="space-y-3">
+              <p className="text-xs text-sky-600 font-medium">{new Date(todayMenu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+              {[
+                { icon: "🥛", label: "Collation matin",  value: todayMenu.entree },
+                { icon: "🍗", label: "Repas",            value: todayMenu.plat },
+                { icon: "🍎", label: "Goûter",           value: todayMenu.dessert },
+              ].filter(r => r.value).map(row => (
+                <div key={row.label} className="flex items-start gap-3 py-2 border-t border-sky-100 first:border-0 first:pt-0">
+                  <span className="text-xl flex-shrink-0">{row.icon}</span>
+                  <div><p className="text-xs font-medium text-gray-500 uppercase">{row.label}</p><p className="text-sm font-semibold text-gray-900">{row.value}</p></div>
+                </div>
+              ))}
+              {!todayMenu.entree && !todayMenu.plat && !todayMenu.dessert && <p className="text-sm text-gray-400">Aucun repas renseigné.</p>}
+            </div>
+          ) : <p className="text-sm text-gray-400">Aucun menu publié pour cette semaine.</p>}
+        </CardContent>
+      </Card>
+
+      {/* Week menus */}
+      {Object.keys(weekMenus).length > 0 && (
+        <Card className="border border-sky-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 border-b border-sky-50">
+            <CardTitle className="text-sm font-bold text-gray-900">📋 Menus de la semaine</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-3">
+            {Object.values(weekMenus).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((menu: any) => (
+              <div key={menu.date} className="rounded-xl border border-sky-50 bg-sky-50/50 p-3">
+                <p className="text-xs font-bold text-sky-700 mb-2 uppercase">{new Date(menu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "short" })}</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  {[{ icon: "🥛", v: menu.entree }, { icon: "🍗", v: menu.plat }, { icon: "🍎", v: menu.dessert }].map((r, i) => (
+                    <div key={i} className="text-center"><span>{r.icon}</span><p className="text-gray-700 mt-0.5 truncate">{r.v || "—"}</p></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+
+  // ─── Tab: Events ──────────────────────────────────────────────────────────
+  const EventsTab = () => (
+    <div className="px-4 pt-4 pb-4 space-y-4">
+      <h2 className="text-xl font-bold text-gray-900">Événements</h2>
+      {upcomingEvents.length === 0 ? (
+        <Card className="border border-gray-100 rounded-2xl">
+          <CardContent className="pt-8 pb-8 text-center">
+            <span className="text-4xl">📅</span>
+            <p className="mt-3 text-sm text-gray-400">Aucun événement à venir.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {upcomingEvents.map(ev => (
+            <div key={ev.id} className="flex items-start gap-3 rounded-2xl bg-white border border-green-100 shadow-sm p-4">
+              <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 text-center leading-tight">{ev.date}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 text-sm">{ev.title}</p>
+                {ev.time && <p className="text-xs text-gray-500 mt-0.5">🕐 {ev.time}</p>}
+                {ev.description && <p className="text-xs text-gray-600 mt-1 leading-relaxed">{ev.description}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  // ─── Main render ──────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {activeTab === "home"     && <HomeTab />}
+      {activeTab === "presence" && <PresenceTab />}
+      {activeTab === "child"    && <ChildTab />}
+      {activeTab === "menu"     && <MenuTab />}
+      {activeTab === "events"   && <EventsTab />}
+
+      {/* ── Fixed Bottom Navigation ── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+          {navItems.map(item => {
+            const isActive = activeTab === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveTab(item.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-all ${isActive ? "text-sky-600" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <span className={`transition-transform duration-150 ${isActive ? "scale-110" : ""}`}>{item.icon}</span>
+                <span className={`text-[10px] font-medium ${isActive ? "text-sky-600" : "text-gray-400"}`}>{item.label}</span>
+                {isActive && <span className="w-1 h-1 rounded-full bg-sky-500 mt-0.5" />}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

@@ -1,92 +1,55 @@
 "use client"
 
 import type React from "react"
-
 import Image from "next/image"
-import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { Button } from "@/components/ui/button"
 
-export default function ParentLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function ParentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const t = useTranslations()
 
-  // Déterminer la locale actuelle à partir de l'URL (/fr/... ou /ar/...)
   const isArabic = pathname?.startsWith("/ar")
   const currentLocale = isArabic ? "ar" : "fr"
-  const currentLabel = isArabic ? "AR" : "FR"
   const nextLocale = isArabic ? "fr" : "ar"
-  const nextLabel = isArabic ? "FR" : "AR"
 
   const handleToggleLanguage = () => {
     if (!pathname) return
-
     const segments = pathname.split("/")
-    if (segments.length > 1) {
-      segments[1] = nextLocale
-      const newPath = segments.join("/") || "/"
-      router.push(newPath)
-    }
+    if (segments.length > 1) { segments[1] = nextLocale; router.push(segments.join("/") || "/") }
   }
 
   const handleLogout = () => {
-    // Nettoyage basique côté client
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
     document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-    try {
-      localStorage.removeItem("token")
-      localStorage.removeItem("auth_token")
-    } catch {
-      // ignore
-    }
-
-    const loginPath = `/${currentLocale}`
-    router.push(loginPath)
+    try { localStorage.removeItem("token"); localStorage.removeItem("auth_token") } catch {}
+    router.push(`/${currentLocale}`)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-slate-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-3 md:px-6 py-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 overflow-hidden">
-              <Image
-                src="/Group 13.svg"
-                alt="Logo PetitsPas"
-                width={40}
-                height={40}
-              />
+    <div className="min-h-screen bg-gray-50">
+      {/* Slim top bar */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="flex items-center justify-between h-12 px-4 max-w-lg mx-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center bg-sky-50">
+              <Image src="/Group 13.svg" alt="PetitsPas" width={28} height={28} />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{t("parent.dashboard.title")}</h1>
-              <p className="text-sm text-gray-500">{t("parent.dashboard.subtitle")}</p>
-            </div>
+            <span className="text-sm font-bold text-gray-900">PetitsPas</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 md:gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToggleLanguage}
-              className="rounded-full"
-            >
-              {currentLabel} • {nextLabel}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+          <div className="flex items-center gap-2">
+            <button onClick={handleToggleLanguage} className="text-xs font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-full px-2.5 py-1">
+              {isArabic ? "FR" : "AR"}
+            </button>
+            <button onClick={handleLogout} className="text-xs font-medium text-red-500 hover:text-red-700 border border-red-100 rounded-full px-2.5 py-1">
               {t("common.logout")}
-            </Button>
+            </button>
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
-      <main className="px-3 md:px-6 py-6 md:py-8">{children}</main>
+      {/* Main content — add top padding for header */}
+      <main className="pt-12">{children}</main>
     </div>
   )
 }
