@@ -86,6 +86,12 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
   const [saving,   setSaving]     = useState(false);
   const [modalErr, setModalErr]   = useState<string | null>(null);
 
+  // Week-fill modal
+  const [weekModal, setWeekModal] = useState(false);
+  const [weekForm,  setWeekForm]  = useState({ collationMatin: "", repas: "", gouter: "" });
+  const [weekSaving, setWeekSaving] = useState(false);
+  const [weekErr,  setWeekErr]    = useState<string | null>(null);
+
   // ── fetch ──────────────────────────────────────────────────────────────────
   const fetchMenus = async () => {
     try {
@@ -168,7 +174,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       for (const date of daysWithMenus) {
         const menu = allMenus[date];
         if (!menu?.id) continue;
-        if (menu.statut === "Publie") await apiClient.unpublishMenu(menu.id);
+        if (menu.statut === "Publie") await apiClient.updateMenu(menu.id, { statut: "Brouillon" } as any);
         await apiClient.deleteMenu(menu.id);
       }
       setAllMenus(prev => {
@@ -180,6 +186,34 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       alert("Erreur lors de la suppression de la semaine.");
     }
   };
+  const saveWeekModal = async () => {
+    const { collationMatin, repas, gouter } = weekForm;
+    if (!collationMatin.trim() && !repas.trim() && !gouter.trim()) {
+      setWeekErr("Veuillez renseigner au moins un champ.");
+      return;
+    }
+    setWeekSaving(true);
+    setWeekErr(null);
+    try {
+      for (const date of weekDates) {
+        const existing = allMenus[date];
+        if (existing?.id) continue; // skip days that already have a menu
+        const res = await apiClient.createMenu({ date, collationMatin, repas, gouter } as any);
+        const saved = res.data;
+        setAllMenus(prev => ({
+          ...prev,
+          [date]: { id: saved?.id, collationMatin, repas, gouter, statut: "Brouillon" },
+        }));
+      }
+      setWeekModal(false);
+      setWeekForm({ collationMatin: "", repas: "", gouter: "" });
+    } catch {
+      setWeekErr("Erreur lors de la création des menus.");
+    } finally {
+      setWeekSaving(false);
+    }
+  };
+
   const handlePublish = async (date: string) => {
     const menu = allMenus[date];
     if (!menu?.id || menu.statut === "Publie") return;
@@ -215,6 +249,14 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               <Button variant="outline" size="sm" onClick={nextWeek}><ChevronRight className="w-4 h-4" /></Button>
               <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
               <Button
+                size="sm"
+                onClick={() => { setWeekModal(true); setWeekErr(null); setWeekForm({ collationMatin: "", repas: "", gouter: "" }); }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <span className="hidden sm:inline">+ Ajouter menu semaine</span>
+                <span className="sm:hidden">+ Semaine</span>
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDeleteWeek}
@@ -223,7 +265,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                 <span className="hidden sm:inline">Supprimer la semaine</span>
-                <span className="sm:hidden">Sup. semaine</span>
+                <span className="sm:hidden">Sup.</span>
               </Button>
             </div>
           </div>
@@ -414,6 +456,44 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               <Button variant="outline" onClick={closeModal} disabled={saving}>Annuler</Button>
               <Button onClick={saveModal} disabled={saving} className="bg-primary text-primary-foreground">
                 {saving ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Week Fill Modal ─────────────────────────────────────────────────────── */}
+      {weekModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+              <div>
+                <h2 className="font-bold text-base text-foreground">Ajouter menu pour la semaine</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatWeekLabel(monday)} — appliqué aux jours vides uniquement</p>
+              </div>
+              <button onClick={() => setWeekModal(false)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {MEAL_ROWS.map(row => (
+                <div key={row.key}>
+                  <label className="block text-xs font-semibold text-foreground mb-1">{row.label}</label>
+                  <Input
+                    value={weekForm[row.key]}
+                    onChange={e => setWeekForm(prev => ({ ...prev, [row.key]: e.target.value }))}
+                    placeholder={row.placeholder}
+                    className="h-10 text-sm"
+                  />
+                </div>
+              ))}
+              {weekErr && <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">{weekErr}</p>}
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/20">
+              <Button variant="outline" onClick={() => setWeekModal(false)} disabled={weekSaving}>Annuler</Button>
+              <Button onClick={saveWeekModal} disabled={weekSaving} className="bg-primary text-primary-foreground">
+                {weekSaving ? "Création…" : "Créer les menus"}
               </Button>
             </div>
           </div>
