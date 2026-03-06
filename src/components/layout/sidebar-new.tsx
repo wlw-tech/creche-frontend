@@ -233,7 +233,7 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-2 space-y-1 bg-sidebar">
           <div className="px-4 py-2">
             <LanguageSwitcher currentLocale={currentLocale as any} />
           </div>

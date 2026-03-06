@@ -115,7 +115,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
   // ── modal ──────────────────────────────────────────────────────────────────
   const openModal = (date: string) => {
-    // published menus can be re-edited
+    
     const m = allMenus[date];
     setDayModal({ date, collationMatin: m?.collationMatin ?? "", repas: m?.repas ?? "", gouter: m?.gouter ?? "" });
     setModalErr(null);
@@ -136,7 +136,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       const existing = allMenus[date];
       let saved: any;
       if (existing?.id) {
-        const res = await apiClient.updateMenu(existing.id, { collationMatin, repas, gouter } as any);
+        const res = await apiClient.updateMenu(existing.id, { collationMatin, repas, gouter, statut: "Brouillon" } as any);
         saved = res.data;
       } else {
         const res = await apiClient.createMenu({ date, collationMatin, repas, gouter } as any);
@@ -177,6 +177,9 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     const menu = allMenus[date];
     if (!menu?.id) return;
     try {
+      if (menu.statut === "Publie") {
+        await apiClient.unpublishMenu(menu.id);
+      }
       await apiClient.deleteMenu(menu.id);
       setAllMenus(prev => { const n = { ...prev }; delete n[date]; return n; });
     } catch {
@@ -238,6 +241,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                           {isPublished ? (
                             <div className="flex items-center gap-1.5">
                               <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
+                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70"><Pencil className="w-3 h-3" /> Modifier</button>
                               <button onClick={() => handleDelete(iso)} className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full border border-red-200 active:opacity-70">✕</button>
                             </div>
                           ) : (
@@ -291,6 +295,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                                 {isPublished ? (
                                   <div className="flex justify-center items-center gap-1">
                                     <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">Publié ✓</span>
+                                    <button onClick={() => openModal(iso)} className="text-[10px] inline-flex items-center gap-0.5 bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full border border-sky-200 hover:bg-sky-200 transition-colors"><Pencil className="w-2.5 h-2.5" /> Mod.</button>
                                     <button onClick={() => handleDelete(iso)} className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full border border-red-200 hover:bg-red-200 transition-colors">✕</button>
                                   </div>
                                 ) : (
@@ -329,18 +334,14 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                             return (
                               <td
                                 key={iso}
-                                onClick={() => !isPublished && openModal(iso)}
-                                title={isPublished ? "Menu publié — non modifiable" : "Cliquer pour modifier le menu du jour"}
-                                className={`px-3 py-3 border-r border-border last:border-r-0 text-xs align-middle min-w-[155px] ${
-                                  isPublished ? "bg-emerald-50/30 cursor-default" : "cursor-pointer hover:bg-sky-50/60 transition-colors"
-                                }`}
+                                onClick={() => openModal(iso)}
+                                title="Cliquer pour modifier le menu du jour"
+                                className="px-3 py-3 border-r border-border last:border-r-0 text-xs align-middle min-w-[155px] cursor-pointer hover:bg-sky-50/60 transition-colors"
                               >
                                 {value ? (
                                   <span className="text-foreground">{value}</span>
                                 ) : (
-                                  <span className="text-muted-foreground/30">
-                                    {isPublished ? "—" : "Cliquer pour saisir"}
-                                  </span>
+                                  <span className="text-muted-foreground/30">Cliquer pour saisir</span>
                                 )}
                               </td>
                             );

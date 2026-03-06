@@ -187,14 +187,10 @@ export function Sidebar() {
         </nav>
 
         {/* Bas de sidebar */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
+        <div className=" absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 space-y-2 bg-sidebar">
           <div className="px-4 py-2">
             <LanguageSwitcher currentLocale={useI18n().locale} />
           </div>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent/30 transition-all">
-            <Settings className="w-5 h-5" />
-            Paramètres
-          </button>
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
             <LogOut className="w-5 h-5" />
             Déconnexion
@@ -318,10 +314,6 @@ export function Sidebar() {
           <div className="px-4 py-2">
             <LanguageSwitcher currentLocale={useI18n().locale} />
           </div>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent/30 transition-all">
-            <Settings className="w-5 h-5" />
-            Paramètres
-          </button>
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
             <LogOut className="w-5 h-5" />
             Déconnexion

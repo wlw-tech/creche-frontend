@@ -8,6 +8,7 @@ import { Users, Calendar, FileText, Settings, LogOut, Baby } from "lucide-react"
 import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { Locale } from "@/lib/i18n/config";
+import Link from "next/link";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { apiClient } from "@/lib/api";
 
@@ -238,10 +239,6 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <LanguageSwitcher currentLocale={currentLocale} />
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Paramètres
-                </Button>
                 <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:inline-flex">
                   <LogOut className="h-4 w-4 mr-2" />
                   Déconnexion
@@ -430,6 +427,22 @@ export default function AdminPage({ params }: { params: Promise<{ locale: Locale
           )}
         </Card>
       </section>
+
+      {/* Quick access: password change */}
+      <Card className="border border-gray-200 shadow-sm bg-white rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-gray-500" />
+            Sécurité du compte
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">Modifiez votre mot de passe administrateur</p>
+        </div>
+        <Link href={`/${currentLocale}/admin/profile`}>
+          <Button variant="outline" size="sm" className="text-xs">
+            Changer le mot de passe
+          </Button>
+        </Link>
+      </Card>
     </main>
   </div>
 </div>
