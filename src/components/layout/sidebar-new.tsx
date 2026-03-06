@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -160,7 +160,8 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
 
         <nav className="space-y-1 px-3 pb-28">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
+            const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));
             const hasSubmenu = item.submenu && item.submenu.length > 0;
             const isExpanded = expandedMenus.includes(item.labelKey);
 
@@ -207,7 +208,8 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                 {isExpanded && item.submenu && (
                   <div className="ml-4 mt-1 space-y-1">
                     {item.submenu.map((subitem) => {
-                      const isSubActive = pathname === subitem.href;
+                      const subPathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
+                      const isSubActive = subPathForActive === subitem.href;
                       return (
                         <Link
                           key={subitem.href}
@@ -283,7 +285,8 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
 
         <nav className="space-y-1 px-3 pb-28">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const pathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
+            const isActive = pathForActive === item.href || (item.href !== "/admin" && pathForActive.startsWith(item.href + "/"));
             const hasSubmenu = item.submenu && item.submenu.length > 0;
             const isExpanded = expandedMenus.includes(item.labelKey);
 
@@ -331,7 +334,8 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                 {isExpanded && item.submenu && (
                   <div className="ml-4 mt-1 space-y-1">
                     {item.submenu.map((subitem) => {
-                      const isSubActive = pathname === subitem.href;
+                      const subPathForActive = pathname.replace(/^\/[a-z]{2}(\/|$)/, "/");
+                      const isSubActive = subPathForActive === subitem.href;
                       return (
                         <Link
                           key={subitem.href}

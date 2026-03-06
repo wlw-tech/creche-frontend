@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { apiClient } from "@/lib/api"
+import { CheckCircle, XCircle } from "lucide-react"
 
 type Enfant = {
   id: string
@@ -567,7 +568,7 @@ export default function TeacherDashboard() {
                   disabled={attendanceData[currentChild.id] !== undefined}
                   className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {t("presentButton")}
+                  <CheckCircle className="w-4 h-4 mr-1.5" />{t("presentButton")}
                 </Button>
                 <Button
                   type="button"
@@ -575,7 +576,7 @@ export default function TeacherDashboard() {
                   disabled={attendanceData[currentChild.id] !== undefined}
                   className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {t("absentButton")}
+                  <XCircle className="w-4 h-4 mr-1.5" />{t("absentButton")}
                 </Button>
               </div>
 
