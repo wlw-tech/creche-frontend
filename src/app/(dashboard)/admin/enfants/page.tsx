@@ -210,6 +210,13 @@ export default function EnfantsAdminPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2 justify-end">
+                        <a
+                          href={"/fr/admin/enfants/" + child.id}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 border rounded-md text-xs hover:bg-muted transition-colors"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Voir profil
+                        </a>
                         <Button
                           size="sm"
                           variant="outline"
@@ -218,15 +225,6 @@ export default function EnfantsAdminPage() {
                         >
                           <Edit2 className="w-3 h-3" />
                           Modifier
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open("/fr/admin/enfants/" + child.id, "_blank")}
-                          className="gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          Profil
                         </Button>
                       </div>
                     </td>
