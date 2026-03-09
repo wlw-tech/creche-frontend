@@ -71,6 +71,13 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   const [childDailyResume, setChildDailyResume] = useState<DailyResume | null>(null)
   const [dailyResumeError, setDailyResumeError] = useState<string | null>(null)
   const [presences, setPresences] = useState<any[]>([])
+  const [presencePage, setPresencePage] = useState(1)
+  const [presenceTotal, setPresenceTotal] = useState(0)
+  const [presenceLoading, setPresenceLoading] = useState(false)
+  const presencePageSize = 20
+  // Filter: YYYY-MM (e.g. "2026-03"), empty = all
+  const now = new Date()
+  const [presenceFilterMonth, setPresenceFilterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`)
 
   const todayDate = new Date()
   todayDate.setHours(0, 0, 0, 0)
@@ -198,11 +205,23 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
 
   useEffect(() => {
     if (!child?.id) return
-    apiClient.getChildPresences(child.id as string, 1, 20).then(res => {
-      const items = res.data?.data ?? res.data?.items ?? res.data ?? []
-      setPresences(Array.isArray(items) ? items : [])
-    }).catch(() => {})
-  }, [child?.id])
+    let cancelled = false
+    setPresenceLoading(true)
+    const [year, month] = presenceFilterMonth ? presenceFilterMonth.split("-") : []
+    const dateMin = year && month ? `${year}-${month}-01` : undefined
+    const dateMax = year && month ? `${year}-${month}-${new Date(Number(year), Number(month), 0).getDate()}` : undefined
+    apiClient.getChildPresences(child.id as string, presencePage, presencePageSize, dateMin, dateMax)
+      .then(res => {
+        if (cancelled) return
+        const payload = res.data
+        const items = payload?.data ?? payload?.items ?? (Array.isArray(payload) ? payload : [])
+        setPresences(Array.isArray(items) ? items : [])
+        setPresenceTotal(payload?.pagination?.total ?? payload?.total ?? items.length)
+      })
+      .catch(() => { if (!cancelled) setPresences([]) })
+      .finally(() => { if (!cancelled) setPresenceLoading(false) })
+    return () => { cancelled = true }
+  }, [child?.id, presencePage, presenceFilterMonth])
 
   // Load health when switching to child tab (runs once per enfant, not on every render)
   useEffect(() => {
@@ -405,11 +424,29 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   // ─── Tab: Presence ────────────────────────────────────────────────────────
   const PresenceTab = () => {
     const todayStr = new Date().toISOString().split("T")[0]
+    // For today's status: check if current filter month matches today, then look in loaded data
     const todayPresence = presences.find((p: any) => (p.date ?? "").slice(0, 10) === todayStr)
     const statut = todayPresence?.statut
+
+    const totalPages = Math.max(1, Math.ceil(presenceTotal / presencePageSize))
+
+    // Build month options: current month + 11 previous months
+    const monthOptions: { value: string; label: string }[] = []
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`
+      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+      monthOptions.push({ value: val, label: label.charAt(0).toUpperCase() + label.slice(1) })
+    }
+
+    // Stats for filtered period
+    const nbPresent = presences.filter(p => p.statut === "Present").length
+    const nbAbsent  = presences.filter(p => p.statut === "Absent").length
+
     return (
       <div className="px-4 pt-4 pb-4 space-y-4">
         <h2 className="text-xl font-bold text-gray-900">Présences</h2>
+
         {/* Today status */}
         <div className={`rounded-2xl p-4 border-2 ${statut === "Present" ? "bg-emerald-50 border-emerald-300" : statut === "Absent" ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-200"}`}>
           <div className="flex items-center gap-3">
@@ -432,26 +469,81 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
           <CardContent className="pt-4"><DailyResumeContent /></CardContent>
         </Card>
 
-        {/* Attendance history */}
-        {presences.length > 0 && (
-          <Card className="border border-gray-100 shadow-sm rounded-2xl">
-            <CardHeader className="pb-3 border-b border-gray-50">
+        {/* Attendance history with filter + pagination */}
+        <Card className="border border-gray-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <CardTitle className="text-sm font-bold text-gray-900">Historique des présences</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3 space-y-1.5">
-              {presences.slice(0, 15).map((p: any, i: number) => {
-                const d = (p.date ?? "").slice(0, 10)
-                const label = d ? new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) : "—"
-                return (
-                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-                    <p className="text-sm text-gray-700 capitalize">{label}</p>
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.statut === "Present" ? "bg-emerald-100 text-emerald-700" : p.statut === "Absent" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>{p.statut ?? "—"}</span>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-        )}
+              {/* Month filter */}
+              <select
+                value={presenceFilterMonth}
+                onChange={e => { setPresenceFilterMonth(e.target.value); setPresencePage(1) }}
+                className="text-xs border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1"
+                style={{ borderColor: "#C5E8F7", color: "#1A1A1A" }}
+              >
+                <option value="">Tous les mois</option>
+                {monthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-3">
+            {/* Mini stats */}
+            {(nbPresent > 0 || nbAbsent > 0) && (
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1 rounded-xl px-3 py-2 text-center" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                  <p className="text-lg font-bold text-emerald-700">{nbPresent}</p>
+                  <p className="text-xs text-emerald-600">Présent</p>
+                </div>
+                <div className="flex-1 rounded-xl px-3 py-2 text-center" style={{ background: "#FFF5F5", border: "1px solid #FED7D7" }}>
+                  <p className="text-lg font-bold text-red-600">{nbAbsent}</p>
+                  <p className="text-xs text-red-500">Absent</p>
+                </div>
+                <div className="flex-1 rounded-xl px-3 py-2 text-center" style={{ background: "#EAF5FB", border: "1px solid #C5E8F7" }}>
+                  <p className="text-lg font-bold" style={{ color: "#1A73A7" }}>{presenceTotal}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+              </div>
+            )}
+
+            {presenceLoading ? (
+              <p className="text-sm text-gray-400 text-center py-6 animate-pulse">Chargement…</p>
+            ) : presences.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">Aucune présence trouvée.</p>
+            ) : (
+              <div className="space-y-1">
+                {presences.map((p: { date?: string; statut?: string }, i: number) => {
+                  const d = (p.date ?? "").slice(0, 10)
+                  const label = d ? new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) : "—"
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <p className="text-sm text-gray-700 capitalize">{label}</p>
+                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.statut === "Present" ? "bg-emerald-100 text-emerald-700" : p.statut === "Absent" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
+                        {p.statut ?? "—"}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                <button type="button" onClick={() => setPresencePage(p => Math.max(1, p-1))} disabled={presencePage <= 1 || presenceLoading}
+                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-40"
+                  style={{ background: "#EAF5FB", color: "#1A1A1A", border: "1px solid #C5E8F7" }}>
+                  <ChevronLeft className="w-3.5 h-3.5" /> Précédent
+                </button>
+                <p className="text-xs text-gray-500">Page {presencePage} / {totalPages}</p>
+                <button type="button" onClick={() => setPresencePage(p => Math.min(totalPages, p+1))} disabled={presencePage >= totalPages || presenceLoading}
+                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-40"
+                  style={{ background: "#EAF5FB", color: "#1A1A1A", border: "1px solid #C5E8F7" }}>
+                  Suivant <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     )
   }

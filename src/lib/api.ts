@@ -304,9 +304,9 @@ class ApiClient {
   }
 
 
-  getChildPresences(enfantId: string, page = 1, pageSize = 30) {
+  getChildPresences(enfantId: string, page = 1, pageSize = 20, dateMin?: string, dateMax?: string) {
     return this.client.get(`/parent/enfants/${enfantId}/presences`, {
-      params: { page, pageSize },
+      params: { page, pageSize, ...(dateMin ? { dateMin } : {}), ...(dateMax ? { dateMax } : {}) },
     });
   }
 
