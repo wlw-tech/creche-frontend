@@ -582,19 +582,24 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       await loadSante()
       setEditingSante(false)
     } catch (err: unknown) {
-      const msg = (err as {response?: {data?: {message?: unknown}}})?.response?.data?.message
-      setSanteSaveMsg(typeof msg === "string" ? "Erreur: "+msg : "Erreur lors de la sauvegarde.")
+      const status = (err as {response?: {status?: number}})?.response?.status
+      if (status === 404) setSanteSaveMsg("Fonctionnalité en cours de déploiement — réessayez dans quelques minutes.")
+      else { const msg = (err as {response?: {data?: {message?: unknown}}})?.response?.data?.message; setSanteSaveMsg(typeof msg === "string" ? "Erreur: "+msg : "Erreur lors de la sauvegarde.") }
     } finally { setSanteSaving(false) }
   }
 
   const handleDeleteSante = async () => {
     if (!child?.id || !window.confirm("Supprimer le profil santé ?")) return
-    setSanteDeleting(true)
+    setSanteDeleting(true); setSanteSaveMsg(null)
     try {
       await apiClient.deleteChildSante(child.id as string)
       setSante(null); setSanteForm({ medecin: "", notes: "", restrictionAlimentaire: "", tags: [], allergies: [], intolerances: [] })
       setSanteSaveMsg("Profil santé supprimé.")
-    } catch { setSanteSaveMsg("Erreur lors de la suppression.") }
+    } catch (err: unknown) {
+      const status = (err as {response?: {status?: number}})?.response?.status
+      if (status === 404) setSanteSaveMsg("Fonctionnalité en cours de déploiement — réessayez dans quelques minutes.")
+      else setSanteSaveMsg("Erreur lors de la suppression.")
+    }
     finally { setSanteDeleting(false) }
   }
 
@@ -611,17 +616,23 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       await apiClient.updateParentDelegation(child.id as string, delegationId, delegationForm)
       setAuthorizedPersons(prev => prev.map(p => p.id === delegationId ? { ...p, name: delegationForm.nom, phone: delegationForm.telephone, role: delegationForm.relation } : p))
       setEditingDelegation(null); setDelegationMsg("Personne modifiée.")
-    } catch { setDelegationMsg("Erreur lors de la modification.") }
+    } catch (err: unknown) {
+      const status = (err as {response?: {status?: number}})?.response?.status
+      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de la modification.")
+    }
     finally { setDelegationSaving(false) }
   }
 
   const handleDeleteDelegation = async (delegationId: string) => {
     if (!child?.id || !window.confirm("Supprimer cette personne autorisée ?")) return
-    setDelegationSaving(true)
+    setDelegationSaving(true); setDelegationMsg(null)
     try {
       await apiClient.deleteParentDelegation(child.id as string, delegationId)
       setAuthorizedPersons(prev => prev.filter(p => p.id !== delegationId)); setDelegationMsg("Personne supprimée.")
-    } catch { setDelegationMsg("Erreur lors de la suppression.") }
+    } catch (err: unknown) {
+      const status = (err as {response?: {status?: number}})?.response?.status
+      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de la suppression.")
+    }
     finally { setDelegationSaving(false) }
   }
 
@@ -633,7 +644,10 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       const d = res.data as {id:string; nom:string; telephone:string; relation:string}
       setAuthorizedPersons(prev => [...prev, { id: d.id, name: d.nom, phone: d.telephone, role: d.relation }])
       setAddingDelegation(false); setNewDelegationForm({ nom: "", telephone: "", cin: "", relation: "" }); setDelegationMsg("Personne ajoutée.")
-    } catch { setDelegationMsg("Erreur lors de l'ajout.") }
+    } catch (err: unknown) {
+      const status = (err as {response?: {status?: number}})?.response?.status
+      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de l'ajout.")
+    }
     finally { setDelegationSaving(false) }
   }
 
