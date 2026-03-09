@@ -299,6 +299,11 @@ class ApiClient {
     return this.client.get('/parent/me');
   }
 
+  updateParentMe(data: { telephone?: string; adresse?: string }) {
+    return this.client.patch('/parent/me', data);
+  }
+
+
   getChildPresences(enfantId: string, page = 1, pageSize = 30) {
     return this.client.get(`/parent/enfants/${enfantId}/presences`, {
       params: { page, pageSize },
@@ -319,6 +324,39 @@ class ApiClient {
 
   changePassword(oldPassword: string, newPassword: string) {
     return this.client.post('/parent/me/change-password', { oldPassword, newPassword });
+  }
+
+  // Santé enfant
+  getChildSante(enfantId: string) {
+    return this.client.get(`/parent/enfants/${enfantId}/sante`);
+  }
+
+  upsertChildSante(enfantId: string, data: {
+    medecin?: string;
+    notes?: string;
+    restrictionAlimentaire?: string;
+    tags?: string[];
+    allergies?: { nom: string; severite?: string; notes?: string }[];
+    intolerances?: { nom: string; notes?: string }[];
+  }) {
+    return this.client.put(`/parent/enfants/${enfantId}/sante`, data);
+  }
+
+  deleteChildSante(enfantId: string) {
+    return this.client.delete(`/parent/enfants/${enfantId}/sante`);
+  }
+
+  // Délégations parent (personnes autorisées)
+  addParentDelegation(enfantId: string, data: { nom: string; telephone: string; cin?: string; relation?: string }) {
+    return this.client.post(`/parent/enfants/${enfantId}/delegations`, data);
+  }
+
+  updateParentDelegation(enfantId: string, delegationId: string, data: { nom?: string; telephone?: string; cin?: string; relation?: string }) {
+    return this.client.patch(`/parent/enfants/${enfantId}/delegations/${delegationId}`, data);
+  }
+
+  deleteParentDelegation(enfantId: string, delegationId: string) {
+    return this.client.delete(`/parent/enfants/${enfantId}/delegations/${delegationId}`);
   }
 
   // Class daily summaries & statistics (Teacher/Admin)
