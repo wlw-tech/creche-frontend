@@ -511,7 +511,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
               <p className="text-sm text-gray-400 text-center py-6">Aucune présence trouvée.</p>
             ) : (
               <div className="space-y-1">
-                {presences.map((p: { date?: string; statut?: string }, i: number) => {
+                {presences.map((p: any, i: number) => {
                   const d = (p.date ?? "").slice(0, 10)
                   const label = d ? new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" }) : "—"
                   return (
@@ -582,24 +582,19 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       await loadSante()
       setEditingSante(false)
     } catch (err: unknown) {
-      const status = (err as {response?: {status?: number}})?.response?.status
-      if (status === 404) setSanteSaveMsg("Fonctionnalité en cours de déploiement — réessayez dans quelques minutes.")
-      else { const msg = (err as {response?: {data?: {message?: unknown}}})?.response?.data?.message; setSanteSaveMsg(typeof msg === "string" ? "Erreur: "+msg : "Erreur lors de la sauvegarde.") }
+      const msg = (err as {response?: {data?: {message?: unknown}}})?.response?.data?.message
+      setSanteSaveMsg(typeof msg === "string" ? "Erreur: "+msg : "Erreur lors de la sauvegarde.")
     } finally { setSanteSaving(false) }
   }
 
   const handleDeleteSante = async () => {
     if (!child?.id || !window.confirm("Supprimer le profil santé ?")) return
-    setSanteDeleting(true); setSanteSaveMsg(null)
+    setSanteDeleting(true)
     try {
       await apiClient.deleteChildSante(child.id as string)
       setSante(null); setSanteForm({ medecin: "", notes: "", restrictionAlimentaire: "", tags: [], allergies: [], intolerances: [] })
       setSanteSaveMsg("Profil santé supprimé.")
-    } catch (err: unknown) {
-      const status = (err as {response?: {status?: number}})?.response?.status
-      if (status === 404) setSanteSaveMsg("Fonctionnalité en cours de déploiement — réessayez dans quelques minutes.")
-      else setSanteSaveMsg("Erreur lors de la suppression.")
-    }
+    } catch { setSanteSaveMsg("Erreur lors de la suppression.") }
     finally { setSanteDeleting(false) }
   }
 
@@ -616,23 +611,17 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       await apiClient.updateParentDelegation(child.id as string, delegationId, delegationForm)
       setAuthorizedPersons(prev => prev.map(p => p.id === delegationId ? { ...p, name: delegationForm.nom, phone: delegationForm.telephone, role: delegationForm.relation } : p))
       setEditingDelegation(null); setDelegationMsg("Personne modifiée.")
-    } catch (err: unknown) {
-      const status = (err as {response?: {status?: number}})?.response?.status
-      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de la modification.")
-    }
+    } catch { setDelegationMsg("Erreur lors de la modification.") }
     finally { setDelegationSaving(false) }
   }
 
   const handleDeleteDelegation = async (delegationId: string) => {
     if (!child?.id || !window.confirm("Supprimer cette personne autorisée ?")) return
-    setDelegationSaving(true); setDelegationMsg(null)
+    setDelegationSaving(true)
     try {
       await apiClient.deleteParentDelegation(child.id as string, delegationId)
       setAuthorizedPersons(prev => prev.filter(p => p.id !== delegationId)); setDelegationMsg("Personne supprimée.")
-    } catch (err: unknown) {
-      const status = (err as {response?: {status?: number}})?.response?.status
-      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de la suppression.")
-    }
+    } catch { setDelegationMsg("Erreur lors de la suppression.") }
     finally { setDelegationSaving(false) }
   }
 
@@ -644,10 +633,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       const d = res.data as {id:string; nom:string; telephone:string; relation:string}
       setAuthorizedPersons(prev => [...prev, { id: d.id, name: d.nom, phone: d.telephone, role: d.relation }])
       setAddingDelegation(false); setNewDelegationForm({ nom: "", telephone: "", cin: "", relation: "" }); setDelegationMsg("Personne ajoutée.")
-    } catch (err: unknown) {
-      const status = (err as {response?: {status?: number}})?.response?.status
-      setDelegationMsg(status === 404 ? "En cours de déploiement — réessayez dans quelques minutes." : "Erreur lors de l'ajout.")
-    }
+    } catch { setDelegationMsg("Erreur lors de l'ajout.") }
     finally { setDelegationSaving(false) }
   }
 
@@ -750,154 +736,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       </Card>
 
       {/* Health profile */}
-      <Card className="border shadow-sm rounded-2xl" style={{ borderColor: "#AEDFF7" }}>
-        <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-bold text-gray-900">🏥 Profil santé</CardTitle>
-            <div className="flex gap-2">
-              {!editingSante && (
-                <button type="button" onClick={() => { setEditingSante(true); setSanteSaveMsg(null) }} className="text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#EAF5FB", color: "#1A1A1A", border: "1px solid #C5E8F7" }}>
-                  <Pencil className="w-3 h-3 inline mr-1" />{sante ? "Modifier" : "Créer"}
-                </button>
-              )}
-              {sante && !editingSante && (
-                <button type="button" onClick={handleDeleteSante} disabled={santeDeleting} className="text-xs font-medium px-3 py-1.5 rounded-lg text-red-600" style={{ background: "#FFF0EE", border: "1px solid #FFD4CE" }}>{santeDeleting ? "..." : "Supprimer"}</button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-3">
-          {santeSaveMsg && <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: "#EAF5FB", color: "#1A1A1A" }}>{santeSaveMsg}</p>}
-          {santeLoading ? (
-            <p className="text-sm text-gray-400 text-center py-4 animate-pulse">Chargement…</p>
-          ) : editingSante ? (
-            <div className="space-y-3">
-              {[["Médecin traitant", "medecin", "Nom du médecin"], ["Restriction alimentaire", "restrictionAlimentaire", "Ex: Sans gluten…"]] .map(([label, field, ph]) => (
-                <div key={field}>
-                  <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-                  <Input value={santeForm[field as "medecin"|"restrictionAlimentaire"]} onChange={e => setSanteForm(f => ({ ...f, [field]: e.target.value }))} placeholder={ph} className="h-9 text-sm" />
-                </div>
-              ))}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium text-gray-500">Allergies</p>
-                  <button type="button" onClick={() => setSanteForm(f => ({ ...f, allergies: [...f.allergies, { nom: "", severite: "" }] }))} className="text-xs" style={{ color: "#FF6F61" }}>+ Ajouter</button>
-                </div>
-                {santeForm.allergies.map((a, i) => (
-                  <div key={i} className="flex gap-1.5 items-center mb-1.5">
-                    <Input value={a.nom} onChange={e => setSanteForm(f => ({ ...f, allergies: f.allergies.map((x, j) => j===i ? { ...x, nom: e.target.value } : x) }))} placeholder="Nom allergie" className="h-8 text-sm flex-1" />
-                    <Input value={a.severite ?? ""} onChange={e => setSanteForm(f => ({ ...f, allergies: f.allergies.map((x, j) => j===i ? { ...x, severite: e.target.value } : x) }))} placeholder="Sévérité" className="h-8 text-sm w-24" />
-                    <button type="button" onClick={() => setSanteForm(f => ({ ...f, allergies: f.allergies.filter((_, j) => j !== i) }))} className="p-1"><X className="w-3.5 h-3.5 text-red-400" /></button>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium text-gray-500">Intolérances</p>
-                  <button type="button" onClick={() => setSanteForm(f => ({ ...f, intolerances: [...f.intolerances, { nom: "" }] }))} className="text-xs" style={{ color: "#FF6F61" }}>+ Ajouter</button>
-                </div>
-                {santeForm.intolerances.map((inv, i) => (
-                  <div key={i} className="flex gap-1.5 items-center mb-1.5">
-                    <Input value={inv.nom} onChange={e => setSanteForm(f => ({ ...f, intolerances: f.intolerances.map((x, j) => j===i ? { nom: e.target.value } : x) }))} placeholder="Nom intolérance" className="h-8 text-sm flex-1" />
-                    <button type="button" onClick={() => setSanteForm(f => ({ ...f, intolerances: f.intolerances.filter((_, j) => j !== i) }))} className="p-1"><X className="w-3.5 h-3.5 text-red-400" /></button>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">Notes</p>
-                <textarea value={santeForm.notes} onChange={e => setSanteForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes médicales…" rows={2} className="w-full text-sm border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1" style={{ borderColor: "#C5E8F7" }} />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={handleSaveSante} disabled={santeSaving} className="flex-1 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60" style={{ background: "#FF6F61" }}>{santeSaving ? "Enregistrement…" : "Enregistrer"}</button>
-                <button type="button" onClick={() => setEditingSante(false)} className="flex-1 py-2 rounded-lg text-sm font-medium" style={{ background: "#EAF5FB", color: "#6B7280", border: "1px solid #C5E8F7" }}>Annuler</button>
-              </div>
-            </div>
-          ) : sante ? (
-            <div className="space-y-3">
-              {(sante.medecin as string) && <p className="text-sm text-gray-700">👨‍⚕️ {sante.medecin as string}</p>}
-              {(sante.restrictionAlimentaire as string) && <p className="text-sm text-gray-700">🍽️ {sante.restrictionAlimentaire as string}</p>}
-              {Array.isArray(sante.allergies) && (sante.allergies as {nom:string;severite?:string}[]).length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-red-600 mb-1">⚠️ Allergies</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(sante.allergies as {nom:string;severite?:string}[]).map((a, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "#FFF0EE", color: "#D93025", border: "1px solid #FFD4CE" }}>{a.nom}{a.severite ? " ("+a.severite+")" : ""}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {Array.isArray(sante.intolerances) && (sante.intolerances as {nom:string}[]).length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-orange-600 mb-1">Intolérances</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(sante.intolerances as {nom:string}[]).map((inv, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background: "#FFF4ED", color: "#C05621", border: "1px solid #FED7AA" }}>{inv.nom}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {Array.isArray(sante.tags) && (sante.tags as string[]).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {(sante.tags as string[]).map((tag, i) => (
-                    <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background: "#EAF5FB", color: "#1A73A7", border: "1px solid #C5E8F7" }}>{tag}</span>
-                  ))}
-                </div>
-              )}
-              {(sante.notes as string) && <p className="text-sm text-gray-600 italic">{`"${sante.notes as string}"`}</p>}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-400">Aucun profil santé enregistré.</p>
-              <button type="button" onClick={() => setEditingSante(true)} className="mt-2 text-xs hover:underline" style={{ color: "#FF6F61" }}>Créer un profil santé</button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Parent profile edit */}
-      <Card className="border border-gray-100 shadow-sm rounded-2xl">
-        <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-bold text-gray-900">👤 Mes informations</CardTitle>
-            {!editingProfile
-              ? <button type="button" onClick={() => setEditingProfile(true)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#EAF5FB", color: "#1A1A1A", border: "1px solid #C5E8F7" }}><Pencil className="w-3 h-3" /> Modifier</button>
-              : <div className="flex gap-2">
-                  <button type="button" onClick={handleSaveProfile} disabled={profileSaving} className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg text-white disabled:opacity-60" style={{ background: "#FF6F61" }}><Check className="w-3 h-3" /> {profileSaving?"...":"Sauvegarder"}</button>
-                  <button type="button" onClick={() => setEditingProfile(false)} className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: "#EAF5FB", color: "#6B7280", border: "1px solid #C5E8F7" }}><X className="w-3 h-3" /> Annuler</button>
-                </div>}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-3">
-          {profileSaveMsg && <p className="text-xs font-medium text-green-700 mb-3 px-3 py-2 rounded-lg bg-green-50">{profileSaveMsg}</p>}
-          {profileSaveErr && <p className="text-xs text-red-600 mb-3 px-3 py-2 rounded-lg bg-red-50">{profileSaveErr}</p>}
-          {tuteurs.length > 0 && (
-            <div className="space-y-3">
-              {tuteurs.map((tt, i) => (
-                <div key={tt.id} className="rounded-xl p-3" style={{ background: "#EAF5FB", border: "1px solid #C5E8F7" }}>
-                  <p className="text-xs font-semibold mb-2" style={{ color: "#1A1A1A" }}>
-                    {i===0?"Responsable principal":"Tuteur "+(i+1)}
-                    {tt.lien && <span className="ml-2 font-normal text-gray-500">({tt.lien})</span>}
-                  </p>
-                  {(tt.prenom||tt.nom) && <p className="text-sm font-medium" style={{ color: "#1A1A1A" }}>{[tt.prenom,tt.nom].filter(Boolean).join(" ")}</p>}
-                  {tt.email && <p className="text-sm mt-0.5 text-gray-500">✉️ {tt.email}</p>}
-                  {editingProfile && i===0 ? (
-                    <div className="space-y-2 mt-2">
-                      <div><p className="text-xs font-medium mb-1 text-gray-500">Téléphone</p><Input value={editTelephone} onChange={e=>setEditTelephone(e.target.value)} placeholder="06 00 00 00 00" className="h-9 text-sm" /></div>
-                      <div><p className="text-xs font-medium mb-1 text-gray-500">Adresse</p><Input value={editAdresse} onChange={e=>setEditAdresse(e.target.value)} placeholder="Votre adresse" className="h-9 text-sm" /></div>
-                    </div>
-                  ) : (
-                    <div className="mt-1 space-y-0.5">
-                      {tt.telephone && <p className="text-sm text-gray-500">📞 {tt.telephone}</p>}
-                      {tt.adresse && <p className="text-sm text-gray-500">📍 {tt.adresse}</p>}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
+      
       {/* Password change */}
       <Card className="border border-gray-100 shadow-sm rounded-2xl">
         <CardHeader className="pb-3 border-b border-gray-50">
