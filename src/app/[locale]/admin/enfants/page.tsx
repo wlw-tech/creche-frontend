@@ -32,13 +32,17 @@ type ClasseItem = {
 type EnfantItem = {
   id: string;
   name: string;
+  prenom?: string;
+  nom?: string;
+  genre?: string;
+  remarques?: string;
   group: string;
   classId?: string;
   teacher: string;
   parent: string;
-  todayStatus: string; // Changé de "status" à "todayStatus" pour plus de clarté
+  todayStatus: string;
   todayStatusCode?: string;
-  presences?: Array<{ // Ajout des présences historiques
+  presences?: Array<{
     id: string;
     date: string;
     statut: string;
@@ -393,7 +397,7 @@ export default function EnfantsPage({ params }: { params: Promise<{ locale: Loca
 
   const handleEditOpen = (child: EnfantItem) => {
     setEditTarget(child);
-    setEditForm({ prenom: child.prenom, nom: child.nom, genre: child.genre ?? "", classeId: child.classId ?? "", remarques: child.remarques ?? "" });
+    setEditForm({ prenom: child.prenom ?? "", nom: child.nom ?? "", genre: child.genre ?? "", classeId: child.classId ?? "", remarques: child.remarques ?? "" });
     setEditModalOpen(true);
   };
 
