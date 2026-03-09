@@ -439,20 +439,6 @@ export default function EnfantDetailPage({
                 </ul>
               ) : <p className="text-sm text-muted-foreground">Aucun tuteur.</p>}
             </Card>
-
-            <Card className="p-6 space-y-3">
-              <h2 className="text-lg font-semibold mb-1">Présences récentes</h2>
-              {enfant.presences?.length > 0 ? (
-                <ul className="space-y-2 text-sm">
-                  {enfant.presences.map((p: any) => (
-                    <li key={p.id} className="flex items-center justify-between">
-                      <span>{new Date(p.date).toLocaleDateString(locale)}</span>
-                      <Badge>{p.statut}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="text-sm text-muted-foreground">Aucune présence.</p>}
-            </Card>
           </div>
 
           {/* ── Dossier inscription ────────────────────────────────────── */}
