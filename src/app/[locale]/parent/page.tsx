@@ -106,6 +106,18 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
             allergies: Array.isArray(enfant.allergies) ? enfant.allergies : [],
             classeEnseignants: Array.isArray(enfant.classeEnseignants) ? enfant.classeEnseignants : [],
             classeNbEleves: enfant.classeNbEleves ?? null })
+          // Pre-populate health from profile response (available before backend deploy)
+          if (enfant.profilSante) {
+            setSante(enfant.profilSante)
+            setSanteForm({
+              medecin: enfant.profilSante.medecin ?? "",
+              notes: enfant.profilSante.notes ?? "",
+              restrictionAlimentaire: enfant.profilSante.restrictionAlimentaire ?? "",
+              tags: Array.isArray(enfant.profilSante.tags) ? enfant.profilSante.tags : [],
+              allergies: Array.isArray(enfant.profilSante.allergies) ? enfant.profilSante.allergies.map((a: {nom:string;severite?:string}) => ({ nom: a.nom, severite: a.severite ?? "" })) : [],
+              intolerances: Array.isArray(enfant.profilSante.intolerances) ? enfant.profilSante.intolerances.map((i: {nom:string}) => ({ nom: i.nom })) : [],
+            })
+          }
           if (enfant.classeId) {
             try {
               const journalRes = await apiClient.getClassJournal(enfant.classeId as string)
@@ -191,6 +203,33 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       setPresences(Array.isArray(items) ? items : [])
     }).catch(() => {})
   }, [child?.id])
+
+  // Load health when switching to child tab (runs once per enfant, not on every render)
+  useEffect(() => {
+    if (activeTab !== "child" || !child?.id) return
+    let cancelled = false
+    async function fetchSante() {
+      setSanteLoading(true)
+      try {
+        const res = await apiClient.getChildSante(child!.id as string)
+        if (!cancelled && res.data) {
+          const s = res.data
+          setSante(s)
+          setSanteForm({
+            medecin: (s.medecin as string) ?? "",
+            notes: (s.notes as string) ?? "",
+            restrictionAlimentaire: (s.restrictionAlimentaire as string) ?? "",
+            tags: Array.isArray(s.tags) ? (s.tags as string[]) : [],
+            allergies: Array.isArray(s.allergies) ? (s.allergies as {nom:string;severite?:string}[]).map(a => ({ nom: a.nom, severite: a.severite ?? "" })) : [],
+            intolerances: Array.isArray(s.intolerances) ? (s.intolerances as {nom:string}[]).map(i => ({ nom: i.nom })) : [],
+          })
+        }
+      } catch { /* 404 = no health profile yet, keep pre-populated data from profile response */ }
+      finally { if (!cancelled) setSanteLoading(false) }
+    }
+    fetchSante()
+    return () => { cancelled = true }
+  }, [activeTab, child?.id])
 
   const handlePasswordChange = async () => {
     setPasswordMessage(null); setPasswordError(null)
@@ -506,9 +545,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
     finally { setDelegationSaving(false) }
   }
 
-  const ChildTab = () => {
-    useEffect(() => { loadSante() }, [])
-    return (
+  const ChildTab = () => (
     <div className="px-4 pt-4 pb-4 space-y-4">
       <h2 className="text-xl font-bold text-gray-900">Profil de l'enfant</h2>
 
@@ -787,7 +824,6 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       </Card>
     </div>
   )
-  }
 
   // ─── Tab: Menu ────────────────────────────────────────────────────────────
   const MenuTab = () => (
