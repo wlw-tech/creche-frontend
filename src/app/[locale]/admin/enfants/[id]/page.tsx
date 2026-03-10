@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SidebarNew } from "@/components/layout/sidebar-new";
-import { Pencil, X, Plus, Trash2, Save } from "lucide-react";
+import { Pencil, X, Plus, Trash2, Save, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function EnfantDetailPage({
   params,
@@ -39,6 +39,13 @@ export default function EnfantDetailPage({
   const [delSaving, setDelSaving]     = useState(false);
   const [delErr, setDelErr]           = useState<string | null>(null);
 
+  // ── Presences ─────────────────────────────────────────────────────────────
+  const [presences, setPresences]         = useState<any[]>([]);
+  const [presenceLoading, setPresenceLoading] = useState(false);
+  const [presencePage, setPresencePage]   = useState(1);
+  const [presenceTotal, setPresenceTotal] = useState(0);
+  const presencePageSize = 10;
+
   // ── Load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +69,24 @@ export default function EnfantDetailPage({
     load();
     return () => { cancelled = true; };
   }, [id]);
+
+  // ── Load presences ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setPresenceLoading(true);
+    apiClient.getChildPresences(id, presencePage, presencePageSize)
+      .then((res: any) => {
+        if (cancelled) return;
+        const payload = res.data;
+        const items = payload?.data ?? payload?.items ?? (Array.isArray(payload) ? payload : []);
+        setPresences(Array.isArray(items) ? items : []);
+        setPresenceTotal(payload?.pagination?.total ?? payload?.total ?? items.length);
+      })
+      .catch(() => { if (!cancelled) setPresences([]); })
+      .finally(() => { if (!cancelled) setPresenceLoading(false); });
+    return () => { cancelled = true; };
+  }, [id, presencePage]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const openEdit = () => {
@@ -127,8 +152,11 @@ export default function EnfantDetailPage({
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={locale} />
-      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
-        <p className="text-muted-foreground">Chargement de la fiche enfant…</p>
+      <div className="flex-1 md:ml-64 flex items-center justify-center pt-16 md:pt-0">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Chargement de la fiche enfant…</p>
+        </div>
       </div>
     </div>
   );
@@ -136,226 +164,263 @@ export default function EnfantDetailPage({
   if (error || !enfant) return (
     <div className="min-h-screen bg-gray-50 flex">
       <SidebarNew currentLocale={locale} />
-      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8 flex items-center justify-center">
-        <p className="text-destructive text-sm">{error ?? "Fiche enfant introuvable."}</p>
+      <div className="flex-1 md:ml-64 flex items-center justify-center pt-16 md:pt-0 p-4">
+        <p className="text-destructive text-sm text-center">{error ?? "Fiche enfant introuvable."}</p>
       </div>
     </div>
   );
 
-  const fullName   = `${enfant.prenom} ${enfant.nom}`.trim();
-  const group      = enfant.classe?.nom ?? "—";
-  const tuteurs    = enfant.famille?.tuteurs ?? [];
-  const birthdate  = enfant.dateNaissance ? new Date(enfant.dateNaissance) : null;
+  const fullName    = `${enfant.prenom} ${enfant.nom}`.trim();
+  const group       = enfant.classe?.nom ?? "—";
+  const niveau      = enfant.classe?.niveau ?? null;
+  const tuteurs     = enfant.famille?.tuteurs ?? [];
+  const birthdate   = enfant.dateNaissance ? new Date(enfant.dateNaissance) : null;
   const profilSante = enfant.profilSante ?? null;
-  const allergies: any[] = Array.isArray(profilSante?.allergies) ? profilSante.allergies : [];
-  const intolerances: any[] = Array.isArray(profilSante?.intolerances) ? profilSante.intolerances : [];
-  const tags: string[]  = Array.isArray(profilSante?.tags) ? profilSante.tags : [];
+  const allergies: any[]   = Array.isArray(profilSante?.allergies)   ? profilSante.allergies   : [];
+  const intolerances: any[]= Array.isArray(profilSante?.intolerances) ? profilSante.intolerances : [];
+  const tags: string[]     = Array.isArray(profilSante?.tags)         ? profilSante.tags         : [];
   const delegations: any[] = Array.isArray(enfant.delegations) ? enfant.delegations : [];
-  const inscription = Array.isArray(enfant.inscriptions) && enfant.inscriptions.length > 0 ? enfant.inscriptions[0] : null;
-  const payload     = inscription?.payload ?? null;
-  const sante       = payload?.sante ?? null;
+  const inscription  = Array.isArray(enfant.inscriptions) && enfant.inscriptions.length > 0 ? enfant.inscriptions[0] : null;
+  const payload      = inscription?.payload ?? null;
+  const santePayload = payload?.sante ?? null;
+
+  const presenceTotalPages = Math.max(1, Math.ceil(presenceTotal / presencePageSize));
+  const nbPresent = presences.filter(p => p.statut === "Present").length;
+  const nbAbsent  = presences.filter(p => p.statut === "Absent").length;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex overflow-x-hidden">
       <SidebarNew currentLocale={locale} />
 
-      <div className="flex-1 md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
 
-          {/* ── Header ─────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between gap-3 flex-wrap">
+        {/* ── Mobile-friendly top bar ───────────────────────────────────── */}
+        <div className="sticky top-16 md:top-0 z-30 bg-white border-b border-border px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => history.back()}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("backToList")}</span>
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-foreground truncate">{fullName}</h1>
+            <p className="text-xs text-muted-foreground truncate">
+              {group}{niveau ? ` · ${niveau}` : ""}
+            </p>
+          </div>
+          <Button size="sm" onClick={openEdit} className="flex items-center gap-1.5 flex-shrink-0">
+            <Pencil className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Modifier</span>
+          </Button>
+        </div>
+
+        <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
+
+          {/* ── Hero card ──────────────────────────────────────────────── */}
+          <Card className="p-4 sm:p-5">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-border bg-muted flex items-center justify-center flex-shrink-0">
                 {enfant.photoUrl
                   ? <img src={enfant.photoUrl} alt={fullName} className="w-full h-full object-cover" />
-                  : <span className="text-2xl">👧</span>}
+                  : <span className="text-3xl sm:text-4xl">👧</span>}
               </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-bold text-foreground break-words">{fullName}</h2>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  <span className="text-sm text-muted-foreground">{group}</span>
+                  {niveau && <Badge variant="outline" className="text-xs">{niveau}</Badge>}
+                  {enfant.genre && <Badge variant="outline" className="text-xs">{enfant.genre === "M" ? "Masculin" : enfant.genre === "F" ? "Féminin" : enfant.genre}</Badge>}
+                </div>
+                {birthdate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Né(e) le {birthdate.toLocaleDateString(locale, { day: "2-digit", month: "long", year: "numeric" })}
+                  </p>
+                )}
+              </div>
+            </div>
+            {enfant.remarques && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs font-semibold text-amber-700 mb-1">📝 Remarques admin</p>
+                <p className="text-sm text-amber-900">{enfant.remarques}</p>
+              </div>
+            )}
+            {payload?.commentaire && (
+              <div className="mt-3 p-3 bg-muted/40 border border-border rounded-xl">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">💬 Commentaire (inscription)</p>
+                <p className="text-sm text-foreground">{payload.commentaire}</p>
+              </div>
+            )}
+          </Card>
+
+          {/* ── Fiche santé ────────────────────────────────────────────── */}
+          <Card className="p-4 sm:p-5 space-y-4">
+            <h2 className="text-base font-semibold">🏥 Fiche santé</h2>
+
+            {/* Mesures */}
+            {(santePayload?.taille || santePayload?.poids) && (
+              <div className="flex flex-wrap gap-3">
+                {santePayload.taille && (
+                  <div className="flex-1 min-w-[100px] rounded-xl p-3 bg-blue-50 border border-blue-200 text-center">
+                    <p className="text-xs text-blue-600 font-medium">Taille</p>
+                    <p className="text-lg font-bold text-blue-800">{santePayload.taille} cm</p>
+                  </div>
+                )}
+                {santePayload.poids && (
+                  <div className="flex-1 min-w-[100px] rounded-xl p-3 bg-green-50 border border-green-200 text-center">
+                    <p className="text-xs text-green-600 font-medium">Poids</p>
+                    <p className="text-lg font-bold text-green-800">{santePayload.poids} kg</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Allergies */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Allergies</p>
+              {allergies.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {allergies.map((a: any, i: number) => (
+                    <span key={i} className="px-2.5 py-1 text-xs rounded-full bg-red-50 text-red-700 border border-red-200">
+                      {typeof a === "string" ? a : a.nom}{a.severite ? ` (${a.severite})` : ""}
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">Aucune allergie.</p>}
+            </div>
+
+            {/* Intolérances */}
+            {intolerances.length > 0 && (
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{fullName}</h1>
-                <p className="text-sm text-muted-foreground">Classe : {group}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={openEdit} className="flex items-center gap-1.5">
-                <Pencil className="w-4 h-4" /> Modifier
-              </Button>
-              <Button variant="outline" onClick={() => history.back()}>{t("backToList")}</Button>
-            </div>
-          </div>
-
-          {/* ── Edit modal ─────────────────────────────────────────────── */}
-          {editing && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30">
-                  <h2 className="font-bold text-base">Modifier la fiche enfant</h2>
-                  <button onClick={() => setEditing(false)}><X className="w-4 h-4" /></button>
-                </div>
-                <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Prénom</label>
-                      <Input value={editForm.prenom} onChange={e => setEditForm(p => ({ ...p, prenom: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nom</label>
-                      <Input value={editForm.nom} onChange={e => setEditForm(p => ({ ...p, nom: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Genre</label>
-                    <select className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
-                      value={editForm.genre} onChange={e => setEditForm(p => ({ ...p, genre: e.target.value }))}>
-                      <option value="">— Non précisé —</option>
-                      <option value="M">Masculin</option>
-                      <option value="F">Féminin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Classe assignée</label>
-                    <select className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
-                      value={editForm.classeId} onChange={e => setEditForm(p => ({ ...p, classeId: e.target.value }))}>
-                      <option value="">— Aucune classe —</option>
-                      {classes.map((c: any) => (
-                        <option key={c.id} value={c.id}>{c.nom}{c.niveau ? ` (${c.niveau})` : ""}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Photo</label>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 5 * 1024 * 1024) { alert("Image trop grande (max 5 Mo)"); return; }
-                        const reader = new FileReader();
-                        reader.onload = () => setEditForm(p => ({ ...p, photoUrl: reader.result as string }));
-                        reader.readAsDataURL(file);
-                      }}
-                      className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
-                    />
-                    {editForm.photoUrl && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <img src={editForm.photoUrl} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
-                        <button type="button" onClick={() => setEditForm(p => ({ ...p, photoUrl: "" }))} className="text-xs text-destructive hover:underline">Supprimer la photo</button>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground mb-1 block">Remarques / Notes admin</label>
-                    <textarea
-                      className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background min-h-[80px] resize-none"
-                      value={editForm.remarques}
-                      onChange={e => setEditForm(p => ({ ...p, remarques: e.target.value }))}
-                      placeholder="Notes internes visibles uniquement par les admins…"
-                    />
-                  </div>
-                  {editErr && <p className="text-xs text-destructive bg-destructive/10 rounded px-3 py-2">{editErr}</p>}
-                </div>
-                <div className="flex justify-end gap-3 px-6 py-4 border-t bg-muted/20">
-                  <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>Annuler</Button>
-                  <Button onClick={saveEdit} disabled={saving} className="flex items-center gap-1.5">
-                    <Save className="w-4 h-4" />{saving ? "Enregistrement…" : "Enregistrer"}
-                  </Button>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Intolérances</p>
+                <div className="flex flex-wrap gap-2">
+                  {intolerances.map((i: any) => (
+                    <span key={i.id ?? i.nom} className="px-2.5 py-1 text-xs rounded-full bg-orange-50 text-orange-700 border border-orange-200">{i.nom}</span>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Row 1: Info enfant + Fiche santé ──────────────────────── */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="p-6 space-y-3">
-              <h2 className="text-lg font-semibold mb-1">Informations enfant</h2>
-              {enfant.photoUrl && (
-                <img src={enfant.photoUrl} alt={fullName} className="w-28 h-28 rounded-xl object-cover border border-border mb-2" />
-              )}
-              <InfoRow label="Nom complet" value={fullName} />
-              <InfoRow label="Classe" value={group} />
-              <InfoRow label="Date de naissance" value={birthdate ? birthdate.toLocaleDateString(locale) : "—"} />
-              <InfoRow label="Genre" value={enfant.genre ?? "—"} />
-              {enfant.remarques && (
-                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs font-semibold text-amber-700 mb-1">Remarques admin</p>
-                  <p className="text-sm text-amber-900">{enfant.remarques}</p>
-                </div>
-              )}
-              {payload && (
-                <>
-                  {sante?.taille && <InfoRow label="Taille" value={`${sante.taille} cm`} />}
-                  {sante?.poids  && <InfoRow label="Poids"  value={`${sante.poids} kg`} />}
-                  {payload.commentaire && <InfoRow label="Commentaire" value={payload.commentaire} />}
-                </>
-              )}
-            </Card>
-
-            <Card className="p-6 space-y-4">
-              <h2 className="text-lg font-semibold mb-1">Fiche santé</h2>
+            {/* Tags santé */}
+            {(tags.length > 0 || (santePayload?.tags ?? []).length > 0) && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Allergies</p>
-                {allergies.length > 0 ? (
-                  <ul className="flex flex-wrap gap-2">
-                    {allergies.map((a: any, i: number) => (
-                      <li key={i} className="px-2 py-1 text-xs rounded-full bg-red-50 text-red-700 border border-red-200">
-                        {typeof a === "string" ? a : a.nom}{a.severite && ` (${a.severite})`}
-                      </li>
-                    ))}
-                  </ul>
-                ) : <p className="text-sm text-muted-foreground">Aucune allergie.</p>}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tags santé</p>
+                <div className="flex flex-wrap gap-2">
+                  {(tags.length > 0 ? tags : santePayload?.tags ?? []).map((tag: string) => (
+                    <span key={tag} className="px-2.5 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-200">{tag}</span>
+                  ))}
+                </div>
               </div>
-              {intolerances.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Intolérances</p>
-                  <ul className="flex flex-wrap gap-2">
-                    {intolerances.map((i: any) => (
-                      <li key={i.id} className="px-2 py-1 text-xs rounded-full bg-orange-50 text-orange-700 border border-orange-200">{i.nom}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {(tags.length > 0 || sante?.tags?.length > 0) && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Tags santé</p>
-                  <ul className="flex flex-wrap gap-2">
-                    {(tags.length > 0 ? tags : sante?.tags ?? []).map((tag: string) => (
-                      <li key={tag} className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-200">{tag}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {sante && (
-                <div className="space-y-1 text-sm">
-                  {sante.restrictionAlimentaire && (
-                    <InfoRow label="Restriction alimentaire" value={
-                      sante.restrictionAlimentaire === "sans_restriction" ? "Sans restriction" :
-                      sante.restrictionAlimentaire === "sans_porc"        ? "Sans porc"        :
-                      sante.restrictionAlimentaire === "vegetarien"       ? "Végétarien"       :
-                      sante.restrictionAlimentaire === "sans_gluten"      ? "Sans gluten"      :
-                      sante.restrictionDetails || sante.restrictionAlimentaire
-                    } />
-                  )}
-                  {sante.maladieChronique && <InfoRow label="Maladie chronique" value={sante.maladieChronique} />}
-                  {sante.medicaments && <InfoRow label="Médicaments" value={sante.medicaments} />}
-                </div>
-              )}
-            </Card>
-          </div>
+            )}
 
-          {/* ── Personnes autorisées (Delegation) ─────────────────────── */}
-          <Card className="p-6">
+            {/* Restriction alimentaire */}
+            {santePayload?.restrictionAlimentaire && santePayload.restrictionAlimentaire !== "sans_restriction" && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                <p className="text-xs font-semibold text-yellow-700 mb-0.5">⚠️ Restriction alimentaire</p>
+                <p className="text-sm text-yellow-900">
+                  {{
+                    sans_porc: "Sans porc",
+                    vegetarien: "Végétarien",
+                    sans_gluten: "Sans gluten",
+                    autre: santePayload.restrictionDetails || "Autre",
+                  }[santePayload.restrictionAlimentaire as string] ?? santePayload.restrictionAlimentaire}
+                </p>
+              </div>
+            )}
+
+            {/* Profil santé DB */}
+            {profilSante && (
+              <div className="space-y-1 text-sm border-t border-border pt-3">
+                {profilSante.medecin && <InfoRow label="Médecin" value={profilSante.medecin} />}
+                {profilSante.notes   && <InfoRow label="Notes médicales" value={profilSante.notes} />}
+              </div>
+            )}
+
+            {!profilSante && allergies.length === 0 && intolerances.length === 0 && tags.length === 0 && !santePayload && (
+              <p className="text-sm text-muted-foreground">Aucune information de santé.</p>
+            )}
+          </Card>
+
+          {/* ── Présences ──────────────────────────────────────────────── */}
+          <Card className="p-4 sm:p-5">
+            <h2 className="text-base font-semibold mb-3">📅 Historique des présences</h2>
+
+            {/* Mini stats */}
+            {(nbPresent > 0 || nbAbsent > 0) && (
+              <div className="flex gap-2 mb-4">
+                <div className="flex-1 rounded-xl p-2.5 text-center bg-emerald-50 border border-emerald-200">
+                  <p className="text-xl font-bold text-emerald-700">{nbPresent}</p>
+                  <p className="text-xs text-emerald-600">Présent</p>
+                </div>
+                <div className="flex-1 rounded-xl p-2.5 text-center bg-red-50 border border-red-200">
+                  <p className="text-xl font-bold text-red-600">{nbAbsent}</p>
+                  <p className="text-xs text-red-500">Absent</p>
+                </div>
+                <div className="flex-1 rounded-xl p-2.5 text-center bg-gray-50 border border-gray-200">
+                  <p className="text-xl font-bold text-gray-700">{presenceTotal}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+              </div>
+            )}
+
+            {presenceLoading ? (
+              <p className="text-sm text-center text-muted-foreground py-6 animate-pulse">Chargement…</p>
+            ) : presences.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Aucune présence enregistrée.</p>
+            ) : (
+              <div className="space-y-1">
+                {presences.map((p: any, i: number) => {
+                  const d = (p.date ?? "").slice(0, 10);
+                  const label = d ? new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short", year: "2-digit" }) : "—";
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <p className="text-sm text-gray-700 capitalize">{label}</p>
+                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.statut === "Present" ? "bg-emerald-100 text-emerald-700" : p.statut === "Absent" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"}`}>
+                        {p.statut ?? "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {presenceTotalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setPresencePage(p => Math.max(1, p - 1))}
+                  disabled={presencePage <= 1 || presenceLoading}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Précédent
+                </Button>
+                <span className="text-xs text-muted-foreground">Page {presencePage} / {presenceTotalPages}</span>
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setPresencePage(p => Math.min(presenceTotalPages, p + 1))}
+                  disabled={presencePage >= presenceTotalPages || presenceLoading}
+                  className="flex items-center gap-1"
+                >
+                  Suivant <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* ── Personnes autorisées ────────────────────────────────────── */}
+          <Card className="p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Personnes autorisées à récupérer l'enfant</h2>
+              <h2 className="text-base font-semibold">👥 Personnes autorisées</h2>
               <Button size="sm" onClick={() => { setShowDelForm(true); setDelErr(null); }} className="flex items-center gap-1.5">
-                <Plus className="w-4 h-4" /> Ajouter
+                <Plus className="w-3.5 h-3.5" /> Ajouter
               </Button>
             </div>
 
-            {/* Add delegation form */}
             {showDelForm && (
               <div className="mb-4 p-4 border border-border rounded-xl bg-muted/20 space-y-3">
                 <p className="text-sm font-semibold">Nouvelle personne autorisée</p>
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Nom complet *</label>
                     <Input value={delForm.nom} onChange={e => setDelForm(p => ({ ...p, nom: e.target.value }))} placeholder="Prénom Nom" />
@@ -384,77 +449,159 @@ export default function EnfantDetailPage({
             {delegations.length === 0 && !showDelForm ? (
               <p className="text-sm text-muted-foreground">Aucune personne autorisée enregistrée.</p>
             ) : (
-              <ul className="grid sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {delegations.map((d: any) => (
-                  <li key={d.id} className="p-3 rounded-xl border border-border bg-white flex justify-between items-start gap-2">
-                    <div className="text-sm">
-                      <p className="font-semibold text-foreground">{d.nom}</p>
+                  <div key={d.id} className="p-3 rounded-xl border border-border bg-white flex justify-between items-start gap-2">
+                    <div className="text-sm min-w-0">
+                      <p className="font-semibold text-foreground break-words">{d.nom}</p>
                       {d.relation  && <p className="text-xs text-muted-foreground">Lien : {d.relation}</p>}
                       {d.telephone && <p className="text-xs text-muted-foreground">Tél : {d.telephone}</p>}
                       {d.cin       && <p className="text-xs text-muted-foreground">CIN : {d.cin}</p>}
                     </div>
-                    <button onClick={() => removeDelegation(d.id)} className="text-red-400 hover:text-red-600 mt-0.5 flex-shrink-0">
+                    <button onClick={() => removeDelegation(d.id)} className="text-red-400 hover:text-red-600 flex-shrink-0">
                       <Trash2 className="w-4 h-4" />
                     </button>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
+            )}
+
+            {/* Personnes from inscription payload (fallback) */}
+            {payload?.restrictions?.personnesAutorisees?.length > 0 && delegations.length === 0 && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Depuis le formulaire d'inscription :</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {payload.restrictions.personnesAutorisees.map((p: any, i: number) => (
+                    <div key={i} className="p-3 rounded-lg border border-border bg-muted/20">
+                      <p className="font-medium break-words">{p.name || "—"}</p>
+                      {p.relationship && <p className="text-xs text-muted-foreground">Lien : {p.relationship}</p>}
+                      {p.phone && <p className="text-xs text-muted-foreground">Tél : {p.phone}</p>}
+                      {p.cin   && <p className="text-xs text-muted-foreground">CIN : {p.cin}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </Card>
 
-          {/* ── Personnes autorisées depuis payload inscription ────────── */}
-          {payload?.personnesAutorisees?.length > 0 && delegations.length === 0 && (
-            <Card className="p-6 space-y-3">
-              <h2 className="text-lg font-semibold mb-2">Personnes autorisées (formulaire inscription)</h2>
-              <ul className="grid md:grid-cols-2 gap-3 text-sm">
-                {payload.personnesAutorisees.map((p: any, i: number) => (
-                  <li key={i} className="p-3 rounded-lg border border-border bg-muted/20">
-                    <p className="font-medium">{p.name || "—"}</p>
-                    {p.relationship && <p className="text-xs text-muted-foreground">Lien : {p.relationship}</p>}
-                    {p.phone && <p className="text-xs text-muted-foreground">Tél : {p.phone}</p>}
-                    {p.cin   && <p className="text-xs text-muted-foreground">CIN : {p.cin}</p>}
-                  </li>
+          {/* ── Parents / tuteurs ───────────────────────────────────────── */}
+          <Card className="p-4 sm:p-5">
+            <h2 className="text-base font-semibold mb-3">👪 Parents / tuteurs</h2>
+            {tuteurs.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {tuteurs.map((tut: any) => (
+                  <div key={tut.id} className="p-3 rounded-xl border border-border bg-white">
+                    <div className="flex items-center justify-between mb-1 gap-2">
+                      <span className="font-medium text-sm break-words">{`${tut.prenom ?? ""} ${tut.nom ?? ""}`.trim() || tut.telephone || "—"}</span>
+                      {tut.principal && <Badge className="bg-emerald-100 text-emerald-700 text-[11px] flex-shrink-0">Principal</Badge>}
+                    </div>
+                    {tut.lien      && <p className="text-xs text-muted-foreground">Lien : {tut.lien}</p>}
+                    {tut.telephone && <p className="text-xs text-muted-foreground">Tél : {tut.telephone}</p>}
+                    {tut.email     && <p className="text-xs text-muted-foreground break-all">Email : {tut.email}</p>}
+                  </div>
                 ))}
-              </ul>
-            </Card>
-          )}
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Aucun tuteur.</p>}
+          </Card>
 
-          {/* ── Parents / tuteurs + Présences ─────────────────────────── */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="p-6 space-y-3">
-              <h2 className="text-lg font-semibold mb-2">Parents / tuteurs</h2>
-              {tuteurs.length > 0 ? (
-                <ul className="space-y-3 text-sm">
-                  {tuteurs.map((tut: any) => (
-                    <li key={tut.id} className="border-b last:border-b-0 pb-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{`${tut.prenom ?? ""} ${tut.nom ?? ""}`.trim() || tut.telephone || "—"}</span>
-                        {tut.principal && <Badge className="bg-emerald-100 text-emerald-700 text-[11px]">Principal</Badge>}
-                      </div>
-                      {tut.lien      && <p className="text-xs text-muted-foreground">Lien : {tut.lien}</p>}
-                      {tut.telephone && <p className="text-xs text-muted-foreground">Tel : {tut.telephone}</p>}
-                      {tut.email     && <p className="text-xs text-muted-foreground">Email : {tut.email}</p>}
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="text-sm text-muted-foreground">Aucun tuteur.</p>}
-            </Card>
-          </div>
-
-          {/* ── Dossier inscription ────────────────────────────────────── */}
+          {/* ── Dossier inscription ─────────────────────────────────────── */}
           {inscription && (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-3">Dossier d'inscription</h2>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <InfoRow label="ID"     value={inscription.id} />
+            <Card className="p-4 sm:p-5">
+              <h2 className="text-base font-semibold mb-3">📄 Dossier d&apos;inscription</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <InfoRow label="Statut" value={inscription.statut} />
-                <InfoRow label="Date"   value={new Date(inscription.createdAt).toLocaleDateString(locale, { day: "2-digit", month: "long", year: "numeric" })} />
+                <InfoRow label="Date" value={new Date(inscription.createdAt).toLocaleDateString(locale, { day: "2-digit", month: "long", year: "numeric" })} />
                 {payload?.famille?.emailPrincipal && <InfoRow label="Email famille" value={payload.famille.emailPrincipal} />}
               </div>
             </Card>
           )}
+
         </div>
       </div>
+
+      {/* ── Edit modal ─────────────────────────────────────────────────────── */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/30">
+              <div>
+                <h2 className="font-bold text-base">Modifier la fiche enfant</h2>
+                <p className="text-xs text-muted-foreground">{fullName}</p>
+              </div>
+              <button onClick={() => setEditing(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Prénom</label>
+                  <Input value={editForm.prenom} onChange={e => setEditForm(p => ({ ...p, prenom: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nom</label>
+                  <Input value={editForm.nom} onChange={e => setEditForm(p => ({ ...p, nom: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Genre</label>
+                <select className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+                  value={editForm.genre} onChange={e => setEditForm(p => ({ ...p, genre: e.target.value }))}>
+                  <option value="">— Non précisé —</option>
+                  <option value="M">Masculin</option>
+                  <option value="F">Féminin</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Classe assignée</label>
+                <select className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+                  value={editForm.classeId} onChange={e => setEditForm(p => ({ ...p, classeId: e.target.value }))}>
+                  <option value="">— Aucune classe —</option>
+                  {classes.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.nom}{c.niveau ? ` (${c.niveau})` : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Photo</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) { alert("Image trop grande (max 5 Mo)"); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => setEditForm(p => ({ ...p, photoUrl: reader.result as string }));
+                    reader.readAsDataURL(file);
+                  }}
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary cursor-pointer"
+                />
+                {editForm.photoUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={editForm.photoUrl} alt="preview" className="w-14 h-14 rounded-xl object-cover border" />
+                    <button type="button" onClick={() => setEditForm(p => ({ ...p, photoUrl: "" }))} className="text-xs text-destructive hover:underline">Supprimer</button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Remarques admin</label>
+                <textarea
+                  className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background min-h-[80px] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={editForm.remarques}
+                  onChange={e => setEditForm(p => ({ ...p, remarques: e.target.value }))}
+                  placeholder="Notes internes…"
+                />
+              </div>
+              {editErr && <p className="text-xs text-destructive bg-destructive/10 rounded px-3 py-2">{editErr}</p>}
+            </div>
+            <div className="flex justify-end gap-3 px-5 py-4 border-t bg-muted/20">
+              <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>Annuler</Button>
+              <Button onClick={saveEdit} disabled={saving} className="flex items-center gap-1.5">
+                <Save className="w-4 h-4" />{saving ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -462,8 +609,9 @@ export default function EnfantDetailPage({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <p className="text-sm">
-      <span className="text-muted-foreground mr-2">{label} :</span>
-      <span className="font-medium">{value}</span>
+      <span className="text-muted-foreground">{label} : </span>
+      <span className="font-medium break-all">{value}</span>
     </p>
   );
 }
+
