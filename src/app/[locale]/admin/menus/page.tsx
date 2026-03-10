@@ -82,9 +82,11 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
   const [error,    setError]    = useState<string | null>(null);
 
   // Day-level modal (edit all 3 fields at once)
-  const [dayModal, setDayModal]   = useState<DayModalState | null>(null);
-  const [saving,   setSaving]     = useState(false);
-  const [modalErr, setModalErr]   = useState<string | null>(null);
+  const [dayModal,      setDayModal]      = useState<DayModalState | null>(null);
+  const [modalPublish,  setModalPublish]  = useState(true);  // publish on save by default
+  const [saving,        setSaving]        = useState(false);
+  const [modalErr,      setModalErr]      = useState<string | null>(null);
+  const [publishingWeek, setPublishingWeek] = useState(false);
 
   // Week-fill modal
   const [weekModal, setWeekModal] = useState(false);
@@ -121,9 +123,9 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
 
   // ── modal ──────────────────────────────────────────────────────────────────
   const openModal = (date: string) => {
-    
     const m = allMenus[date];
     setDayModal({ date, collationMatin: m?.collationMatin ?? "", repas: m?.repas ?? "", gouter: m?.gouter ?? "" });
+    setModalPublish(m?.statut !== "Publie"); // default: publish if not already published
     setModalErr(null);
   };
 
@@ -142,20 +144,25 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       const existing = allMenus[date];
       let saved: any;
       if (existing?.id) {
-        const res = await apiClient.updateMenu(existing.id, { collationMatin, repas, gouter, statut: "Brouillon" } as any);
+        const res = await apiClient.updateMenu(existing.id, { collationMatin, repas, gouter } as any);
         saved = res.data;
       } else {
         const res = await apiClient.createMenu({ date, collationMatin, repas, gouter } as any);
         saved = res.data;
       }
+      // Auto-publish if checkbox checked (and menu is not already published)
+      let finalStatut = saved?.statut ?? existing?.statut ?? "Brouillon";
+      if (modalPublish && finalStatut !== "Publie" && saved?.id) {
+        try { await apiClient.publishMenu(saved.id); finalStatut = "Publie"; } catch {}
+      }
       setAllMenus(prev => ({
         ...prev,
         [date]: {
-          id:            saved?.id            ?? existing?.id,
+          id:             saved?.id            ?? existing?.id,
           collationMatin: saved?.collationMatin ?? collationMatin,
           repas:          saved?.repas          ?? repas,
           gouter:         saved?.gouter         ?? gouter,
-          statut:         saved?.statut         ?? existing?.statut ?? "Brouillon",
+          statut:         finalStatut as "Brouillon" | "Publie",
         },
       }));
       closeModal();
@@ -200,9 +207,13 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
         if (existing?.id) continue; // skip days that already have a menu
         const res = await apiClient.createMenu({ date, collationMatin, repas, gouter } as any);
         const saved = res.data;
+        let statut: "Brouillon" | "Publie" = "Brouillon";
+        if (saved?.id) {
+          try { await apiClient.publishMenu(saved.id); statut = "Publie"; } catch {}
+        }
         setAllMenus(prev => ({
           ...prev,
-          [date]: { id: saved?.id, collationMatin, repas, gouter, statut: "Brouillon" },
+          [date]: { id: saved?.id, collationMatin, repas, gouter, statut },
         }));
       }
       setWeekModal(false);
@@ -223,6 +234,21 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
     } catch {
       alert("Erreur lors de la publication.");
     }
+  };
+
+  const handlePublishWeek = async () => {
+    const drafts = weekDates.filter(d => allMenus[d]?.id && allMenus[d]?.statut !== "Publie");
+    if (!drafts.length) return;
+    setPublishingWeek(true);
+    try {
+      for (const date of drafts) {
+        const menu = allMenus[date];
+        if (!menu?.id) continue;
+        await apiClient.publishMenu(menu.id);
+        setAllMenus(prev => ({ ...prev, [date]: { ...prev[date], statut: "Publie" } }));
+      }
+    } catch { alert("Erreur lors de la publication de la semaine."); }
+    finally { setPublishingWeek(false); }
   };
 
 
@@ -256,6 +282,18 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                 <span className="hidden sm:inline">+ Ajouter menu semaine</span>
                 <span className="sm:hidden">+ Semaine</span>
               </Button>
+              {weekDates.some(d => allMenus[d]?.id && allMenus[d]?.statut !== "Publie") && (
+                <Button
+                  size="sm"
+                  onClick={handlePublishWeek}
+                  disabled={publishingWeek}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                  <span className="hidden sm:inline">{publishingWeek ? "Publication…" : "Publier la semaine"}</span>
+                  <span className="sm:hidden">Publier</span>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -445,6 +483,19 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                   />
                 </div>
               ))}
+
+              {/* Publish toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={modalPublish}
+                  onChange={e => setModalPublish(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-600"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Publier immédiatement <span className="text-xs text-gray-400 font-normal">(visible aux parents)</span>
+                </span>
+              </label>
 
               {modalErr && (
                 <p className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2">{modalErr}</p>

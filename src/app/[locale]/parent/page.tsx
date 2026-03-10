@@ -136,23 +136,17 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
               }
             } catch {}
           }
-          if (enfant.classeId) {
-            try {
-              const today = new Date()
-              const day = (today.getDay() + 6) % 7
-              const monday = new Date(today); monday.setDate(today.getDate() - day); monday.setHours(0,0,0,0)
+          try {
+              const menusRes = await apiClient.listMenus(1, 100)
+              const rawMenus: any[] = menusRes.data?.data ?? menusRes.data?.items ?? (Array.isArray(menusRes.data) ? menusRes.data : [])
               const menusByDate: Record<string, any> = {}
-              for (let i = 0; i < 7; i++) {
-                const d = new Date(monday); d.setDate(monday.getDate() + i)
-                const dateStr = d.toISOString().slice(0, 10)
-                try {
-                  const res = await apiClient.getClassMenu(enfant.classeId as string, dateStr)
-                  const menu = res.data
-                  if (menu) menusByDate[dateStr] = { date: menu.date, entree: menu.entree ?? null, plat: menu.plat ?? null, dessert: menu.dessert ?? null }
-                } catch {}
-              }
+              rawMenus.forEach((m: any) => {
+                const iso = (typeof m.date === "string" ? m.date : "")?.slice(0, 10)
+                if (iso) menusByDate[iso] = { date: iso, entree: m.collationMatin ?? null, plat: m.repas ?? null, dessert: m.gouter ?? null }
+              })
               if (!cancelled) {
                 setWeekMenus(menusByDate)
+                const today = new Date()
                 const todayKey = today.toISOString().slice(0, 10)
                 const todayTime = new Date(todayKey).getTime()
                 if (menusByDate[todayKey]) { setTodayMenu(menusByDate[todayKey]) }
@@ -165,7 +159,6 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
                 }
               }
             } catch {}
-          }
           const delegations = Array.isArray(enfant.delegations) ? enfant.delegations : []
           if (delegations.length > 0) setAuthorizedPersons(delegations.map((d: any) => ({ id: d.id, name: d.nom, role: d.relation ?? null, phone: d.telephone ?? null })))
           else if (Array.isArray(profile?.tuteurs)) setAuthorizedPersons(profile.tuteurs.map((tt: any) => ({ id: tt.id, name: `${tt.prenom ?? ""} ${tt.nom ?? ""}`.trim() || tt.email || "", role: tt.lien ?? null, phone: tt.telephone ?? null })))
@@ -461,8 +454,8 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
         {/* Resume du jour */}
         <Card className="border shadow-sm rounded-2xl" style={{ borderColor: "#AEDFF7" }}>
           <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-gray-900">Résumé du jour</CardTitle>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-sm font-bold text-gray-900 flex-shrink-0">Résumé du jour</CardTitle>
               <DateNav />
             </div>
           </CardHeader>
@@ -473,12 +466,12 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
         <Card className="border border-gray-100 shadow-sm rounded-2xl">
           <CardHeader className="pb-3 border-b border-gray-100">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <CardTitle className="text-sm font-bold text-gray-900">Historique des présences</CardTitle>
+              <CardTitle className="text-sm font-bold text-gray-900 flex-shrink-0">Historique des présences</CardTitle>
               {/* Month filter */}
               <select
                 value={presenceFilterMonth}
                 onChange={e => { setPresenceFilterMonth(e.target.value); setPresencePage(1) }}
-                className="text-xs border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1"
+                className="text-xs border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 max-w-[160px]"
                 style={{ borderColor: "#C5E8F7", color: "#1A1A1A" }}
               >
                 <option value="">Tous les mois</option>
@@ -771,57 +764,97 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   )
 
   // ─── Tab: Menu ────────────────────────────────────────────────────────────
-  const MenuTab = () => (
-    <div className="px-4 pt-4 pb-4 space-y-4">
-      <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+  const MENU_ROWS = [
+    { icon: "🥛", label: "Collation matin", key: "entree" as const },
+    { icon: "🍗", label: "Repas",           key: "plat"   as const },
+    { icon: "🍎", label: "Goûter",          key: "dessert" as const },
+  ]
 
-      {/* Today's menu */}
-      <Card className="shadow-md rounded-2xl" style={{ border: "2px solid #AEDFF7", background: "linear-gradient(to bottom, rgba(174,223,247,0.12), white)" }}>
-        <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-          <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2"><span>🍽️</span> Menu du jour</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {todayMenu ? (
-            <div className="space-y-3">
-              <p className="text-xs font-medium" style={{ color: "#1A1A1A", opacity: 0.6 }}>{new Date(todayMenu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</p>
-              {[
-                { icon: "🥛", label: "Collation matin",  value: todayMenu.entree },
-                { icon: "🍗", label: "Repas",            value: todayMenu.plat },
-                { icon: "🍎", label: "Goûter",           value: todayMenu.dessert },
-              ].filter(r => r.value).map(row => (
-                <div key={row.label} className="flex items-start gap-3 py-2 border-t first:border-0 first:pt-0" style={{ borderColor: "rgba(174,223,247,0.5)" }}>
-                  <span className="text-xl flex-shrink-0">{row.icon}</span>
-                  <div><p className="text-xs font-medium text-gray-500 uppercase">{row.label}</p><p className="text-sm font-semibold text-gray-900">{row.value}</p></div>
-                </div>
-              ))}
-              {!todayMenu.entree && !todayMenu.plat && !todayMenu.dessert && <p className="text-sm text-gray-400">Aucun repas renseigné.</p>}
-            </div>
-          ) : <p className="text-sm text-gray-400">Aucun menu publié pour cette semaine.</p>}
-        </CardContent>
-      </Card>
+  const MenuTab = () => {
+    // Current week: Mon–Sun
+    const today = new Date()
+    const weekStart = new Date(today); weekStart.setDate(today.getDate() - (today.getDay() + 6) % 7); weekStart.setHours(0,0,0,0)
+    const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
+    const weekMenuList = Object.values(weekMenus)
+      .filter((m: any) => {
+        const d = new Date(m.date)
+        return d >= weekStart && d <= weekEnd
+      })
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-      {/* Week menus */}
-      {Object.keys(weekMenus).length > 0 && (
-        <Card className="border shadow-sm rounded-2xl" style={{ borderColor: "#AEDFF7" }}>
+    // All menus (other weeks) sorted descending
+    const allMenuList = Object.values(weekMenus)
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    return (
+      <div className="px-4 pt-4 pb-4 space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+
+        {/* Today's menu */}
+        <Card className="shadow-md rounded-2xl overflow-hidden" style={{ border: "2px solid #AEDFF7", background: "linear-gradient(to bottom, rgba(174,223,247,0.12), white)" }}>
           <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-            <CardTitle className="text-sm font-bold text-gray-900">📋 Menus de la semaine</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span>🍽️</span> Menu du jour
+              {todayMenu && <span className="ml-auto text-xs font-normal text-gray-400">{new Date(todayMenu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</span>}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-3 space-y-3">
-            {Object.values(weekMenus).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((menu: any) => (
-              <div key={menu.date} className="rounded-xl p-3" style={{ background: "rgba(174,223,247,0.1)", border: "1px solid rgba(174,223,247,0.4)" }}>
-                <p className="text-xs font-bold mb-2 uppercase" style={{ color: "#1A1A1A" }}>{new Date(menu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "short" })}</p>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  {[{ icon: "🥛", v: menu.entree }, { icon: "🍗", v: menu.plat }, { icon: "🍎", v: menu.dessert }].map((r, i) => (
-                    <div key={i} className="text-center"><span>{r.icon}</span><p className="text-gray-700 mt-0.5 truncate">{r.v || "—"}</p></div>
-                  ))}
-                </div>
+          <CardContent className="pt-4">
+            {todayMenu ? (
+              <div className="space-y-2">
+                {MENU_ROWS.filter(r => todayMenu[r.key]).map(row => (
+                  <div key={row.key} className="flex items-start gap-3 py-2.5 border-t first:border-0 first:pt-0" style={{ borderColor: "rgba(174,223,247,0.5)" }}>
+                    <span className="text-xl flex-shrink-0 leading-none mt-0.5">{row.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{row.label}</p>
+                      <p className="text-sm font-semibold text-gray-900 leading-snug break-words">{todayMenu[row.key]}</p>
+                    </div>
+                  </div>
+                ))}
+                {!todayMenu.entree && !todayMenu.plat && !todayMenu.dessert && <p className="text-sm text-gray-400">Aucun repas renseigné.</p>}
               </div>
-            ))}
+            ) : (
+              <div className="text-center py-4">
+                <span className="text-3xl">🍽️</span>
+                <p className="text-sm text-gray-400 mt-2">Aucun menu publié pour aujourd&apos;hui.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
-    </div>
-  )
+
+        {/* Week menus */}
+        {allMenuList.length > 0 && (
+          <Card className="border shadow-sm rounded-2xl overflow-hidden" style={{ borderColor: "#AEDFF7" }}>
+            <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
+              <CardTitle className="text-sm font-bold text-gray-900">📋 Menus de la semaine</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3 space-y-2 px-3">
+              {allMenuList.map((menu: any) => {
+                const isToday = menu.date === today.toISOString().slice(0, 10)
+                return (
+                  <div key={menu.date} className="rounded-xl p-3" style={{ background: isToday ? "rgba(174,223,247,0.25)" : "rgba(174,223,247,0.08)", border: `1px solid ${isToday ? "#AEDFF7" : "rgba(174,223,247,0.35)"}` }}>
+                    <p className="text-xs font-bold mb-2 capitalize" style={{ color: isToday ? "#1A73A7" : "#1A1A1A" }}>
+                      {isToday && <span className="text-[10px] bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 mr-1.5">Aujourd&apos;hui</span>}
+                      {new Date(menu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "short" })}
+                    </p>
+                    <div className="space-y-1">
+                      {MENU_ROWS.filter(r => menu[r.key]).map(row => (
+                        <div key={row.key} className="flex items-start gap-2 text-xs">
+                          <span className="flex-shrink-0 w-5 text-center">{row.icon}</span>
+                          <span className="text-gray-500 flex-shrink-0 w-24">{row.label}</span>
+                          <span className="text-gray-800 font-medium break-words min-w-0 flex-1">{menu[row.key]}</span>
+                        </div>
+                      ))}
+                      {!menu.entree && !menu.plat && !menu.dessert && <p className="text-xs text-gray-400 italic">Aucun repas renseigné</p>}
+                    </div>
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    )
+  }
 
   // ─── Tab: Events ──────────────────────────────────────────────────────────
   const EventsTab = () => (
@@ -853,7 +886,7 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
 
   // ─── Main render ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pb-20 md:pb-8" style={{ background: "#FFFFFF" }}>
+    <div className="min-h-screen pb-20 md:pb-8 overflow-x-hidden" style={{ background: "#FFFFFF" }}>
       {/* Desktop tab bar */}
       <div className="hidden md:block sticky top-0 z-40 border-b" style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(8px)", borderColor: "#C5E8F7" }}>
         <div className="max-w-2xl mx-auto px-4 flex gap-1 py-2">
