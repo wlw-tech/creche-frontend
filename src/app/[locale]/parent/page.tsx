@@ -309,44 +309,78 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   )
 
   // ─── Daily Resume Cards ───────────────────────────────────────────────────
-  const DailyResumeContent = () => (
-    <div>
-      {dateDataLoading ? (
-        <p className="text-sm text-gray-400 text-center py-6 animate-pulse">Chargement…</p>
-      ) : childDailyResume ? (
-        <div className="space-y-3">
-          <p className="text-xs text-gray-400">{new Date(childDailyResume.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}</p>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { emoji: "🙂", label: "Humeur",        value: childDailyResume.humeur,         color: "#EBF7FD", textColor: "#1A73A7" },
-              { emoji: "😴", label: "Sieste",         value: childDailyResume.sieste,         color: "#F0EEFF", textColor: "#5B4FCF" },
-              { emoji: "🍽️", label: "Appétit",        value: childDailyResume.appetit,        color: "#FFF4ED", textColor: "#D97706" },
-              { emoji: "✨", label: "Participation",  value: childDailyResume.participation,  color: "#F0FDF4", textColor: "#16A34A" },
-            ].map(item => (
-              <div key={item.label} className="rounded-xl p-3 flex flex-col gap-1" style={{ background: item.color, border: "1px solid rgba(0,0,0,0.06)" }}>
-                <span className="text-xl">{item.emoji}</span>
-                <p className="text-xs text-gray-500">{item.label}</p>
-                <p className="text-sm font-bold" style={{ color: item.textColor }}>{item.value ?? "—"}</p>
-              </div>
-            ))}
-          </div>
-          {childDailyResume.observations && childDailyResume.observations.length > 0 && (
-            <div className="rounded-xl p-3 border" style={{ background: "rgba(174,223,247,0.2)", borderColor: "#AEDFF7" }}>
-              <p className="text-xs font-medium mb-1" style={{ color: "#1A1A1A" }}>💬 Observations</p>
-              <ul className="text-sm text-gray-600 space-y-0.5">
-                {childDailyResume.observations.map((obs, i) => <li key={i}>• {obs}</li>)}
-              </ul>
+  const todayISO = todayDate.toISOString().split("T")[0]
+
+  // resumeData: the resume to show (null = not available / wrong date)
+  // forDate: ISO string of the date we want to display (today or selectedDate)
+  const ResumeEmpty = ({ forDate }: { forDate: string }) => {
+    const isTodayDate = forDate === todayISO
+    const label = isTodayDate
+      ? "Aujourd'hui"
+      : new Date(forDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })
+    return (
+      <div className="text-center py-6 space-y-2">
+        <span className="text-4xl">📋</span>
+        <p className="text-sm font-semibold text-gray-600">Résumé de journée pas encore disponible</p>
+        <p className="text-xs text-gray-400">{label} — l&apos;enseignant n&apos;a pas encore renseigné le résumé.</p>
+        {!isTodayDate && (
+          <button type="button" onClick={goToToday} className="mt-1 text-xs font-medium hover:underline" style={{ color: "#FF6F61" }}>
+            ← Revenir à aujourd&apos;hui
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const ResumeCards = ({ resume }: { resume: typeof childDailyResume }) => {
+    if (!resume) return null
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-gray-400 capitalize">
+          {new Date(resume.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { emoji: "🙂", label: "Humeur",       value: resume.humeur,        color: "#EBF7FD", textColor: "#1A73A7" },
+            { emoji: "😴", label: "Sieste",        value: resume.sieste,        color: "#F0EEFF", textColor: "#5B4FCF" },
+            { emoji: "🍽️", label: "Appétit",       value: resume.appetit,       color: "#FFF4ED", textColor: "#D97706" },
+            { emoji: "✨", label: "Participation", value: resume.participation,  color: "#F0FDF4", textColor: "#16A34A" },
+          ].map(item => (
+            <div key={item.label} className="rounded-xl p-3 flex flex-col gap-1" style={{ background: item.color, border: "1px solid rgba(0,0,0,0.06)" }}>
+              <span className="text-xl">{item.emoji}</span>
+              <p className="text-xs text-gray-500">{item.label}</p>
+              <p className="text-sm font-bold" style={{ color: item.textColor }}>{item.value ?? "—"}</p>
             </div>
-          )}
+          ))}
         </div>
-      ) : (
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-400">{isToday ? "Aucun résumé disponible pour aujourd'hui." : `Aucun résumé pour le ${selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}.`}</p>
-          {!isToday && <button type="button" onClick={goToToday} className="mt-2 text-xs hover:underline" style={{ color: "#FF6F61" }}>Voir aujourd'hui</button>}
-        </div>
-      )}
-    </div>
-  )
+        {resume.observations && resume.observations.length > 0 && (
+          <div className="rounded-xl p-3 border" style={{ background: "rgba(174,223,247,0.2)", borderColor: "#AEDFF7" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "#1A1A1A" }}>💬 Observations</p>
+            <ul className="text-sm text-gray-600 space-y-0.5">
+              {resume.observations.map((obs, i) => <li key={i}>• {obs}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // For Presence tab: shows selected date resume with loading state
+  const DailyResumeContent = () => {
+    const resumeDateStr = childDailyResume ? new Date(childDailyResume.date).toISOString().slice(0, 10) : null
+    const resumeIsForSelectedDate = resumeDateStr === selectedDateStr
+    return (
+      <div>
+        {dateDataLoading ? (
+          <p className="text-sm text-gray-400 text-center py-6 animate-pulse">Chargement…</p>
+        ) : (resumeIsForSelectedDate && childDailyResume) ? (
+          <ResumeCards resume={childDailyResume} />
+        ) : (
+          <ResumeEmpty forDate={selectedDateStr} />
+        )}
+      </div>
+    )
+  }
 
   // ─── Tab: Home ────────────────────────────────────────────────────────────
   const HomeTab = () => (
@@ -374,12 +408,17 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
       {/* Daily resume */}
       <Card className="border shadow-sm rounded-2xl" style={{ borderColor: "#AEDFF7" }}>
         <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-bold text-gray-900">Résumé du jour</CardTitle>
-            <DateNav />
-          </div>
+          <CardTitle className="text-sm font-bold text-gray-900">📋 Résumé du jour</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4"><DailyResumeContent /></CardContent>
+        <CardContent className="pt-4">
+          {dateDataLoading ? (
+            <p className="text-sm text-gray-400 text-center py-6 animate-pulse">Chargement…</p>
+          ) : (childDailyResume && new Date(childDailyResume.date).toISOString().slice(0, 10) === todayISO) ? (
+            <ResumeCards resume={childDailyResume} />
+          ) : (
+            <ResumeEmpty forDate={todayISO} />
+          )}
+        </CardContent>
       </Card>
 
       {/* Class message */}
@@ -771,20 +810,18 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
   ]
 
   const MenuTab = () => {
-    // Current week: Mon–Sun
+    // Current week: Mon–Sun (local dates, no UTC offset issues)
     const today = new Date()
-    const weekStart = new Date(today); weekStart.setDate(today.getDate() - (today.getDay() + 6) % 7); weekStart.setHours(0,0,0,0)
-    const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
+    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (today.getDay() + 6) % 7)
+    const weekEnd   = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
+    // Parse date string as local (YYYY-MM-DD → local midnight)
+    const parseLocal = (iso: string) => { const [y,m,d] = iso.split("-").map(Number); return new Date(y, m-1, d) }
     const weekMenuList = Object.values(weekMenus)
       .filter((m: any) => {
-        const d = new Date(m.date)
+        const d = parseLocal(m.date as string)
         return d >= weekStart && d <= weekEnd
       })
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
-    // All menus (other weeks) sorted descending
-    const allMenuList = Object.values(weekMenus)
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a: any, b: any) => parseLocal(a.date).getTime() - parseLocal(b.date).getTime())
 
     return (
       <div className="px-4 pt-4 pb-4 space-y-4">
@@ -821,37 +858,46 @@ export default function ParentDashboard({ params }: { params: Promise<{ locale: 
           </CardContent>
         </Card>
 
-        {/* Week menus */}
-        {allMenuList.length > 0 && (
-          <Card className="border shadow-sm rounded-2xl overflow-hidden" style={{ borderColor: "#AEDFF7" }}>
-            <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
-              <CardTitle className="text-sm font-bold text-gray-900">📋 Menus de la semaine</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3 space-y-2 px-3">
-              {allMenuList.map((menu: any) => {
-                const isToday = menu.date === today.toISOString().slice(0, 10)
-                return (
-                  <div key={menu.date} className="rounded-xl p-3" style={{ background: isToday ? "rgba(174,223,247,0.25)" : "rgba(174,223,247,0.08)", border: `1px solid ${isToday ? "#AEDFF7" : "rgba(174,223,247,0.35)"}` }}>
-                    <p className="text-xs font-bold mb-2 capitalize" style={{ color: isToday ? "#1A73A7" : "#1A1A1A" }}>
-                      {isToday && <span className="text-[10px] bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 mr-1.5">Aujourd&apos;hui</span>}
-                      {new Date(menu.date).toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "short" })}
-                    </p>
-                    <div className="space-y-1">
-                      {MENU_ROWS.filter(r => menu[r.key]).map(row => (
-                        <div key={row.key} className="flex items-start gap-2 text-xs">
-                          <span className="flex-shrink-0 w-5 text-center">{row.icon}</span>
-                          <span className="text-gray-500 flex-shrink-0 w-24">{row.label}</span>
-                          <span className="text-gray-800 font-medium break-words min-w-0 flex-1">{menu[row.key]}</span>
-                        </div>
-                      ))}
-                      {!menu.entree && !menu.plat && !menu.dessert && <p className="text-xs text-gray-400 italic">Aucun repas renseigné</p>}
-                    </div>
+        {/* Week menus — current week only */}
+        <Card className="border shadow-sm rounded-2xl overflow-hidden" style={{ borderColor: "#AEDFF7" }}>
+          <CardHeader className="pb-3 border-b" style={{ borderColor: "#AEDFF7" }}>
+            <CardTitle className="text-sm font-bold text-gray-900">
+              📋 Menus de la semaine
+              <span className="ml-2 text-[11px] font-normal text-gray-400">
+                {weekStart.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} – {weekEnd.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2 px-3">
+            {weekMenuList.length === 0 ? (
+              <div className="text-center py-5">
+                <span className="text-3xl">🗓️</span>
+                <p className="text-sm text-gray-400 mt-2">Aucun menu publié pour cette semaine.</p>
+              </div>
+            ) : weekMenuList.map((menu: any) => {
+              const d = new Date(); const localISO = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+              const isMenuToday = menu.date === localISO
+              return (
+                <div key={menu.date} className="rounded-xl p-3" style={{ background: isMenuToday ? "rgba(174,223,247,0.25)" : "rgba(174,223,247,0.08)", border: `1px solid ${isMenuToday ? "#AEDFF7" : "rgba(174,223,247,0.35)"}` }}>
+                  <p className="text-xs font-bold mb-2 capitalize flex items-center gap-1.5" style={{ color: isMenuToday ? "#1A73A7" : "#1A1A1A" }}>
+                    {isMenuToday && <span className="text-[10px] bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">Aujourd&apos;hui</span>}
+                    {new Date(menu.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "short" })}
+                  </p>
+                  <div className="space-y-1">
+                    {MENU_ROWS.filter(r => menu[r.key]).map(row => (
+                      <div key={row.key} className="flex items-start gap-2 text-xs">
+                        <span className="flex-shrink-0 w-5 text-center">{row.icon}</span>
+                        <span className="text-gray-500 flex-shrink-0 w-24">{row.label}</span>
+                        <span className="text-gray-800 font-medium break-words min-w-0 flex-1">{menu[row.key]}</span>
+                      </div>
+                    ))}
+                    {!menu.entree && !menu.plat && !menu.dessert && <p className="text-xs text-gray-400 italic">Aucun repas renseigné</p>}
                   </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-        )}
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
       </div>
     )
   }
