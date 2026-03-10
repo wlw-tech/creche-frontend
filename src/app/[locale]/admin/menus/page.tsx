@@ -265,15 +265,20 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
         <div className="space-y-6 max-w-5xl mx-auto">
 
           {/* ── Header ── */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menus de la semaine</h1>
-            </div>
+          <div className="space-y-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menus de la semaine</h1>
+
+            {/* Navigation row */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={prevWeek}><ChevronLeft className="w-4 h-4" /></Button>
-              <span className="text-sm font-medium text-foreground min-w-[200px] text-center hidden sm:inline">{formatWeekLabel(monday)}</span>
-              <Button variant="outline" size="sm" onClick={nextWeek}><ChevronRight className="w-4 h-4" /></Button>
-              <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
+              <Button variant="outline" size="sm" onClick={prevWeek} className="h-9 w-9 p-0"><ChevronLeft className="w-4 h-4" /></Button>
+              <span className="text-sm font-medium text-foreground text-center flex-1 sm:flex-none sm:min-w-[200px]">{formatWeekLabel(monday)}</span>
+              <Button variant="outline" size="sm" onClick={nextWeek} className="h-9 w-9 p-0"><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="outline" size="sm" onClick={goToday} className="hidden sm:inline-flex">Aujourd&apos;hui</Button>
+            </div>
+
+            {/* Action buttons row */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={goToday} className="sm:hidden">Aujourd&apos;hui</Button>
               <Button
                 size="sm"
                 onClick={() => { setWeekModal(true); setWeekErr(null); setWeekForm({ collationMatin: "", repas: "", gouter: "" }); }}
@@ -290,8 +295,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                   className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                  <span className="hidden sm:inline">{publishingWeek ? "Publication…" : "Publier la semaine"}</span>
-                  <span className="sm:hidden">Publier</span>
+                  {publishingWeek ? "Publication…" : "Publier la semaine"}
                 </Button>
               )}
               <Button
@@ -303,13 +307,10 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                 <span className="hidden sm:inline">Supprimer la semaine</span>
-                <span className="sm:hidden">Sup.</span>
+                <span className="sm:hidden">Supprimer</span>
               </Button>
             </div>
           </div>
-
-          {/* Week label on mobile */}
-          <p className="sm:hidden text-sm text-center font-medium text-muted-foreground -mt-2">{formatWeekLabel(monday)}</p>
 
           {error && (
             <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">{error}</div>
@@ -329,26 +330,24 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                   return (
                     <div key={iso} className={`rounded-xl border bg-white overflow-hidden shadow-sm ${isToday ? "border-primary" : "border-border"}`}>
                       {/* Day header */}
-                      <div className={`flex items-center justify-between px-4 py-3 ${isToday ? "bg-primary/5" : "bg-muted/30"}`}>
-                        <div>
+                      <div className={`flex items-start justify-between gap-2 px-4 py-3 ${isToday ? "bg-primary/5" : "bg-muted/30"}`}>
+                        <div className="flex-shrink-0">
                           <p className={`font-bold text-sm ${isToday ? "text-primary" : "text-foreground"}`}>{JOURS[idx]}</p>
                           <p className="text-xs text-muted-foreground">{d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 justify-end">
                           {isPublished ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">Publié ✓</span>
-                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70"><Pencil className="w-3 h-3" /> Modifier</button>
-                              </div>
+                            <>
+                              <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full border border-emerald-200 font-medium whitespace-nowrap">✓ Publié</span>
+                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-1 rounded-full border border-sky-200 active:opacity-70 whitespace-nowrap"><Pencil className="w-3 h-3" /> Modifier</button>
+                            </>
                           ) : (
                             <>
-                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full border border-sky-200 active:opacity-70">
-                                <Pencil className="w-3 h-3" /> Modifier
+                              <button onClick={() => openModal(iso)} className="inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-2 py-1 rounded-full border border-sky-200 active:opacity-70 whitespace-nowrap">
+                                <Pencil className="w-3 h-3" /> {menu?.id ? "Modifier" : "Ajouter"}
                               </button>
                               {menu?.id && (
-                                <>
-                                  <button onClick={() => handlePublish(iso)} className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 active:opacity-70">Publier</button>
-                                  </>
+                                <button onClick={() => handlePublish(iso)} className="text-[11px] bg-amber-100 text-amber-700 px-2 py-1 rounded-full border border-amber-200 active:opacity-70 whitespace-nowrap">Publier</button>
                               )}
                             </>
                           )}
@@ -358,8 +357,8 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
                       <div className="divide-y divide-border px-4">
                         {MEAL_ROWS.map(row => (
                           <div key={row.key} className="py-2.5 flex items-start gap-2">
-                            <span className="text-xs font-semibold text-muted-foreground w-32 flex-shrink-0 pt-0.5">{row.label}</span>
-                            <span className="text-sm text-foreground">{menu?.[row.key] || <span className="text-muted-foreground/40 italic text-xs">—</span>}</span>
+                            <span className="text-xs font-semibold text-muted-foreground flex-shrink-0 pt-0.5">{row.label}</span>
+                            <span className="text-sm text-foreground break-words min-w-0">{menu?.[row.key] || <span className="text-muted-foreground/40 italic text-xs">—</span>}</span>
                           </div>
                         ))}
                       </div>
@@ -453,10 +452,10 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       {/* ── Day Edit Modal ────────────────────────────────────────────────────── */}
       {dayModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md overflow-hidden max-h-[92vh] flex flex-col">
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
               <div>
@@ -470,7 +469,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
             </div>
 
             {/* Modal body */}
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               {MEAL_ROWS.map(row => (
                 <div key={row.key}>
                   <label className="block text-xs font-semibold text-foreground mb-1">{row.label}</label>
@@ -516,10 +515,10 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
       {/* ── Week Fill Modal ─────────────────────────────────────────────────────── */}
       {weekModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md overflow-hidden max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
               <div>
                 <h2 className="font-bold text-base text-foreground">Ajouter menu pour la semaine</h2>
@@ -527,7 +526,7 @@ export default function MenusPage({ params }: { params: Promise<{ locale: Locale
               </div>
               <button onClick={() => setWeekModal(false)} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
             </div>
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               {MEAL_ROWS.map(row => (
                 <div key={row.key}>
                   <label className="block text-xs font-semibold text-foreground mb-1">{row.label}</label>
