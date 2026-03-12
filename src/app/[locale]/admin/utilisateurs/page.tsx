@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,17 @@ import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { Locale } from "@/lib/i18n/config";
+
+function readJwtRole(): string {
+  try {
+    const token = Cookies.get("token") || Cookies.get("auth_token");
+    if (!token) return "";
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4 ? "=".repeat(4 - (base64.length % 4)) : "";
+    return String(JSON.parse(atob(base64 + pad)).role ?? "");
+  } catch { return ""; }
+}
+const noSub = () => () => {};
 
 type UserItem = {
   id: string;
@@ -38,9 +50,13 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
     email: "",
     prenom: "",
     nom: "",
-    role: "ENSEIGNANT" as "ENSEIGNANT" | "PARENT",
+    role: "ENSEIGNANT" as "ENSEIGNANT" | "PARENT" | "ADMIN",
     telephone: "",
   });
+
+  // useSyncExternalStore — "" côté serveur, cookie JWT côté client
+  const currentUserRole = useSyncExternalStore(noSub, readJwtRole, () => "");
+  const isSuperAdmin = currentUserRole === "SUPER_ADMIN";
 
   useEffect(() => {
     let cancelled = false;
@@ -213,7 +229,11 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                     >
                       <option value="ENSEIGNANT">Enseignant</option>
                       <option value="PARENT">Parent</option>
+                      {isSuperAdmin && <option value="ADMIN">Administrateur</option>}
                     </select>
+                    {isSuperAdmin && createForm.role === "ADMIN" && (
+                      <p className="text-xs text-amber-600 mt-1">⚠️ Ce compte aura accès au panneau d&apos;administration.</p>
+                    )}
                   </div>
                 </div>
 
@@ -268,6 +288,11 @@ export default function UtilisateursPage({ params }: { params: Promise<{ locale:
                 <option value="ENSEIGNANT">ENSEIGNANT</option>
                 <option value="PARENT">PARENT</option>
               </select>
+              {isSuperAdmin && (
+                <span className="text-xs px-2 py-1.5 rounded-md bg-purple-100 text-purple-700 font-semibold border border-purple-200 flex-shrink-0">
+                  👑 Super Admin
+                </span>
+              )}
             </div>
 
             {loading ? (

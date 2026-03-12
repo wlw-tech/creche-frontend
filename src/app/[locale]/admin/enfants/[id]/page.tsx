@@ -487,32 +487,92 @@ export default function EnfantDetailPage({
           {/* ── Parents / tuteurs ───────────────────────────────────────── */}
           <Card className="p-4 sm:p-5">
             <h2 className="text-base font-semibold mb-3">👪 Parents / tuteurs</h2>
-            {tuteurs.length > 0 ? (
+
+            {/* Payload tuteurs (avec CIN) priorité sur les DB tuteurs */}
+            {Array.isArray(payload?.tuteurs) && payload.tuteurs.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {payload.tuteurs.map((tut: any, i: number) => (
+                  <div key={i} className="p-3 rounded-xl border border-border bg-white space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm break-words">{`${tut.prenom ?? ""} ${tut.nom ?? ""}`.trim() || "—"}</span>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {tut.principal && <Badge className="bg-emerald-100 text-emerald-700 text-[11px]">Principal</Badge>}
+                        {tut.lien && <Badge variant="outline" className="text-[11px]">{tut.lien}</Badge>}
+                      </div>
+                    </div>
+                    {tut.cin       && <p className="text-xs text-muted-foreground">CIN : <span className="font-medium text-foreground">{tut.cin}</span></p>}
+                    {tut.telephone && <p className="text-xs text-muted-foreground">Tél : {tut.telephone}</p>}
+                    {tut.email     && <p className="text-xs text-muted-foreground break-all">Email : {tut.email}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : tuteurs.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {tuteurs.map((tut: any) => (
-                  <div key={tut.id} className="p-3 rounded-xl border border-border bg-white">
+                  <div key={tut.id} className="p-3 rounded-xl border border-border bg-white space-y-1">
                     <div className="flex items-center justify-between mb-1 gap-2">
                       <span className="font-medium text-sm break-words">{`${tut.prenom ?? ""} ${tut.nom ?? ""}`.trim() || tut.telephone || "—"}</span>
                       {tut.principal && <Badge className="bg-emerald-100 text-emerald-700 text-[11px] flex-shrink-0">Principal</Badge>}
                     </div>
                     {tut.lien      && <p className="text-xs text-muted-foreground">Lien : {tut.lien}</p>}
+                    {tut.cin       && <p className="text-xs text-muted-foreground">CIN : <span className="font-medium text-foreground">{tut.cin}</span></p>}
                     {tut.telephone && <p className="text-xs text-muted-foreground">Tél : {tut.telephone}</p>}
                     {tut.email     && <p className="text-xs text-muted-foreground break-all">Email : {tut.email}</p>}
                   </div>
                 ))}
               </div>
             ) : <p className="text-sm text-muted-foreground">Aucun tuteur.</p>}
+
+            {/* Infos famille (adresse + situation familiale) */}
+            {(payload?.famille?.adresseFacturation || payload?.famille?.situationFamiliale) && (
+              <div className="mt-3 pt-3 border-t border-border space-y-1">
+                {payload?.famille?.situationFamiliale && (
+                  <p className="text-xs text-muted-foreground">👨‍👩‍👧 Situation familiale : <span className="font-medium text-foreground">{payload.famille.situationFamiliale}</span></p>
+                )}
+                {payload?.famille?.adresseFacturation && (
+                  <p className="text-xs text-muted-foreground">📍 Adresse : <span className="text-foreground">{payload.famille.adresseFacturation}</span></p>
+                )}
+              </div>
+            )}
           </Card>
 
           {/* ── Dossier inscription ─────────────────────────────────────── */}
           {inscription && (
-            <Card className="p-4 sm:p-5">
-              <h2 className="text-base font-semibold mb-3">📄 Dossier d&apos;inscription</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <Card className="p-4 sm:p-5 space-y-3">
+              <h2 className="text-base font-semibold">📄 Dossier d&apos;inscription</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <InfoRow label="Statut" value={inscription.statut} />
                 <InfoRow label="Date" value={new Date(inscription.createdAt).toLocaleDateString(locale, { day: "2-digit", month: "long", year: "numeric" })} />
                 {payload?.famille?.emailPrincipal && <InfoRow label="Email famille" value={payload.famille.emailPrincipal} />}
+                {payload?.famille?.languePreferee && <InfoRow label="Langue" value={payload.famille.languePreferee === "fr" ? "Français" : "Arabe"} />}
               </div>
+
+              {/* Restrictions / personnes autorisées depuis le formulaire */}
+              {payload?.restrictions && (
+                <div className="pt-2 border-t border-border">
+                  {payload.restrictions.sansRestriction ? (
+                    <p className="text-xs text-muted-foreground">✅ Toutes personnes autorisées à récupérer l&apos;enfant (sans restriction).</p>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Personnes autorisées (formulaire)</p>
+                      {Array.isArray(payload.restrictions.personnesAutorisees) && payload.restrictions.personnesAutorisees.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {payload.restrictions.personnesAutorisees.map((p: { name?: string; relationship?: string; cin?: string; phone?: string }, i: number) => (
+                            <div key={i} className="text-xs p-2.5 rounded-lg border border-border bg-muted/20">
+                              <p className="font-medium">{p.name || "—"}</p>
+                              {p.relationship && <p className="text-muted-foreground">Lien : {p.relationship}</p>}
+                              {p.cin          && <p className="text-muted-foreground">CIN : {p.cin}</p>}
+                              {p.phone        && <p className="text-muted-foreground">Tél : {p.phone}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Aucune personne autorisée renseignée.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </Card>
           )}
 

@@ -64,7 +64,7 @@ export default function Home({ params }: { params: Promise<{ locale: Locale }> }
         router.push(`/${currentLocale}/parent`)
       } else if (normalizedRole === "ENSEIGNANT") {
         router.push(`/${currentLocale}/teacher`)
-      } else if (normalizedRole === "ADMIN") {
+      } else if (normalizedRole === "ADMIN" || normalizedRole === "SUPER_ADMIN") {
         router.push(`/${currentLocale}/admin`)
       } else {
         // Fallback : page d accueil locale

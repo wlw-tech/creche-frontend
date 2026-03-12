@@ -204,6 +204,7 @@ export default function InscriptionsPage() {
           emailPrincipal: primaryEmail,
           languePreferee: locale,
           adresseFacturation: formData.motherAddress || formData.fatherAddress || undefined,
+          situationFamiliale: formData.familySituation || undefined,
         },
         tuteurs,
         enfant: {
@@ -211,6 +212,8 @@ export default function InscriptionsPage() {
           nom: formData.childLastName,
           dateNaissance: formData.dateOfBirth,
           photoUrl: formData.childPhotoBase64 || undefined,
+          fraternity: formData.fraternity || undefined,
+          rankInFraternity: formData.rankInFraternity || undefined,
         },
         classeIdSouhaitee: formData.classeIdSouhaitee,
         sante: {

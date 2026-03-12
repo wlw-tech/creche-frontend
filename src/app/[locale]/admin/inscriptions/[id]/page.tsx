@@ -9,6 +9,8 @@ import { SidebarNew } from "@/components/layout/sidebar-new"
 import { apiClient } from "@/lib/api"
 import type { Locale } from "@/lib/i18n/config"
 
+type ClasseItem = { id: string; nom: string; niveau?: string | null }
+
 interface AdminInscriptionDetailProps {
   params: Promise<{ locale: Locale; id: string }>
 }
@@ -21,15 +23,24 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inscription, setInscription] = useState<any | null>(null)
+  const [classes, setClasses] = useState<ClasseItem[]>([])
 
   useEffect(() => {
     let cancelled = false
-    async function fetchDetail() {
+    async function fetchAll() {
       try {
         setLoading(true)
         setError(null)
-        const res = await apiClient.getAdminInscription(id)
-        if (!cancelled) setInscription(res.data)
+        const [inscRes, classesRes] = await Promise.all([
+          apiClient.getAdminInscription(id),
+          apiClient.listClasses().catch(() => ({ data: [] })),
+        ])
+        if (!cancelled) {
+          setInscription(inscRes.data)
+          const raw = classesRes.data
+          const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : (raw?.items ?? []))
+          setClasses(list)
+        }
       } catch (err: any) {
         console.error("[Admin/InscriptionDetail] Error loading inscription", err)
         if (!cancelled) setError("Impossible de charger le détail de l'inscription.")
@@ -37,7 +48,7 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
         if (!cancelled) setLoading(false)
       }
     }
-    fetchDetail()
+    fetchAll()
     return () => { cancelled = true }
   }, [id])
 
@@ -79,6 +90,15 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
   const personnesAutorisees: any[] = restrictions.personnesAutorisees ?? []
   const sansRestriction: boolean = restrictions.sansRestriction ?? false
   const parents = inscription.parents ?? []
+  type TuteurRow = { prenom?: string; nom?: string; lien?: string; email?: string; telephone?: string; cin?: string; profession?: string; adresse?: string; principal?: boolean }
+  const payloadTuteurs: TuteurRow[] = payload.tuteurs ?? []
+
+  // Résoudre l'ID de classe en nom
+  const classeIdSouhaitee: string | undefined = payload.classeIdSouhaitee ?? enfant.classeIdSouhaitee
+  const classeFound = classeIdSouhaitee ? classes.find((c) => c.id === classeIdSouhaitee) : undefined
+  const classeNom = classeFound
+    ? `${classeFound.nom}${classeFound.niveau ? ` (${classeFound.niveau})` : ""}`
+    : classeIdSouhaitee
 
   const tagsMaladies: string[] = sante.tagsMaladies ?? []
   const tagsAllergies: string[] = sante.tagsAllergies ?? []
@@ -153,8 +173,9 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
                 <div className="mt-3 divide-y divide-border">
                   <Field label="Date de naissance" value={enfant.dateNaissance} />
                   <Field label="Genre" value={enfant.genre} />
-                  <Field label="Fratrie" value={enfant.fraternity ? `${enfant.fraternity} (rang ${enfant.rankInFraternity ?? "?"})` : null} />
-                  <Field label="Classe souhaitée" value={enfant.classeIdSouhaitee ?? payload.classeIdSouhaitee} />
+                  {enfant.fraternity && <Field label="Fratrie" value={enfant.fraternity} />}
+                  {enfant.rankInFraternity && <Field label="Rang dans la fratrie" value={enfant.rankInFraternity} />}
+                  <Field label="Classe souhaitée" value={classeNom} />
                   {famille.adresseFacturation && (
                     <Field label="Adresse facturation" value={famille.adresseFacturation} />
                   )}
@@ -171,11 +192,12 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
               Parents / Tuteurs
             </h2>
-            {parents.length === 0 ? (
+            {/* Utilise les tuteurs du payload (CANDIDATURE) ou les parents DB (ACTIF) */}
+            {(payloadTuteurs.length > 0 ? payloadTuteurs : parents).length === 0 ? (
               <p className="text-xs text-muted-foreground">Aucun parent associé à ce dossier.</p>
             ) : (
               <div className="space-y-4">
-                {parents.map((p: any, idx: number) => (
+                {(payloadTuteurs.length > 0 ? payloadTuteurs : parents as TuteurRow[]).map((p, idx) => (
                   <div key={idx} className="rounded-lg border bg-background p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <p className="font-semibold text-foreground">
@@ -193,27 +215,12 @@ export default function AdminInscriptionDetailPage({ params }: AdminInscriptionD
                     <div className="divide-y divide-border">
                       <Field label="Email" value={p.email} />
                       <Field label="Téléphone" value={p.telephone} />
-                      <Field
-                        label="CIN"
-                        value={
-                          p.cin ??
-                          (p.lien === "mere" || p.lien === "Mère" || p.lien === "mother"
-                            ? payload.motherCin
-                            : payload.fatherCin)
-                        }
-                      />
+                      {p.cin && <Field label="CIN" value={p.cin} />}
                       <Field label="Profession" value={p.profession} />
                       <Field label="Adresse" value={p.adresse} />
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-            {/* CIN from payload if not in parents */}
-            {parents.length === 0 && (payload.motherCin || payload.fatherCin) && (
-              <div className="mt-3 divide-y divide-border">
-                {payload.motherCin && <Field label="CIN Mère" value={payload.motherCin} />}
-                {payload.fatherCin && <Field label="CIN Père" value={payload.fatherCin} />}
               </div>
             )}
           </Card>

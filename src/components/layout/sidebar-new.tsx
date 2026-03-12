@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import Cookies from "js-cookie";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import {
   LayoutDashboard,
@@ -22,6 +23,18 @@ import {
   ScrollText,
 } from "lucide-react";
 
+// Lit un claim du JWT depuis les cookies (côté client seulement)
+function readJwtClaim(claim: "role" | "email"): string {
+  try {
+    const token = Cookies.get("token") || Cookies.get("auth_token");
+    if (!token) return "";
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4 ? "=".repeat(4 - (base64.length % 4)) : "";
+    return String(JSON.parse(atob(base64 + pad))[claim] ?? "");
+  } catch { return ""; }
+}
+const noSubscribe = () => () => {};
+
 interface SidebarItem {
   labelKey: string;
   href: string;
@@ -35,6 +48,17 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
+
+  // useSyncExternalStore : "" sur serveur, valeur du cookie sur client — sans useEffect
+  const jwtRole  = useSyncExternalStore(noSubscribe, () => readJwtClaim("role"),  () => "");
+  const jwtEmail = useSyncExternalStore(noSubscribe, () => readJwtClaim("email"), () => "");
+  const isSuperAdmin = jwtRole === "SUPER_ADMIN";
+  const adminEmail   = jwtEmail;
+
+  // DEBUG — à retirer après vérification
+  if (typeof window !== "undefined") {
+    console.log("[Sidebar] jwtRole:", jwtRole, "| isSuperAdmin:", isSuperAdmin);
+  }
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -151,11 +175,18 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                 height={40}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="font-bold text-lg text-sidebar-foreground">PetitsPas</h1>
-              <p className="text-xs text-sidebar-foreground/60">Admin</p>
+              {isSuperAdmin ? (
+                <span className="text-xs font-semibold text-purple-600">👑 Super Admin</span>
+              ) : (
+                <p className="text-xs text-sidebar-foreground/60">Admin</p>
+              )}
             </div>
           </Link>
+          {isSuperAdmin && adminEmail && (
+            <p className="text-[10px] text-sidebar-foreground/50 mt-1 truncate pl-[52px]">{adminEmail}</p>
+          )}
         </div>
 
         <nav className="space-y-2 px-3 pb-32">
@@ -267,9 +298,13 @@ export function SidebarNew({ currentLocale }: { currentLocale: string }) {
                 height={40}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="font-bold text-lg text-sidebar-foreground">PetitsPas</h1>
-              <p className="text-xs text-sidebar-foreground/60">Admin</p>
+              {isSuperAdmin ? (
+                <span className="text-xs font-semibold text-purple-600">👑 Super Admin</span>
+              ) : (
+                <p className="text-xs text-sidebar-foreground/60">Admin</p>
+              )}
             </div>
           </Link>
 

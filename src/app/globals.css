@@ -113,9 +113,37 @@
 @layer base {
   * {
     @apply border-border;
+    /* Prevent iOS text size adjustment on orientation change */
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+  }
+  /* Remove tap highlight on iOS */
+  a, button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  /* Fix 100vh on iPhone (accounts for browser chrome) */
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+  /* Scrollable containers on iOS */
+  .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Input zoom fix on iOS (font-size < 16px triggers zoom) */
+  input, select, textarea {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input, select, textarea {
+      font-size: 0.875rem;
+    }
   }
 }
 
